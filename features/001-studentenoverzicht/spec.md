@@ -74,11 +74,12 @@ Dit is de kern van het dashboard en de opvolger van de tabel in de console-app (
 
 ### Filteren, groeperen, zoeken en sorteren
 
-- [x] **F14 – Filter op wie.** Keuze uit Mijn coachstudenten, Mijn gildestudenten en Alle gevolgde studenten ([gegevensmodel.md](../../docs/gegevensmodel.md#gebruiker)).
+- [x] **F14 – Filter op wie.** Keuze uit Alle studenten, Alle studenten die ik niet heb verborgen (standaard), Mijn coachstudenten, Mijn gildestudenten en Alle studenten van wie ik het portfolio kan zien ([gegevensmodel.md](../../docs/gegevensmodel.md#gebruiker); gewijzigd met [spec 019](../019-eenvoudige-start/spec.md)).
   - *Acceptatie:* de gebruiker "A. Coach" heeft 3 studenten bij wie coach = "A. Coach"; "Mijn coachstudenten" toont die 3.
 - [x] **F15 – Extra filters.** Op semester, invulling, squad en beroepsrol, te combineren met F13 en F14.
   - *Acceptatie:* "Mijn coachstudenten" + semester 3 toont alleen coachstudenten in semester 3.
 - [x] **F16 – Groeperen.** Standaard per squad; ook per invulling, semester, gilde of beroepsrol. De groepskop toont een gekleurde streep, de naam, de volledige naam en het aantal studenten. "Nog in te delen" en "Zonder project" komen als laatste. De keuze **"Niet groeperen"** toont alle studenten in één lijst zonder groepskoppen, gesorteerd op naam (toegevoegd 2026-11-10).
+  - In de keuzelijst staat "Niet groeperen" als eerste keuze (de standaard blijft per squad).
   - *Acceptatie:* een student zonder squad staat onder "Zonder project"; een student zonder semester onder "Nog in te delen". Bij "Niet groeperen" staan er geen groepskoppen en alle studenten op naam.
 - [x] **F17 – Zoeken.** Zoekveld op naam, squad en profiel, met sneltoets ⌘K. Het zoeken filtert terwijl je typt.
   - *Acceptatie:* zoeken op "cond" toont alleen studenten van squad "02 Condor".
@@ -168,3 +169,10 @@ Er is nog geen ontwerp met de afwijkingen (meerdere niveaus per cel, `?`, signaa
 - 2026-11-10 – het filter Invulling toont de opties met uitleg ("Open Projecten (jaar 2)", …; [gegevensmodel.md](../../docs/gegevensmodel.md#student))
 - 2026-11-10 – de extra kolommen Coach en Gildemeester tonen de voornaam; kolommen met de volledige naam zijn erbij te kiezen ([spec 006](../006-gildemeesters/spec.md), F21)
 - 2026-11-10 – aangepast door [spec 018](../018-beroepsrol-in-gilde/spec.md): het filter Beroepsrol heet Gilde en toont de gildes
+- 2026-11-11 – aangepast door [spec 019](../019-eenvoudige-start/spec.md): het filter op wie (F14) heeft nu vier keuzes, met "Alle studenten die ik niet heb verborgen" als standaard, en "Alle gevolgde studenten" heet "Alle studenten van wie ik het portfolio kan zien"; per rij een icoon om te verbergen; de subregel "Sem N" (F2) is een keuzelijstje; zolang niets is ingedeeld is "Niet groeperen" de standaard (F16); een lege extra kolom staat standaard uit (F3); alle beoordelaars tellen mee, behalve uitgesloten (F6)
+- 2026-11-11 – aangepast door [spec 023](../023-filters-onthouden/spec.md): de filters worden per pagina onthouden, met "Filters wissen"
+- 2026-11-11 – op verzoek van de gebruiker: elke student past op één regel. Het semester staat naast de naam in plaats van eronder (F2), en de kolommen Gilde en de extra kolommen lopen niet meer door naar een tweede regel
+- 2026-11-11 – aangepast door [spec 024](../024-keuzelijsten/spec.md): eigen kolommen kunnen een keuzelijst zijn (een keuzelijstje in de cel, een filter en een groepering); Invulling volgt de volgorde van de keuzelijst
+- 2026-11-11 – aangepast door [spec 025](../025-invulling-en-stage/spec.md): een stagestudent zonder project staat bij Groeperen: Project in de groep "(Stage)"; kiezen van semester 3, 4 of 8 vult een lege invulling
+- 2026-11-11 – aangepast door [spec 019](../019-eenvoudige-start/spec.md): het filter op wie (F14) heeft bovenaan de keuze "Alle studenten", die niets filtert
+- 2026-11-11 – op verzoek van de gebruiker: "Niet groeperen" staat als eerste in de keuzelijst Groeperen (F16)

@@ -52,6 +52,20 @@
 
   <div class="main">
     <header class="topbar">
+      {# Spec 002, F8: the page heading is a breadcrumb in the top bar; "Beheer" for the pages in that menu group. #}
+      {% set menu_page = pages|selectattr("endpoint", "equalto", active)|first %}
+      {% set subpage = menu_page and page.title != menu_page.title %}
+      <nav class="crumbs" aria-label="Kruimelpad">
+        {% if menu_page and menu_page.group %}
+        <span class="crumb-section">Beheer</span>
+        <span class="crumb-sep" aria-hidden="true">›</span>
+        {% endif %}
+        {% if subpage %}
+        <a class="crumb-link" href="{{ url_for('pages.' + menu_page.endpoint) }}">{{ menu_page.title }}</a>
+        <span class="crumb-sep" aria-hidden="true">›</span>
+        {% endif %}
+        <h1 class="crumb-title">{{ page.title }}</h1>
+      </nav>
       {% include "_portflow_status.html" %}
       <div id="refresh">{% include "_refresh.html" %}</div>
       <span id="topbar-avatar">{% include "_topbar_avatar.html" %}</span>
@@ -68,15 +82,12 @@
     {% endif %}
 
     <main class="content">
-      <header class="page-header">
-        <div class="page-header-text">
-          <p class="eyebrow">{{ page.eyebrow }}</p>
-          <h1>{{ page.title }}</h1>
-          <p class="page-intro">{{ page.intro }}</p>
-        </div>
-        {% block page_actions %}{% endblock %}
-      </header>
+      {# Spec 002, F8: the primary button; pages with a table toolbar put it there instead. #}
+      {% set actions = self.page_actions()|trim %}
+      {% if management %}{% include "_management_bar.html" %}{# spec 027 #}
+      {% elif actions %}<div class="page-actions">{{ actions|safe }}</div>{% endif %}
       {% block content %}{% endblock %}
+      {% if false %}{% block page_actions %}{% endblock %}{% endif %}
     </main>
   </div>
 </div>

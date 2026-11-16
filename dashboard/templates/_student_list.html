@@ -1,7 +1,27 @@
 {# Studenten (spec 010): the basic data of every followed student, without progress.
    Same toolbar, groups, search and sorting as the progress table (spec 001). #}
 {% set t = table %}
-{% set squad_roles = {"PO": "product owner", "SM": "scrum master", "2ePO": "tweede product owner", "2eSM": "tweede scrum master"} %}
+{% from "_icons.html" import icon %}
+{% set c = t.choices %}
+{# Spec 022, F2: the pencil above a column goes to its management page. #}
+{% set manage = {"semester": ("pages.semesters", "Semesters"), "project": ("pages.squads", "Projecten"),
+                 "guild": ("pages.guilds", "Gildes"), "coach": ("pages.coaches", "Coaches"),
+                 "coachfull": ("pages.coaches", "Coaches"), "guildmaster": ("pages.guild_masters", "Gildemeesters"),
+                 "guildmasterfull": ("pages.guild_masters", "Gildemeesters"),
+                 "track": ("pages.choice_lists", "Keuzelijsten", "invulling"),
+                 "squadrole": ("pages.choice_lists", "Keuzelijsten", "rol")} %}
+{% for col in t.all_custom_columns %}{# spec 024: a choice column goes to its list, other columns to Kolommen #}
+{% set _ = manage.update({"custom:" ~ col.id: ("pages.choice_lists", "Keuzelijsten", "kolom-" ~ col.id) if col.type == "choice" else ("pages.columns", "Kolommen")}) %}
+{% endfor %}
+
+{# Spec 022, F1: a list in a cell that saves right away (app.js); without JavaScript with the button. #}
+{% macro pick(row, action, label, reload=false) -%}
+<form method="post" action="{{ action }}" class="inline-pick"{% if reload %} data-reload{% endif %}>
+  <input type="hidden" name="next" value="{{ request.full_path }}">
+  <select name="waarde" aria-label="{{ label }} van {{ row.name }}">{{ caller() }}</select>
+  <button class="button button-secondary button-compact js-hide" type="submit">Opslaan</button>
+</form>
+{%- endmacro %}
 <section class="card student-table-card{% for key in t.list_hidden %} hide-col-{{ key }}{% endfor %}" id="student-table">
   {% include "_table_toolbar.html" %}
 
@@ -33,8 +53,11 @@
     <thead>
       <tr>
         <th scope="col" class="col-student" data-sort="name" aria-sort="ascending"><button type="button">Student</button></th>
-        {% for key, label in t.list_columns %}
-        <th scope="col" data-sort="{{ key }}" data-col="{{ key }}"><button type="button">{{ label }}</button></th>
+        {% for key, label in t.list_columns if not (key.startswith("custom:") and key in t.list_hidden) %}
+        {# Spec 024: a hidden custom column is not shown at all (the fixed columns are hidden with CSS). #}
+        <th scope="col" data-sort="{{ key }}" data-col="{{ key }}">
+          {%- if key in manage %}<a class="col-manage" href="{{ url_for(manage[key][0], _anchor=manage[key][2] if manage[key]|length > 2 else none) }}" title="Naar {{ manage[key][1] }}" aria-label="{{ label }}: naar {{ manage[key][1] }}">{{ icon("pencil") }}</a>{% endif -%}
+          <button type="button">{{ label }}</button></th>
         {% endfor %}
       </tr>
     </thead>
@@ -42,7 +65,7 @@
     <tbody class="table-group">
       {% if group.title %}
       <tr class="group-header">
-        <th colspan="{{ t.list_columns|length + 1 }}" scope="rowgroup">
+        <th colspan="{{ t.list_columns|length - t.list_custom_hidden + 1 }}" scope="rowgroup">
           <span class="group-stripe" style="background: {{ group.colour }}"></span>
           <span class="group-title">{{ group.title }}</span>
           {% if group.full_name %}<span class="muted">{{ group.full_name }}</span>{% endif %}
@@ -52,22 +75,53 @@
       {% endif %}
       {% for row in group.rows %}
       {% set portflow = "Portfolio niet gedeeld" if row.linked and not row.has_access else ("Gekoppeld" if row.linked else "Niet gekoppeld") %}
-      <tr class="student-row"
+      <tr class="student-row" data-student-id="{{ row.id }}"
           data-search="{{ (row.name ~ ' ' ~ (row.squad or '') ~ ' ' ~ (row.squad_full_name or '') ~ ' ' ~ row.guild_codes ~ ' ' ~ row.guild_names)|lower }}"
           data-sort-name="{{ row.name|lower }}">
         <th scope="row" class="col-student">
           <span class="avatar avatar-small">{{ row.initials }}</span>
           <a class="student-name student-link" href="{{ url_for('pages.student_edit_page', student_id=row.id, terug=request.full_path.rstrip('?')) }}">{{ row.name }}</a>
         </th>
-        <td data-col="semester" data-sort-value="{{ row.semester or 99 }}">{{ row.semester or "–" }}</td>
-        <td data-col="project" data-sort-value="{{ (row.squad_full_name or '~')|lower }}">{{ row.squad_full_name or "–" }}</td>
-        <td data-col="track" data-sort-value="{{ (row.track or '~')|lower }}">{{ row.track or "–" }}</td>
-        <td data-col="squadrole" data-sort-value="{{ row.squad_role or '~' }}">{% if row.squad_role %}<span class="role-label" title="{{ squad_roles.get(row.squad_role, '') }}">{{ row.squad_role }}</span>{% else %}–{% endif %}</td>
-        <td data-col="guild" data-sort-value="{{ row.guild_codes or '~' }}">{% if row.guild_codes %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{% else %}–{% endif %}</td>
-        {% for col, field in [("coach", "coach"), ("coachfull", "coach_full"), ("guildmaster", "guild_master"), ("guildmasterfull", "guild_master_full")] %}
-        <td data-col="{{ col }}" class="col-extra col-names" data-sort-value="{{ (row[field] or '~')|lower }}">{% if row[field] %}{% for n in row[field].split(", ") %}<span class="name">{{ n }}</span>{{ ", " if not loop.last }}{% endfor %}{% else %}–{% endif %}</td>
+        <td data-col="semester" data-sort-value="{{ row.semester or 99 }}">
+          {% call pick(row, url_for('pages.save_student_field', student_id=row.id, field='semester'), "Semester") %}
+          <option value="">–</option>{% for n in range(1, 9) %}<option value="{{ n }}" {% if row.semester == n %}selected{% endif %}>Sem {{ n }}</option>{% endfor %}
+          {% endcall %}</td>
+        <td data-col="project" data-sort-value="{{ (row.squad_full_name or ('(stage)' if row.stage_without_project else '~'))|lower }}">
+          {% call pick(row, url_for('pages.save_student_field', student_id=row.id, field='squad_id'), "Project") %}
+          <option value="">{{ "(Stage)" if row.stage_without_project else "–" }}</option>{# spec 025, F4 #}{% for s in c.squads %}<option value="{{ s.id }}" {% if row.squad_id == s.id %}selected{% endif %}>{{ s.full_name or s.name }}</option>{% endfor %}
+          {% endcall %}</td>
+        <td data-col="track" data-sort-value="{{ (row.track or '~')|lower }}">
+          {% call pick(row, url_for('pages.save_student_field', student_id=row.id, field='track'), "Invulling") %}
+          <option value="">–</option>{% for value, text, code in c.tracks %}<option value="{{ value }}" title="{{ text }}" {% if row.track_id|string == value %}selected{% endif %}>{{ code }}</option>{% endfor %}
+          {% endcall %}</td>
+        <td data-col="squadrole" data-sort-value="{{ row.squad_role or '~' }}">
+          {% call pick(row, url_for('pages.save_student_field', student_id=row.id, field='squad_role'), "Rol") %}
+          <option value="">–</option>{% for value, code, text in c.squad_roles %}<option value="{{ value }}" title="{{ text }}" {% if row.squad_role_id|string == value %}selected{% endif %}>{{ code }}</option>{% endfor %}
+          {% endcall %}</td>
+        <td data-col="guild" data-sort-value="{{ row.guild_codes or '~' }}">
+          {%- if row.guilds|length > 1 %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{# F4: more guilds: Student bewerken #}
+          {%- else %}
+          {% call pick(row, url_for('pages.save_student_field', student_id=row.id, field='guild'), "Gilde", reload=true) %}
+          <option value="">–</option>{% for g in c.guilds %}<option value="{{ g.id }}" title="{{ g.name }}" {% if row.guild_ids and row.guild_ids[0] == g.id %}selected{% endif %}>{{ g.code }}</option>{% endfor %}
+          {% endcall %}
+          {%- endif %}</td>
+        {% for col, field, full in [("coach", "coach", false), ("coachfull", "coach_full", true)] %}
+        <td data-col="{{ col }}" class="col-extra" data-sort-value="{{ (row[field] or '~')|lower }}">
+          {% call pick(row, url_for('pages.save_student_field', student_id=row.id, field='coach_id'), "Coach") %}
+          <option value="">–</option>{% for p in c.coaches %}<option value="{{ p.id }}" {% if row.coach_full == p.name %}selected{% endif %}>{{ p.name if full else p.first }}</option>{% endfor %}
+          {% endcall %}</td>
+        {% endfor %}
+        {% for col, field, full in [("guildmaster", "guild_master", false), ("guildmasterfull", "guild_master_full", true)] %}
+        <td data-col="{{ col }}" class="col-extra" data-sort-value="{{ (row[field] or '~')|lower }}">
+          {%- for g in row.guilds %}
+          <span class="guild-master-pick">{% if row.guilds|length > 1 %}<span class="muted">{{ g.code }}:</span> {% endif %}
+          {% call pick(row, url_for('pages.save_student_guild_master', student_id=row.id, guild_id=g.guild_id), "Gildemeester " ~ g.code) %}
+          <option value="">–</option>{% for p in c.guild_masters %}<option value="{{ p.id }}" {% if g.guild_master_id == p.id %}selected{% endif %}>{{ p.name if full else p.first }}</option>{% endfor %}
+          {% endcall %}</span>
+          {%- else %}–{% endfor %}</td>
         {% endfor %}
         <td data-col="portflow" class="col-extra{% if portflow != 'Gekoppeld' %} muted{% endif %}" data-sort-value="{{ portflow }}">{{ portflow }}</td>
+        {% for c in t.list_custom %}{% set extra = ' data-col="custom:' ~ c.id ~ '"' %}{% include "_custom_cell.html" %}{% endfor %}
       </tr>
       {% endfor %}
     </tbody>

@@ -7,7 +7,7 @@ from dashboard.progress import default_semester_period, student_progress
 from dashboard.skills import SKILLS
 
 PERIOD = (date(2026, 9, 1), date(2027, 1, 31))
-KNOWN = {"Joost Hendriks", "Marieke Ploeg"}
+EXCLUDED = {"Kevin Brandsma"}   # spec 019, F12
 
 
 def assessed(skill, level, day, assessor="Joost Hendriks", status="scored", rid=None):
@@ -21,7 +21,7 @@ def self_eval(skill, day, rid=1, title="Verzoek", status="not_scored"):
 
 
 def progress(rows, semester=3, **kwargs):
-    return student_progress(rows, semester=semester, known_assessors=KNOWN, period=PERIOD, **kwargs)
+    return student_progress(rows, semester=semester, excluded_assessors=EXCLUDED, period=PERIOD, **kwargs)
 
 
 class TestCells(unittest.TestCase):  # F6, F7
@@ -72,13 +72,17 @@ class TestCells(unittest.TestCase):  # F6, F7
         cell = progress([], semester=None).cells["OC"]
         self.assertEqual((cell.text, cell.colour), ("", "grey"))
 
-    def test_unknown_assessor_is_hidden(self):
+    def test_excluded_assessor_is_hidden(self):   # spec 019, F12
         cell = progress([assessed("BD", "3", "2026-10-21", assessor="Kevin Brandsma")]).cells["BD"]
         self.assertEqual(cell.text, "-/-")
 
+    def test_every_other_assessor_counts(self):   # spec 019, F10
+        cell = progress([assessed("BD", "3", "2026-10-21", assessor="Iemand Onbekend")]).cells["BD"]
+        self.assertEqual(cell.text, "3")
+
     def test_assessor_names_compare_without_case_and_spaces(self):
-        cell = progress([assessed("BD", "2", "2026-10-21", assessor=" joost  hendriks")]).cells["BD"]
-        self.assertEqual(cell.text, "2")
+        cell = progress([assessed("BD", "2", "2026-10-21", assessor=" kevin  brandsma")]).cells["BD"]
+        self.assertEqual(cell.text, "-/-")
 
     def test_evaluation_before_semester_period_is_hidden(self):
         cell = progress([assessed("OC", "1", "2026-05-12"), assessed("OC", "2", "2026-09-24")]).cells["OC"]

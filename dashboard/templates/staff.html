@@ -42,12 +42,6 @@
   <a class="button button-primary" href="{{ url_for('pages.staff_add', kind=words.plural) }}">+ {{ words.Single }} toevoegen</a>
 </section>
 {% else %}
-<section class="summary-bar card">
-  <span><strong>{{ people|length }}</strong> {{ words.single if people|length == 1 else words.plural }}</span>
-  <span><strong>{{ evaluations_total }}</strong> evaluaties tellen mee</span>
-  <span class="muted">Alleen evaluaties van mensen op de pagina's Coaches en Gildemeesters tellen mee.</span>
-</section>
-
 <section class="staff-cards">
   {% for person in people %}
   <article class="card staff-card">
@@ -58,6 +52,7 @@
           {% if person.is_user %}<span class="tag tag-user">Jij</span>{% endif %}
           {% if role == "coach" and person.is_guild_master %}<span class="tag">Ook gildemeester</span>{% endif %}
           {% if role == "guild_master" and person.is_coach %}<span class="tag">Ook coach</span>{% endif %}
+          {% if person.is_excluded %}<span class="tag tag-excluded" title="Evaluaties van deze beoordelaar tellen niet mee">Telt niet mee</span>{% endif %}
         </h2>
         {% if role == "guild_master" %}
         <p class="staff-guilds">

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{# Kolommen (spec 024, K1-K5): eigen kolommen; de tien vaardigheden staan vast en staan hier niet. #}
+{% block page_actions %}
+<a class="button button-primary" href="{{ url_for('pages.column_new') }}">+ Nieuwe kolom</a>
+{% endblock %}
+{% block content %}
+{% if confirm %}
+<div class="confirm" role="alertdialog" aria-labelledby="remove-title">
+  <p id="remove-title">
+    <strong>Kolom {{ confirm.name }} verwijderen?</strong>
+    {% if confirm.students %}{{ confirm.students }} student{{ "en hebben" if confirm.students != 1 else " heeft" }} een waarde in deze kolom; die waarde{{ "n verdwijnen" if confirm.students != 1 else " verdwijnt" }} ook.
+    {% else %}Er is nog geen enkele waarde ingevuld.{% endif %}
+    {% if confirm.type == "choice" %}De keuzelijst van deze kolom verdwijnt mee.{% endif %}
+  </p>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.columns') }}">Annuleren</a>
+    <form method="post" action="{{ url_for('pages.column_delete', column_id=confirm.id) }}">
+      <button class="button button-danger" type="submit">Verwijderen</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if not items %}
+<section class="card empty-state">
+  <h2>Nog geen eigen kolommen.</h2>
+  <p class="muted">Een eigen kolom staat in het Overzicht en de Studentenlijst na de tien vaardigheden. Je vult de waarde per student in de tabel in: een percentage, vrije tekst of een keuze uit een lijst.</p>
+  <a class="button button-primary" href="{{ url_for('pages.column_new') }}">+ Nieuwe kolom</a>
+</section>
+{% else %}
+<section class="card manage-card">
+  <table class="manage-table">
+    <thead>
+      <tr><th scope="col">Code</th><th scope="col">Naam</th><th scope="col">Type</th><th scope="col">Ingevuld</th><th scope="col"><span class="visually-hidden">Acties</span></th></tr>
+    </thead>
+    <tbody>
+      {% for c in items %}
+      <tr>
+        <td><span class="code-chip">{{ c.code }}</span></td>
+        <td><strong>{{ c.name }}</strong>{% if c.description %}<br><span class="muted">{{ c.description }}</span>{% endif %}</td>
+        <td>{{ c.type_label }}{% if c.type == "choice" %} · <a href="{{ url_for('pages.choice_lists', _anchor='kolom-' ~ c.id) }}">keuzes</a>{% endif %}</td>
+        <td>{{ c.students }} student{{ "en" if c.students != 1 }}</td>
+        <td class="manage-actions">
+          <form method="post" action="{{ url_for('pages.column_move', column_id=c.id, direction='omhoog') }}">
+            <button class="icon-button" type="submit" title="Naar voren" aria-label="{{ c.name }} naar voren" {% if loop.first %}disabled{% endif %}>↑</button>
+          </form>
+          <form method="post" action="{{ url_for('pages.column_move', column_id=c.id, direction='omlaag') }}">
+            <button class="icon-button" type="submit" title="Naar achteren" aria-label="{{ c.name }} naar achteren" {% if loop.last %}disabled{% endif %}>↓</button>
+          </form>
+          <a class="button button-secondary button-compact" href="{{ url_for('pages.column_edit', column_id=c.id) }}">Bewerken</a>
+          <a class="button button-secondary button-compact" href="{{ url_for('pages.columns', verwijder=c.id) }}">Verwijderen</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted manage-note">De volgorde hier is de volgorde in de tabellen, na RE.</p>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {# Studenten (spec 010): basic data of the students, or the empty state (F3). #}
-{% block page_actions %}
+{% block page_actions %}{# in the management bar, or above the empty state (spec 027; spec 004, F2) #}
 <a class="button button-primary" href="{{ url_for('pages.add_students') }}">+ Student toevoegen</a>
 {% endblock %}
 {% block content %}

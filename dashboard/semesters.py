@@ -59,12 +59,6 @@ def all_semesters(conn: sqlite3.Connection) -> list[dict]:
     return result
 
 
-def summary(conn: sqlite3.Connection) -> tuple[int, int]:
-    """F2: (students with a semester, number of semesters with at least one student)."""
-    row = conn.execute("SELECT COUNT(*), COUNT(DISTINCT semester) FROM students WHERE semester IS NOT NULL").fetchone()
-    return row[0], row[1]
-
-
 def find(conn: sqlite3.Connection, semester_id: int) -> sqlite3.Row | None:
     return conn.execute("SELECT * FROM semesters WHERE id = ?", (semester_id,)).fetchone()
 

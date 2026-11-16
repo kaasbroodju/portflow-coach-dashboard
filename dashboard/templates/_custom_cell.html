@@ -1,0 +1,21 @@
+{# One cell of a custom column (spec 001, F8; spec 024, G1), for the Overzicht and the Studentenlijst.
+   Needs: c (the column), row, t.column_choices and `extra` (attributes of the cell). #}
+{% set value = row.custom.get(c.id, "") %}
+<td class="col-custom" data-sort-value="{{ row.custom_text.get(c.id, '')|lower }}"{{ extra|default('')|safe }}>
+  <form method="post" action="{{ url_for('pages.save_custom_value', student_id=row.id, column_id=c.id) }}" class="custom-cell">
+    <input type="hidden" name="next" value="{{ request.full_path }}">
+    {% if c.type == "percentage" %}
+    <input name="waarde" value="{{ value }}" inputmode="numeric" class="custom-input custom-percentage"
+           aria-label="{{ c.name }} van {{ row.name }} (0 tot en met 100)" placeholder="–"><span class="custom-suffix">{% if value %}%{% endif %}</span>
+    {% elif c.type == "choice" %}
+    <select name="waarde" class="custom-select" aria-label="{{ c.name }} van {{ row.name }}">
+      <option value="">–</option>
+      {% for i in t.column_choices.get(c.id, []) %}<option value="{{ i.id }}" {% if value == i.id|string %}selected{% endif %}{% if i.description %} title="{{ i.description }}"{% endif %}>{{ i.code }}</option>{% endfor %}
+    </select>
+    <button class="button button-secondary button-compact js-hide" type="submit">Opslaan</button>
+    {% else %}
+    <input name="waarde" value="{{ value }}" class="custom-input" title="{{ value }}"
+           aria-label="{{ c.name }} van {{ row.name }}" placeholder="–">
+    {% endif %}
+  </form>
+</td>

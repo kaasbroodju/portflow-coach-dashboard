@@ -15,7 +15,7 @@ class PagesTestCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.db_path = Path(self.tmp.name) / "data" / "test.sqlite3"
-        self.app = create_app(self.db_path, env_file=Path(self.tmp.name) / ".env")
+        self.app = create_app(self.db_path)
         self.client = self.app.test_client()
 
     def tearDown(self):
@@ -101,6 +101,7 @@ class TestStudentTable(PagesTestCase):
             self.assertNotIn('class="group-header"', html)
             self.assertEqual(len(self.rows(html)), 14)
             self.assertIn('<option value="none" selected>Niet groeperen</option>', html)
+            self.assertEqual(re.findall(r'<option value="([a-z0-9]+)"', html.split('name="groep"')[1])[0], "none")   # first in the list
         names = re.findall(r'data-sort-name="([^"]+)"', self.html("/studenten", groep="none"))
         self.assertEqual(names, sorted(names))
 
@@ -270,7 +271,7 @@ class TestStaffPages(PagesTestCase):
                 conn.execute("INSERT INTO student_guilds (student_id, guild_id, guild_master_id) VALUES (?, ?, ?)",
                              (student, role, ids[person]))
         html = self.html("/")
-        self.assertIn("Gildemeester (voornaam)", html)
+        self.assertIn(">Gildemeester</button>", html)   # the column title (spec 006, F21)
         self.assertIn('<td class="col-extra col-names"><span class="name">Roland</span>, <span class="name">Laura</span></td>', html)
         self.client.post("/studenten/kolommen", data={"kolom": ["guild_master_full", "coach"], "next": "/"})
         html = self.html("/")
@@ -470,8 +471,8 @@ class TestSemesters(PagesTestCase):  # spec 009
         for name, semester in (("Sem Bakker", 3), ("Noor Peters", 3), ("Lars Koster", 4), ("Iris Bouma", 5)):
             self.add_student(name, semester)
         html = self.html("/semesters")
-        self.assertIn("verdeeld over 3 actieve semesters", html)
-        self.assertIn("<strong>4 studenten</strong>", html)
+        self.assertIn("<strong>8</strong> semesters, waarvan <strong>3</strong> actief", html)   # spec 027
+        self.assertIn("<strong>4</strong> studenten", html)
         card7 = html.split("Semester 7</h2>")[0].rsplit('class="eyebrow">', 1)[1]
         self.assertTrue(card7.startswith("Hoofdfase"))
         card8 = html.split("Semester 8</h2>")[0].rsplit('class="eyebrow">', 1)[1]
@@ -510,18 +511,21 @@ class TestStudentList(PagesTestCase):  # spec 010
     def test_columns_and_values_without_progress(self):  # F1, F4
         self.load_demo()
         html = self.html("/studenten")
-        self.assertIn("Alle studenten die je volgt, met hun indeling.", html)
+        self.assertIn('<h1 class="crumb-title">Studenten</h1>', html)   # spec 002, F8: no intro any more
         heads = re.findall(r'<button type="button">([^<]+)</button></th>', html.split("</thead>")[0])
         self.assertEqual(heads, ["Student", "Semester", "Project", "Invulling", "Rol", "Gilde",
-                                 "Coach (voornaam)", "Coach (volledige naam)", "Gildemeester (voornaam)",
-                                 "Gildemeester (volledige naam)", "Portflow"])
+                                 "Coach", "Coach (volledig)", "Gildemeester",
+                                 "Gildemeester (volledig)", "Portflow", "Aanwezigheid", "Notitie"])   # spec 024: custom columns
         self.assertNotIn('class="level level-', html)
         self.assertNotIn("Product nog leeg</span>", html.split("</thead>")[1])
         row = re.search(r'data-sort-name="lieke jansen">(.*?)</tr>', html, re.S).group(1)
-        cells = [re.sub(r"<[^>]+>", "", c).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
-        self.assertEqual(cells, ["3", "Stichting Verzonnen Zorg - Horizon (04)", "Open projecten", "SM", "FE",
-                                 "Marieke", "Marieke Ploeg", "Joost", "Joost Hendriks", "Niet gekoppeld"])
-        self.assertIn('title="scrum master">SM<', row)
+        # Spec 022: most cells are lists now; the chosen option is the value.
+        cells = [", ".join(re.findall(r"<option [^>]*selected>([^<]*)</option>", c)) or re.sub(r"<[^>]+>", "", c).strip()
+                 for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
+        self.assertEqual(cells, ["Sem 3", "Stichting Verzonnen Zorg - Horizon (04)", "Open projecten", "SM", "FE",
+                                 "Marieke", "Marieke Ploeg", "Joost", "Joost Hendriks", "Niet gekoppeld",
+                                 "%", ""])   # spec 024: the custom columns (the values are in the input fields)
+        self.assertIn('title="scrum master" selected>SM<', row)
         julia = re.search(r'data-sort-name="julia meijer">(.*?)</tr>', html, re.S).group(1)
         self.assertIn(">CI, CS<", julia)                     # spec 016: all guild codes
 
@@ -594,7 +598,7 @@ class TestStudentEdit(PagesTestCase):  # spec 011
             lieke = conn.execute("SELECT id FROM students WHERE name = 'Lieke Jansen'").fetchone()["id"]
         page = self.html(f"/studenten/{lieke}/bewerken")
         self.assertRegex(page, r'<option value="3" selected>Semester 3')
-        self.assertRegex(page, r'<option value="SM" selected>SM · scrum master')
+        self.assertRegex(page, r'<option value="\d+" selected>SM · scrum master')
         self.assertRegex(page, rf'<option value="{self.coach}" selected>Marieke Ploeg')
         self.assertIn("Niet gekoppeld", page)
 
@@ -723,10 +727,12 @@ class TestProjects(PagesTestCase):  # spec 012
             lieke = conn.execute("SELECT id FROM students WHERE name = 'Lieke Jansen'").fetchone()["id"]
         page = self.html(f"/studenten/{lieke}/bewerken")
         self.assertRegex(page, r'selected>Stichting Verzonnen Zorg - Horizon \(04\)</option>')
-        self.assertIn('<option value="Open projecten" selected>Open Projecten (jaar 2)</option>', page)
+        self.assertRegex(page, r'<option value="\d+" selected>Open Projecten \(jaar 2\)</option>')
         self.assertIn(">Afstuderen (semester 8)</option>", page)
-        overview = self.html("/studenten", invulling="Stage")
-        self.assertIn('<option value="Stage" selected>Stage (semester 5, 6 of 7)</option>', overview)
+        with self.db() as conn:   # spec 024: the filter value is the item id
+            stage = conn.execute("SELECT id FROM choice_items WHERE code = 'Stage'").fetchone()[0]
+        overview = self.html("/studenten", invulling=str(stage))
+        self.assertIn(f'<option value="{stage}" selected>Stage (semester 5, 6 of 7)</option>', overview)
         self.assertIn(">Minor (semester 6)</option>", overview)
 
     def test_display_name_defaults(self):  # F10, F11

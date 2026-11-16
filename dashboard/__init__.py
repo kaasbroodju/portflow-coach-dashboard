@@ -14,7 +14,6 @@ from .portflow_token import TokenStore
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DATABASE = PROJECT_DIR / "data" / "dashboard.sqlite3"
-DEFAULT_ENV_FILE = PROJECT_DIR / ".env"
 DEFAULT_BROWSER_PROFILE = PROJECT_DIR / "data" / "browser-profile"
 LOCAL_HOSTS = {"127.0.0.1", "localhost"}
 TICK_SECONDS = 30
@@ -22,7 +21,6 @@ TICK_SECONDS = 30
 
 def create_app(
     database_path: Path | str | None = None,
-    env_file: Path | str | None = None,
     start_background: bool = False,
 ) -> Flask:
     """start_background=True (only from app.py) connects to Portflow and starts the refresh timer."""
@@ -33,10 +31,11 @@ def create_app(
     db.init_app(app)
     app.extensions["portflow"] = PortflowConnection(
         app.config["DATABASE"],
-        TokenStore(env_file or DEFAULT_ENV_FILE),
+        TokenStore(app.config["DATABASE"]),
         DEFAULT_BROWSER_PROFILE,
     )
     app.extensions["fetcher"] = Fetcher(app.config["DATABASE"], app.extensions["portflow"])  # spec 005
+    app.extensions["portflow"].after_connect = app.extensions["fetcher"].start_first   # spec 019, F2
     app.add_url_rule("/favicon.ico", "favicon",
                      lambda: app.send_static_file("favicon.svg"))
     app.register_blueprint(routes.bp)

@@ -1,13 +1,13 @@
 """Pages of the dashboard (spec 002 shell; specs 001, 004, 006 and 007)."""
 
-from datetime import date, datetime
+from datetime import date
 
 from urllib.parse import urlencode
 
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
-from . import (demo, guilds, overview as overview_data, portflow_link, projects, reset,
-               semesters as semester_data, staff, student_edit, student_intake)
+from . import (choices, columns as column_data, demo, guilds, overview as overview_data, portflow_link, projects, reset,
+               semesters as semester_data, staff, student_edit, student_intake, summary)
 from .db import get_db
 from .portflow_connection import initials
 from .skills import CATEGORY, NAMES as SKILL_NAMES, SKILLS
@@ -17,69 +17,49 @@ bp = Blueprint("pages", __name__)
 # Sidebar menu and page headers (spec 002, F5 and F8). Text is Dutch: it is shown to the user.
 PAGES = [
     {"endpoint": "overview", "path": "/", "label": "Overzicht", "icon": "home",
-     "eyebrow": None, "title": None, "intro": "Dit vraagt vandaag je aandacht.",
+     "title": "Overzicht",
      "placeholder": None},
     {"endpoint": "students", "path": "/studenten", "label": "Studenten", "icon": "users",
-     "eyebrow": "Studievoortgang", "title": "Studenten",
-     "intro": "Alle studenten die je volgt, met hun indeling.",
+     "title": "Studenten",
      "placeholder": None,
      "show_add_student": True},
     {"endpoint": "evaluations", "path": "/evaluaties", "label": "Evaluaties", "icon": "clipboard",
-     "eyebrow": "Studievoortgang", "title": "Evaluaties",
-     "intro": "Evaluatieverzoeken die op jouw beoordeling wachten.",
+     "title": "Evaluaties",
      "placeholder": "Hier komen de evaluatieverzoeken die op jouw beoordeling wachten."},
     {"endpoint": "squads", "path": "/projecten", "label": "Projecten", "icon": "folder",
-     "eyebrow": "Beheer", "title": "Projecten",
-     "intro": "Beheer de projectgroepen waarin je studenten zijn ingedeeld.",
+     "title": "Projecten",
      "placeholder": None},
     {"endpoint": "coaches", "path": "/coaches", "label": "Coaches", "icon": "coach",
-     "eyebrow": "Beheer", "title": "Coaches",
-     "intro": "Beheer de coaches van wie de evaluaties meetellen.", "placeholder": None},
+     "title": "Coaches",
+     "placeholder": None},
     {"endpoint": "guild_masters", "path": "/gildemeesters", "label": "Gildemeesters", "icon": "guild",
-     "eyebrow": "Beheer", "title": "Gildemeesters",
-     "intro": "Beheer de gildemeesters van wie de evaluaties meetellen.", "placeholder": None},
+     "title": "Gildemeesters",
+     "placeholder": None},
     {"endpoint": "guilds", "path": "/gildes", "label": "Gildes", "icon": "flag",
-     "eyebrow": "Beheer", "title": "Gildes",
-     "intro": "Beheer de gildes en zie welke gildemeesters en studenten erbij horen.", "placeholder": None},
+     "title": "Gildes",
+     "placeholder": None},
     {"endpoint": "columns", "path": "/kolommen", "label": "Kolommen", "icon": "columns",
-     "eyebrow": "Curriculum", "title": "Kolommen",
-     "intro": "De bouwstenen van je studentenoverzicht, op één plek beheerd.",
-     "placeholder": "Hier beheer je straks de kolommen van het studentenoverzicht."},
+     "title": "Kolommen",
+     "placeholder": None},
+    {"endpoint": "choice_lists", "path": "/keuzelijsten", "label": "Keuzelijsten", "icon": "list",
+     "title": "Keuzelijsten",
+     "placeholder": None},
     {"endpoint": "semesters", "path": "/semesters", "label": "Semesters", "icon": "calendar",
-     "eyebrow": "Studievoortgang", "title": "Semesters",
-     "intro": "Bekijk de semesters, hun eisen en hoeveel studenten erin zitten.",
+     "title": "Semesters",
      "placeholder": None},
     {"endpoint": "settings", "path": "/instellingen", "label": "Instellingen", "icon": "sliders",
-     "eyebrow": "Beheer", "title": "Instellingen",
-     "intro": "Je gegevens, de semesterperiode en de koppeling met Portflow.",
+     "title": "Instellingen",
      "placeholder": None},
 ]
 # Spec 002, F17: the management pages sit in one collapsible group "Beheer", in this order.
-MENU_ORDER = ["overview", "students", "evaluations",
-              "semesters", "guilds", "guild_masters", "coaches", "squads", "columns",
-              "settings"]   # spec 018: no Beroepsrollen any more
-MANAGEMENT = {"semesters", "guilds", "guild_masters", "coaches", "squads", "columns"}
+MENU_ORDER = ["overview", "evaluations",
+              "students", "semesters", "guilds", "guild_masters", "coaches", "squads", "columns",
+              "choice_lists", "settings"]   # spec 018: no Beroepsrollen any more
+MANAGEMENT = {"students", "semesters", "guilds", "guild_masters", "coaches", "squads", "columns", "choice_lists"}
 PAGES.sort(key=lambda page: MENU_ORDER.index(page["endpoint"]))
 for _page in PAGES:
     _page["group"] = "beheer" if _page["endpoint"] in MANAGEMENT else None
 PAGES_BY_ENDPOINT = {page["endpoint"]: page for page in PAGES}
-
-DAYS = ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"]
-MONTHS = ["januari", "februari", "maart", "april", "mei", "juni", "juli",
-          "augustus", "september", "oktober", "november", "december"]
-
-
-def dutch_date(moment: datetime) -> str:
-    return f"{DAYS[moment.weekday()]} {moment.day} {MONTHS[moment.month - 1]}"
-
-
-def greeting(moment: datetime) -> str:
-    if moment.hour < 12:
-        return "Goedemorgen"
-    if moment.hour < 18:
-        return "Goedemiddag"
-    return "Goedenavond"
-
 
 @bp.app_template_filter("initials")
 def initials_filter(name: str | None) -> str:
@@ -114,20 +94,18 @@ def shell_context():
 
 def render_page(endpoint: str, **context):
     page = dict(PAGES_BY_ENDPOINT[endpoint])
-    if endpoint == "overview":
-        now = datetime.now()
-        page["eyebrow"], page["title"] = dutch_date(now), greeting(now)
     template = {"settings": "settings.html", "overview": "overview.html",
+                "columns": "columns.html", "choice_lists": "choice_lists.html",
                 "students": "students.html",
                 "semesters": "semesters.html",
                 "squads": "projects.html"}.get(endpoint, "page.html")
     return render_template(template, page=page, active=endpoint, **context)
 
 
-def _add_students_page(title: str, intro: str) -> dict:
+def _add_students_page(title: str) -> dict:
     """A page dict for the 'Studenten toevoegen' flow (spec 004): not in PAGES, so it
     does not get its own sidebar item, but keeps the look of the other pages."""
-    return {"eyebrow": "Studievoortgang", "title": title, "intro": intro, "label": title}
+    return {"title": title, "label": title}
 
 
 def _table_context() -> dict:
@@ -135,36 +113,61 @@ def _table_context() -> dict:
     conn = get_db()
     user = current_app.extensions["portflow"].user_name
     all_rows = overview_data.student_rows(conn, date.today())
-    args = {key: request.args.get(key, "") for key in ("wie", "semester", "invulling", "project", "gilde", "aansporen")}
-    args["wie"] = args["wie"] if args["wie"] in dict(overview_data.WHO) else "alle"
-    grouping = request.args.get("groep", "squad")
-    grouping = grouping if grouping in dict(overview_data.GROUPINGS) else "squad"
+    default_grouping = overview_data.default_grouping(conn)   # spec 019, F8
+    # Spec 023: filters in the address are a choice (the form always sends "f") and are
+    # remembered per page; without them the remembered choices apply.
+    page = request.endpoint.split(".")[-1]
+    keys = overview_data.filter_keys(conn)   # spec 024, G2: plus one per choice column
+    if "f" in request.args or any(key in request.args for key in keys):
+        chosen = {key: request.args.get(key, "") for key in keys}
+        overview_data.save_filters(conn, page, chosen, default_grouping)
+    else:
+        chosen = overview_data.saved_filters(conn, page)
+    args = overview_data.valid_filters(conn, chosen, default_grouping)
+    grouping = args.pop("groep")
+    filtered = any(v for k, v in args.items() if k != "wie") \
+        or args["wie"] != overview_data.WHO_DEFAULT or grouping != default_grouping   # F4
     rows = overview_data.apply_filters(all_rows, args, user)
     shown = rows
+    mine = staff.user_guild_ids(conn, user)
+    for row in shown:   # spec 021: the "make me coach/guild master" buttons (F1-F3)
+        row["can_make_me_coach"] = bool(user) and not row["coach_full"]
+        row["can_make_me_guild_master"] = bool(user) and staff.guild_master_targets(
+            row["guild_ids"], bool(row["guild_masters"]), mine) is not None
     visible = overview_data.visible_columns(conn)
     custom = [c for c in overview_data.custom_columns(conn)]
     return {
         "table": {
-            "groups": overview_data.group_rows(shown, grouping),
+            "groups": overview_data.group_rows(shown, grouping, overview_data.column_items(conn)),
             "total": len(all_rows),
             "matching": len(rows),
             "shown": len(shown),
             "args": args,
             "grouping": grouping,
+            "default_grouping": default_grouping,
+            "filtered": filtered,
+            "can_hide": args["wie"] in overview_data.HIDING_FILTERS,   # spec 019, F4-F6
+            "all_hidden": args["wie"] == "zichtbaar" and bool(all_rows) and all(r["hidden"] for r in all_rows),
             "who_options": overview_data.WHO,
-            "grouping_options": overview_data.GROUPINGS,
+            "grouping_options": overview_data.grouping_options(conn),
             "options": overview_data.filter_options(conn),
             "extra_columns": [(key, label) for key, label in overview_data.EXTRA_COLUMNS if key in visible],
             "all_extra_columns": overview_data.EXTRA_COLUMNS,
             "name_columns": overview_data.NAME_COLUMNS,
             "custom_columns": [c for c in custom if f"custom:{c['id']}" in visible],
+            # Spec 024, G1: the items of every choice column, for the list in the cell.
+            "column_choices": {c["id"]: choices.column_items(conn, c["id"]) for c in custom if c["type"] == "choice"},
             "all_custom_columns": custom,
             "visible": visible,
             "colours_off": overview_data.colours_off(conn),
-            "list_columns": overview_data.LIST_COLUMNS,
+            "list_columns": overview_data.list_columns(conn),
             "list_hidden": overview_data.list_hidden(conn),
+            # Spec 024, G1: the custom columns in the Studentenlijst (a hidden one is left out).
+            "list_custom": [c for c in custom if f"custom:{c['id']}" not in overview_data.list_hidden(conn)],
+            "list_custom_hidden": sum(1 for c in custom if f"custom:{c['id']}" in overview_data.list_hidden(conn)),
             "query": request.query_string.decode(),
             "error": request.args.get("fout", ""),
+            # Spec 021: "make me coach/guild master" needs the user's name (F3).
         },
     }
 
@@ -187,7 +190,9 @@ def overview():
 @bp.get("/studenten")
 def students():
     context = _table_context()
+    context["table"]["choices"] = student_edit.inline_options(get_db())   # spec 022
     return render_page("students", student_count=context["table"]["total"],
+                       management=summary.students(get_db()) if context["table"]["total"] else None,   # spec 027
                        message=request.args.get("melding", ""), **context)
 
 
@@ -220,6 +225,76 @@ def save_colours():
     return redirect(_back_to_table())
 
 
+def _done_or_back(error: str | None = None):
+    """For app.js (fetch): 204, or 400 with the message. Without JavaScript: back to the table."""
+    if request.headers.get("X-Requested-With") == "fetch":
+        return (error, 400) if error else ("", 204)
+    target = _back_to_table()
+    if error:
+        target += ("&" if "?" in target else "?") + urlencode({"fout": error})
+    return redirect(target)
+
+
+def _semester_saved(student_id: int, save):
+    """Spec 025, F2: when choosing a semester filled the invulling, app.js reloads the page (205)."""
+    track = lambda: (get_db().execute("SELECT track_id FROM students WHERE id = ?", (student_id,)).fetchone() or [None])[0]
+    before = track()
+    error = save()
+    if not error and request.headers.get("X-Requested-With") == "fetch" and track() != before:
+        return "", 205
+    return _done_or_back(error)
+
+
+@bp.post("/studenten/<int:student_id>/verbergen")
+def hide_student(student_id: int):
+    """Spec 019, F4: hidden in the overview, not removed."""
+    if not overview_data.set_hidden(get_db(), student_id, True):
+        abort(404)
+    return _done_or_back()
+
+
+@bp.post("/studenten/<int:student_id>/tonen")
+def show_student(student_id: int):
+    """Spec 019, F5."""
+    if not overview_data.set_hidden(get_db(), student_id, False):
+        abort(404)
+    return _done_or_back()
+
+
+@bp.post("/studenten/<int:student_id>/semester")
+def save_student_semester(student_id: int):
+    """Spec 019, F7: the semester list in the table saves right away."""
+    return _semester_saved(student_id, lambda: overview_data.save_semester(get_db(), student_id, request.form.get("semester", "")))
+
+
+@bp.post("/studenten/<int:student_id>/veld/<field>")
+def save_student_field(student_id: int, field: str):
+    """Spec 022, F1, F4: one list in the student list saves right away."""
+    save = lambda: student_edit.save_inline(get_db(), student_id, field, request.form.get("waarde", ""))
+    return _semester_saved(student_id, save) if field == "semester" else _done_or_back(save())
+
+
+@bp.post("/studenten/<int:student_id>/gildemeester/<int:guild_id>")
+def save_student_guild_master(student_id: int, guild_id: int):
+    """Spec 022, F5."""
+    return _done_or_back(student_edit.save_inline_guild_master(get_db(), student_id, guild_id,
+                                                               request.form.get("waarde", "")))
+
+
+@bp.post("/studenten/<int:student_id>/mij-als-coach")
+def make_me_coach(student_id: int):
+    """Spec 021, F1."""
+    user = current_app.extensions["portflow"].user_name
+    return _done_or_back(staff.make_user_coach(get_db(), student_id, user))
+
+
+@bp.post("/studenten/<int:student_id>/mij-als-gildemeester")
+def make_me_guild_master(student_id: int):
+    """Spec 021, F2."""
+    user = current_app.extensions["portflow"].user_name
+    return _done_or_back(staff.make_user_guild_master(get_db(), student_id, user))
+
+
 @bp.post("/studenten/<int:student_id>/kolom/<int:column_id>")
 def save_custom_value(student_id: int, column_id: int):
     """F8: a value in a custom column."""
@@ -243,15 +318,166 @@ def squads():
     loose = projects.without_project(conn)
     confirm_id = request.args.get("verwijder", "")
     return render_page("squads", items=items, without=loose,
-                       active_count=sum(1 for p in items if p["students"]),
-                       in_project=sum(len(p["students"]) for p in items),
+                       management=summary.projects(conn) if items else None,   # spec 027
                        confirm=next((p for p in items if str(p["id"]) == confirm_id), None),
                        added=request.args.get("toegevoegd", ""))
 
 
+# Kolommen (spec 024, K1-K5) ------------------------------------------------------------------
+
 @bp.get("/kolommen")
 def columns():
-    return render_page("columns")
+    conn = get_db()
+    items = column_data.all_columns(conn)
+    confirm_id = request.args.get("verwijder", "")
+    return render_page("columns", items=items, management=summary.columns(conn) if items else None,
+                       confirm=next((c for c in items if str(c["id"]) == confirm_id), None))
+
+
+def _sub_page(endpoint: str, title: str) -> dict:
+    page = dict(PAGES_BY_ENDPOINT[endpoint])
+    page.update(title=title, label=title)
+    return page
+
+
+def _column_form(column=None):
+    conn = get_db()
+    error = None
+    if request.method == "POST":
+        form = {f: request.form.get(f, "") for f in ("code", "naam", "beschrijving", "type")}
+        values, error = column_data.validate(conn, form["code"], form["naam"], form["beschrijving"],
+                                             None if column else form["type"], column["id"] if column else None)
+        if values:
+            if column:
+                column_data.update(conn, column["id"], values)
+            else:
+                column_data.create(conn, values)
+            return redirect(url_for("pages.columns"))
+    elif column:
+        form = {"code": column["code"], "naam": column["name"], "beschrijving": column["description"], "type": column["type"]}
+    else:
+        form = {"code": "", "naam": "", "beschrijving": "", "type": "text"}
+    page = _sub_page("columns", "Kolom bewerken" if column else "Nieuwe kolom")
+    return render_template("column_form.html", active="columns", form=form, error=error, page=page,
+                           column=column, types=column_data.TYPES)
+
+
+@bp.route("/kolommen/nieuw", methods=["GET", "POST"])
+def column_new():
+    return _column_form()
+
+
+@bp.route("/kolommen/<int:column_id>/bewerken", methods=["GET", "POST"])
+def column_edit(column_id: int):
+    column = column_data.find(get_db(), column_id)
+    if column is None:
+        abort(404)
+    return _column_form(column)
+
+
+@bp.post("/kolommen/<int:column_id>/<direction>")
+def column_move(column_id: int, direction: str):
+    if direction not in ("omhoog", "omlaag"):
+        abort(404)
+    column_data.move(get_db(), column_id, -1 if direction == "omhoog" else 1)
+    return redirect(url_for("pages.columns"))
+
+
+@bp.post("/kolommen/<int:column_id>/verwijderen")
+def column_delete(column_id: int):
+    column_data.delete(get_db(), column_id)
+    return redirect(url_for("pages.columns"))
+
+
+# Keuzelijsten (spec 024, L1-L5) ----------------------------------------------------------------
+
+@bp.get("/keuzelijsten")
+def choice_lists():
+    conn = get_db()
+    lists = choices.all_lists(conn)
+    confirm_id = request.args.get("verwijder", "")
+    confirm = next((dict(i, list_name=l["name"], anchor=l["anchor"]) for l in lists for i in l["entries"]
+                    if str(i["id"]) == confirm_id), None)
+    return render_page("choice_lists", lists=lists, confirm=confirm, management=summary.choice_lists(lists),
+                       error=request.args.get("fout", ""), error_list=request.args.get("lijst", ""),
+                       added=request.args.get("toegevoegd", ""))
+
+
+def _list_anchor(list_id: int) -> str:
+    found = choices.find_list(get_db(), list_id)
+    return found["anchor"] if found else ""
+
+
+@bp.post("/keuzelijsten/<int:list_id>/items")
+def choice_item_add(list_id: int):
+    """L2: add an item at the end of the list."""
+    conn = get_db()
+    if choices.find_list(conn, list_id) is None:
+        abort(404)
+    values, error = choices.validate(conn, list_id, request.form.get("code", ""), request.form.get("omschrijving", ""))
+    if error:
+        return redirect(url_for("pages.choice_lists", fout=error, lijst=list_id, _anchor=_list_anchor(list_id)))
+    with conn:
+        choices.add_item(conn, list_id, values["code"], values["description"])
+    return redirect(url_for("pages.choice_lists", _anchor=_list_anchor(list_id)))
+
+
+@bp.post("/keuzelijsten/<int:list_id>/open-ict")
+def choice_list_standard(list_id: int):
+    """L5."""
+    conn = get_db()
+    if choices.find_list(conn, list_id) is None:
+        abort(404)
+    with conn:
+        added = choices.add_standard(conn, list_id)
+    return redirect(url_for("pages.choice_lists", toegevoegd=added, lijst=list_id, _anchor=_list_anchor(list_id)))
+
+
+@bp.route("/keuzelijsten/items/<int:item_id>/bewerken", methods=["GET", "POST"])
+def choice_item_edit(item_id: int):
+    """L2: code and description."""
+    conn = get_db()
+    item = choices.find_item(conn, item_id)
+    if item is None:
+        abort(404)
+    lst = choices.find_list(conn, item["list_id"])
+    error = None
+    if request.method == "POST":
+        form = {"code": request.form.get("code", ""), "omschrijving": request.form.get("omschrijving", "")}
+        values, error = choices.validate(conn, item["list_id"], form["code"], form["omschrijving"], item_id)
+        if values:
+            choices.update_item(conn, item_id, values["code"], values["description"])
+            return redirect(url_for("pages.choice_lists", _anchor=lst["anchor"]))
+    else:
+        form = {"code": item["code"], "omschrijving": item["description"]}
+    page = _sub_page("choice_lists", "Keuze bewerken")
+    return render_template("choice_item_form.html", active="choice_lists", form=form, error=error, page=page,
+                           back=url_for("pages.choice_lists", _anchor=lst["anchor"]))
+
+
+@bp.post("/keuzelijsten/items/<int:item_id>/<direction>")
+def choice_item_move(item_id: int, direction: str):
+    """L3."""
+    if direction not in ("omhoog", "omlaag"):
+        abort(404)
+    conn = get_db()
+    item = choices.find_item(conn, item_id)
+    if item is None:
+        abort(404)
+    choices.move_item(conn, item_id, -1 if direction == "omhoog" else 1)
+    return redirect(url_for("pages.choice_lists", _anchor=_list_anchor(item["list_id"])))
+
+
+@bp.post("/keuzelijsten/items/<int:item_id>/verwijderen")
+def choice_item_delete(item_id: int):
+    """L4: after the confirmation on the page."""
+    conn = get_db()
+    item = choices.find_item(conn, item_id)
+    if item is None:
+        return redirect(url_for("pages.choice_lists"))
+    anchor = _list_anchor(item["list_id"])
+    choices.delete_item(conn, item_id)
+    return redirect(url_for("pages.choice_lists", _anchor=anchor))
 
 
 @bp.get("/semesters")
@@ -259,9 +485,8 @@ def semesters():
     """Spec 009, F1-F4 and the confirmation of F10."""
     conn = get_db()
     items = semester_data.all_semesters(conn)
-    students, active = semester_data.summary(conn)
     confirm_id = request.args.get("verwijder", "")
-    return render_page("semesters", items=items, student_total=students, active_count=active,
+    return render_page("semesters", items=items, management=summary.semesters(conn) if items else None,
                        confirm=next((s for s in items if str(s["id"]) == confirm_id), None),
                        added=request.args.get("toegevoegd", ""))
 
@@ -331,7 +556,7 @@ def remove_demo_data():
 @bp.get("/studenten/toevoegen")
 def add_students():
     """The chooser between the four manners (F3); only 'Uit Portflow kiezen' works so far."""
-    page = _add_students_page("Studenten toevoegen", "Kies hoe je nieuwe studenten wilt gaan volgen.")
+    page = _add_students_page("Studenten toevoegen")
     return render_template("add_students.html", page=page, active="students")
 
 
@@ -348,9 +573,7 @@ def add_students_portflow_start():
 def add_students_portflow():
     """Entry point (F5): the connect panel, or a fast loading shell (F6 technical: app.js
     fetches the slow share list as a fragment; the no-JS fallback is the /lijst route)."""
-    page = _add_students_page(
-        "Uit Portflow kiezen", "Kies de studenten die hun portfolio al met je gedeeld hebben."
-    )
+    page = _add_students_page("Uit Portflow kiezen")
     connection = current_app.extensions["portflow"]
     if not connection.token:
         return render_template("add_students_portflow.html", page=page, active="students",
@@ -395,9 +618,7 @@ def add_students_portflow_list():
     context = _portflow_candidates_context()
     if request.args.get("fragment") == "1":
         return render_template("_add_students_portflow_result.html", **context)
-    page = _add_students_page(
-        "Uit Portflow kiezen", "Kies de studenten die hun portfolio al met je gedeeld hebben."
-    )
+    page = _add_students_page("Uit Portflow kiezen")
     return render_template("add_students_portflow.html", page=page, active="students",
                             connected=True, loading=False, **context)
 
@@ -441,10 +662,10 @@ ROLE_PAGES = {
 }
 
 
-def _role_page(role: str, title: str | None = None, intro: str | None = None) -> dict:
+def _role_page(role: str, title: str | None = None) -> dict:
     page = dict(PAGES_BY_ENDPOINT[ROLE_PAGES[role]["endpoint"]])
     if title:
-        page.update(title=title, intro=intro, label=title)
+        page.update(title=title, label=title)
     return page
 
 
@@ -456,7 +677,7 @@ def _staff_list(role: str):
     return render_template(
         "staff.html", page=_role_page(role), active=ROLE_PAGES[role]["endpoint"], role=role,
         words=ROLE_PAGES[role], people=people,
-        evaluations_total=sum(p["evaluations"] for p in people),
+        management=summary.staff(conn, role, len(people), sum(p["evaluations"] for p in people)) if people else None,
         confirm=next((p for p in people if str(p["id"]) == confirm_id), None),
         added=request.args.get("toegevoegd", ""),
     )
@@ -484,7 +705,7 @@ def staff_add(kind: str):
     """F4: the two manners of adding."""
     role = _role_from_path(kind)
     words = ROLE_PAGES[role]
-    page = _role_page(role, f"{words['Single']} toevoegen", f"Kies hoe je {words['plural']} wilt toevoegen.")
+    page = _role_page(role, f"{words['Single']} toevoegen")
     return render_template("staff_add.html", page=page, active=words["endpoint"], role=role, kind=kind, words=words,
                            preset=staff.read_preset() if role == "guild_master" else [])
 
@@ -495,8 +716,7 @@ def staff_add_portflow(kind: str):
     role = _role_from_path(kind)
     words = ROLE_PAGES[role]
     conn = get_db()
-    page = _role_page(role, "Uit Portflow kiezen",
-                      f"Kies beoordelaars uit de opgehaalde evaluaties; wie de meeste {words['skills']} beoordeelde, staat bovenaan.")
+    page = _role_page(role, "Uit Portflow kiezen")
     return render_template("staff_add_portflow.html", page=page, active=words["endpoint"], role=role, kind=kind,
                            words=words, candidates=staff.candidates(conn, role),
                            has_evaluations=bool(conn.execute("SELECT 1 FROM evaluations LIMIT 1").fetchone()))
@@ -532,7 +752,7 @@ def staff_add_names(kind: str):
             return redirect(url_for("pages." + words["endpoint"], toegevoegd=added))
     else:
         unknown = []
-    page = _role_page(role, "Namen typen of plakken", "Typ of plak één naam per regel, precies zoals in Portflow.")
+    page = _role_page(role, "Namen typen of plakken")
     return render_template("staff_add_names.html", page=page, active=words["endpoint"], role=role, kind=kind,
                            words=words, text=text, unknown=unknown,
                            empty=request.method == "POST" and not names)
@@ -553,31 +773,34 @@ def staff_edit(kind: str, staff_id: int):
         if not error:
             if role == "guild_master":
                 staff.set_guilds(conn, staff_id, [int(v) for v in request.form.getlist("gilde") if v.isdigit()])
+            staff.set_excluded(conn, staff.find(conn, staff_id)["name"], request.form.get("uitsluiten") == "1")   # spec 019, F12
             return redirect(url_for("pages." + words["endpoint"]))
     chosen = {r[0] for r in conn.execute("SELECT guild_id FROM staff_guilds WHERE staff_id = ?", (staff_id,))}
-    page = _role_page(role, f"{words['Single']} bewerken", person["name"])
+    page = _role_page(role, f"{words['Single']} bewerken")
     return render_template("staff_edit.html", page=page, active=words["endpoint"], role=role, kind=kind,
                            words=words, person=person, error=error,
                            first_name=request.form.get("voornaam", person["first_name"]),
                            last_name=request.form.get("achternaam", person["last_name"]),
                            guild_options=[dict(r) for r in conn.execute("SELECT id, code, name FROM guilds ORDER BY code")],
-                           chosen=chosen)
+                           chosen=chosen,
+                           excluded=(request.form.get("uitsluiten") == "1") if request.method == "POST"
+                           else staff.is_excluded(conn, person["name"]))
 
 
 @bp.post("/<any(coaches, gildemeesters):kind>/<int:staff_id>/verwijderen")
 def staff_remove(kind: str, staff_id: int):
     """F8: removes only this role."""
     role = _role_from_path(kind)
-    staff.remove_role(get_db(), staff_id, role)
+    staff.remove_role(get_db(), staff_id, role, current_app.extensions["portflow"].user_name)
     return redirect(url_for("pages." + ROLE_PAGES[role]["endpoint"]))
 
 
 # Guilds (spec 006, F12-F19) ------------------------------------------------------------------
 
-def _guild_page(title: str | None = None, intro: str | None = None) -> dict:
+def _guild_page(title: str | None = None) -> dict:
     page = dict(PAGES_BY_ENDPOINT["guilds"])
     if title:
-        page.update(title=title, intro=intro, label=title)
+        page.update(title=title, label=title)
     return page
 
 
@@ -587,6 +810,7 @@ def guilds_list():
     items = guilds.all_guilds(conn)
     confirm_id = request.args.get("verwijder", "")
     return render_template("guilds.html", page=_guild_page(), active="guilds", items=items,
+                           management=summary.guilds(conn) if items else None,   # spec 027
                            confirm=next((g for g in items if str(g["id"]) == confirm_id), None),
                            added=request.args.get("toegevoegd", ""))
 
@@ -594,7 +818,7 @@ def guilds_list():
 @bp.get("/gildes/toevoegen")
 def guilds_add():
     """F14: make one yourself, or add the Open-ICT guilds."""
-    return render_template("guilds_add.html", page=_guild_page("Gilde toevoegen", "Kies hoe je gildes wilt toevoegen."),
+    return render_template("guilds_add.html", page=_guild_page("Gilde toevoegen"),
                            active="guilds", preset=guilds.read_preset())
 
 
@@ -626,8 +850,7 @@ def _guild_form(guild=None):
     else:
         form = {"code": "", "naam": "", "beroepsrol": "", "beschrijving": "", "kleur": guilds.DEFAULT_COLOR}
     title = "Gilde bewerken" if guild else "Gilde aanmaken"
-    intro = guild["name"] if guild else "Code, naam, beroepsrol en kleur van het gilde."
-    return render_template("guild_form.html", page=_guild_page(title, intro), active="guilds", form=form, error=error)
+    return render_template("guild_form.html", page=_guild_page(title), active="guilds", form=form, error=error)
 
 
 @bp.route("/gildes/nieuw", methods=["GET", "POST"])
@@ -658,10 +881,10 @@ def professional_roles_moved():
 
 # Semesters (spec 009) --------------------------------------------------------------------------
 
-def _semester_page(title: str | None = None, intro: str | None = None) -> dict:
+def _semester_page(title: str | None = None) -> dict:
     page = dict(PAGES_BY_ENDPOINT["semesters"])
     if title:
-        page.update(title=title, intro=intro, label=title)
+        page.update(title=title, label=title)
     return page
 
 
@@ -669,7 +892,7 @@ def _semester_page(title: str | None = None, intro: str | None = None) -> dict:
 def semesters_add():
     """F5: make one yourself, or add the Open-ICT semesters."""
     return render_template("semesters_add.html", active="semesters", preset=semester_data.read_preset(),
-                           page=_semester_page("Semester toevoegen", "Kies hoe je semesters wilt toevoegen."))
+                           page=_semester_page("Semester toevoegen"))
 
 
 @bp.post("/semesters/toevoegen/open-ict")
@@ -697,9 +920,8 @@ def _semester_form(semester=None):
     else:
         form = {field: "" for field in ("number",) + semester_data.FIELDS}
     title = "Semester bewerken" if semester else "Semester aanmaken"
-    intro = f"Semester {semester['number']}" if semester else "Het nummer en de eisen uit het toetsprogramma."
     return render_template("semester_form.html", active="semesters", form=form, error=error,
-                           editing=bool(semester), page=_semester_page(title, intro))
+                           editing=bool(semester), page=_semester_page(title))
 
 
 @bp.route("/semesters/nieuw", methods=["GET", "POST"])
@@ -740,6 +962,8 @@ def _student_form_from_request() -> dict:
     """The fields of the student form (spec 011, 016, 017) from the request."""
     form = {key: request.form.get(key, "") for key in (
         "name", "student_number", "semester", "start_date", "squad_id", "track", "squad_role", "coach_id", "notes")}
+    # Spec 026: the custom columns ("kolom-<id>").
+    form["custom"] = {key[6:]: value for key, value in request.form.items() if key.startswith("kolom-")}
     form["guilds"] = [{"guild_id": r, "guild_master_id": m} for r, m in
                       zip(request.form.getlist("guild"), request.form.getlist("guild_master"))]
     return form
@@ -767,7 +991,7 @@ def student_new_page():
                 return redirect(_with_message(url_for("pages.students"), message.strip()))
     else:
         form = student_edit.empty_form()
-    page = dict(PAGES_BY_ENDPOINT["students"], title="Student toevoegen", intro="Voeg één student toe en vul meteen zijn gegevens in.",
+    page = dict(PAGES_BY_ENDPOINT["students"], title="Student toevoegen",
                 label="Student toevoegen")
     return render_template("student_edit.html", page=page, active="students", student=None, form=form,
                            error=error, duplicate=duplicate, options=student_edit.options(conn),
@@ -821,7 +1045,7 @@ def student_edit_page(student_id: int):
     else:
         form = student_edit.form_values(conn, student)
         form["portflow"] = str(student["portflow_user_id"] or "geen")
-    page = dict(PAGES_BY_ENDPOINT["students"], title="Student bewerken", intro=student["name"],
+    page = dict(PAGES_BY_ENDPOINT["students"], title="Student bewerken",
                 label=f"Student bewerken · {student['name']}")
     return render_template("student_edit.html", page=page, active="students", student=student, form=form,
                            error=error, options=student_edit.options(conn),
@@ -857,10 +1081,10 @@ def student_delete(student_id: int):
 
 # Projecten (spec 012) -------------------------------------------------------------------------
 
-def _project_page(title: str | None = None, intro: str | None = None) -> dict:
+def _project_page(title: str | None = None) -> dict:
     page = dict(PAGES_BY_ENDPOINT["squads"])
     if title:
-        page.update(title=title, intro=intro, label=title)
+        page.update(title=title, label=title)
     return page
 
 
@@ -868,7 +1092,7 @@ def _project_page(title: str | None = None, intro: str | None = None) -> dict:
 def projects_add():
     """F5: add by hand, or add the Open-ICT projects."""
     return render_template("projects_add.html", active="squads", preset=projects.read_preset(),
-                           page=_project_page("Nieuw project", "Kies hoe je projecten wilt toevoegen."))
+                           page=_project_page("Nieuw project"))
 
 
 @bp.post("/projecten/nieuw/open-ict")
@@ -898,8 +1122,7 @@ def _project_form(project=None):
     else:
         form = {"nummer": "", "naam": "", "opdrachtgever": "", "weergavenaam": ""}
     title = "Project bewerken" if project else "Handmatig toevoegen"
-    intro = project["full_name"] if project else "Nummer, naam, opdrachtgever en weergavenaam van het project."
-    return render_template("project_form.html", active="squads", form=form, error=error, page=_project_page(title, intro))
+    return render_template("project_form.html", active="squads", form=form, error=error, page=_project_page(title))
 
 
 @bp.route("/projecten/handmatig", methods=["GET", "POST"])

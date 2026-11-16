@@ -23,6 +23,13 @@ CREATE TABLE IF NOT EXISTS staff (
     is_demo         INTEGER NOT NULL DEFAULT 0
 );
 
+-- Assessors whose evaluations do not count (spec 019, F12, F13), by normalised name, so that
+-- the choice is kept when the person is removed from the list.
+CREATE TABLE IF NOT EXISTS excluded_assessors (
+    name_key TEXT PRIMARY KEY,
+    name     TEXT NOT NULL
+);
+
 -- Projects (squads), spec 012. full_name is derived: "NN name", or the name without a number.
 CREATE TABLE IF NOT EXISTS squads (
     id        INTEGER PRIMARY KEY,
@@ -34,6 +41,21 @@ CREATE TABLE IF NOT EXISTS squads (
     is_demo   INTEGER NOT NULL DEFAULT 0
 );
 
+-- Choice lists (spec 024): Invulling, Rol in de squad, and one list per choice column.
+CREATE TABLE IF NOT EXISTS choice_lists (
+    id        INTEGER PRIMARY KEY,
+    kind      TEXT NOT NULL,                 -- 'track', 'squad_role' or 'column'
+    column_id INTEGER UNIQUE REFERENCES custom_columns(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS choice_items (
+    id          INTEGER PRIMARY KEY,
+    list_id     INTEGER NOT NULL REFERENCES choice_lists(id) ON DELETE CASCADE,
+    code        TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    position    INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS students (
     id               INTEGER PRIMARY KEY,
     name             TEXT NOT NULL,
@@ -41,13 +63,14 @@ CREATE TABLE IF NOT EXISTS students (
     semester         INTEGER,                -- 1..8, NULL = nog in te delen
     start_date       TEXT,                   -- own start of the semester period
     squad_id         INTEGER REFERENCES squads(id) ON DELETE SET NULL,
-    squad_role       TEXT,                   -- PO, SM, 2ePO, 2eSM
-    track            TEXT,                   -- invulling
+    squad_role_id    INTEGER REFERENCES choice_items(id) ON DELETE SET NULL,  -- rol in de squad (spec 024)
+    track_id         INTEGER REFERENCES choice_items(id) ON DELETE SET NULL,  -- invulling (spec 024)
     coach_id         INTEGER REFERENCES staff(id) ON DELETE SET NULL,
     portflow_user_id INTEGER,                -- Portflow's inviter.id (spec 004), unique per student
     has_access       INTEGER NOT NULL DEFAULT 1,  -- 0 = portfolio not shared (n/b)
     fetched_at       TEXT,                   -- last successful fetch from Portflow (spec 005)
     notes            TEXT,                   -- free text; Excel import puts unknown columns here (spec 013)
+    is_hidden        INTEGER NOT NULL DEFAULT 0,  -- hidden in the overview, not removed (spec 019, F4)
     is_demo          INTEGER NOT NULL DEFAULT 0
 );
 
@@ -103,7 +126,7 @@ CREATE TABLE IF NOT EXISTS custom_columns (
     code        TEXT NOT NULL,
     name        TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
-    type        TEXT NOT NULL,               -- 'percentage' or 'text'
+    type        TEXT NOT NULL,               -- 'percentage', 'text' or 'choice' (spec 024)
     position    INTEGER NOT NULL DEFAULT 0,
     is_demo     INTEGER NOT NULL DEFAULT 0
 );
@@ -165,6 +188,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE students ADD COLUMN fetched_at TEXT")
     if "notes" not in columns:
         conn.execute("ALTER TABLE students ADD COLUMN notes TEXT")
+    if "is_hidden" not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0")   # spec 019, F4
+    from .choices import ensure_lists, migrate_student_texts   # spec 024
+    ensure_lists(conn)
+    if "track" in columns:
+        migrate_student_texts(conn)
     has_roles = _table_exists(conn, "professional_roles")   # before spec 018
     role_columns = {row["name"] for row in conn.execute("PRAGMA table_info(professional_roles)")}
     if has_roles and "color" not in role_columns:

@@ -26,7 +26,7 @@ class ImportTestCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.db_path = Path(self.tmp.name) / "data" / "test.sqlite3"
-        self.app = create_app(self.db_path, env_file=Path(self.tmp.name) / ".env")
+        self.app = create_app(self.db_path)
         self.client = self.app.test_client()
         self.client.post("/gildes/toevoegen/open-ict")
         self.client.post("/semesters/toevoegen/open-ict")
@@ -151,7 +151,8 @@ class TestImportPages(ImportTestCase):
         self.client.post(f"/studenten/toevoegen/excel/{self.key(location)}/importeren",
                          data={"nieuw": ["2", "3", "5"], "coach": str(coach)})   # not Cas (row 4)
         with self.db() as conn:
-            students = {r["name"]: dict(r) for r in conn.execute("SELECT * FROM students")}
+            students = {r["name"]: dict(r) for r in conn.execute(   # spec 024: invulling is an item
+                "SELECT s.*, t.code AS track FROM students s LEFT JOIN choice_items t ON t.id = s.track_id")}
             guilds = [tuple(r) for r in conn.execute(
                 "SELECT s.name, r.code, sg.guild_master_id FROM student_guilds sg JOIN students s ON s.id = sg.student_id "
                 "JOIN guilds r ON r.id = sg.guild_id ORDER BY s.name, r.code")]

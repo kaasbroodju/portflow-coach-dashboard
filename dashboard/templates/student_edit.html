@@ -53,7 +53,7 @@
   <label>Invulling
     <select name="track">
       <option value="">–</option>
-      {% for track, label in options.tracks %}<option value="{{ track }}" {% if form.track == track %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      {% for track, label, code in options.tracks %}<option value="{{ track }}" {% if form.track == track %}selected{% endif %}>{{ label }}</option>{% endfor %}
     </select>
   </label>
 
@@ -67,7 +67,7 @@
   <label>Teamrol
     <select name="squad_role">
       <option value="">Geen</option>
-      {% for code, name in options.squad_roles %}<option value="{{ code }}" {% if form.squad_role == code %}selected{% endif %}>{{ code }} · {{ name }}</option>{% endfor %}
+      {% for id, code, name in options.squad_roles %}<option value="{{ id }}" {% if form.squad_role == id %}selected{% endif %}>{{ code }}{% if name %} · {{ name }}{% endif %}</option>{% endfor %}
     </select>
   </label>
   <fieldset class="guild-rows form-wide" id="guild-rows">
@@ -89,6 +89,28 @@
     <button type="button" class="button button-secondary button-compact js-only" id="guild-add">+ Gilde toevoegen</button>
     <p class="muted noscript-hint">Kies "–" bij een gilde om het te verwijderen; de lege regel onderaan is voor een nieuw gilde.</p>
   </fieldset>
+
+  {% if options.custom_columns %}
+  {# Spec 026, F1, F2: the values of the custom columns, in the order of the page Kolommen. #}
+  <fieldset class="form-wide custom-fields">
+    <legend>Eigen kolommen</legend>
+    {% for c in options.custom_columns %}
+    {% set value = form.custom.get(c.id|string, "") %}
+    <label>{{ c.name }}{% if c.description %} <span class="muted">({{ c.description }})</span>{% endif %}
+      {% if c.type == "percentage" %}
+      <span class="input-suffix"><input name="kolom-{{ c.id }}" value="{{ value }}" inputmode="numeric" class="input-short" placeholder="–"> %</span>
+      {% elif c.type == "choice" %}
+      <select name="kolom-{{ c.id }}">
+        <option value="">–</option>
+        {% for i in c.choices %}<option value="{{ i.id }}" {% if value == i.id|string %}selected{% endif %}>{{ i.code }}{% if i.description %} · {{ i.description }}{% endif %}</option>{% endfor %}
+      </select>
+      {% else %}
+      <input name="kolom-{{ c.id }}" value="{{ value }}">
+      {% endif %}
+    </label>
+    {% endfor %}
+  </fieldset>
+  {% endif %}
 
   <label class="form-wide">Notities
     <textarea name="notes" rows="5">{{ form.notes }}</textarea>

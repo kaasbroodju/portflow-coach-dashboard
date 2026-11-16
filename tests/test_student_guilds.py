@@ -14,7 +14,7 @@ class GuildsTestCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.db_path = Path(self.tmp.name) / "data" / "test.sqlite3"
-        self.app = create_app(self.db_path, env_file=Path(self.tmp.name) / ".env")
+        self.app = create_app(self.db_path)
         self.client = self.app.test_client()
         self.client.post("/gildes/toevoegen/open-ict")
         self.client.post("/semesters/toevoegen/open-ict")

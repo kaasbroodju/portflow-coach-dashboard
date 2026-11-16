@@ -9,10 +9,8 @@ import re
 import sqlite3
 from dataclasses import dataclass, field
 
-from . import student_guilds
-from .overview import TRACKS
+from . import choices, student_guilds
 from .progress import name_key, normalize_name
-from .student_edit import SQUAD_ROLES
 from .xlsx_reader import Sheet
 
 HEADER_SEARCH_ROWS = 20
@@ -111,6 +109,9 @@ class Lookups:
     roles: list[dict]                       # guilds (spec 018)
     coaches: list[dict]
     guild_masters: list[dict]
+    track_list: int                         # spec 024: the choice lists
+    role_list: int
+    conn: sqlite3.Connection                # only read while building the preview
 
     @classmethod
     def load(cls, conn: sqlite3.Connection) -> "Lookups":
@@ -121,6 +122,9 @@ class Lookups:
             roles=rows("SELECT id, code, name, role_name FROM guilds"),   # spec 018: guilds
             coaches=rows("SELECT id, name FROM staff WHERE is_coach = 1"),
             guild_masters=rows("SELECT id, name FROM staff WHERE is_guild_master = 1"),
+            track_list=choices.list_id(conn, choices.TRACK),
+            role_list=choices.list_id(conn, choices.SQUAD_ROLE),
+            conn=conn,
         )
 
 
@@ -129,8 +133,8 @@ def convert_semester(value: str, lookups: Lookups) -> tuple[int | None, str | No
     if not match or not 1 <= int(match.group(0)) <= 8:
         return None, f"Semester '{value}' niet herkend"
     number = int(match.group(0))
-    if number not in lookups.semesters:
-        return None, f"Semester {number} bestaat nog niet"
+    if number not in lookups.semesters:   # F7 (2026-11-11): added to Semesters when saving, see resolve()
+        return number, f"Semester {number} wordt toegevoegd aan Semesters"
     return number, None
 
 
@@ -173,8 +177,19 @@ def convert_person(value: str, people: list[dict], label: str) -> tuple[dict | N
     return None, f"{label} '{value}' niet gevonden"
 
 
-def convert_track(value: str) -> str | None:
-    return next((t for t in TRACKS if t.casefold() == value.casefold()), None)
+# Spec 024, E1: a value that is still to be added to a list at saving time (code).
+NEW_ITEM = "nieuw:"
+
+
+def resolve(conn: sqlite3.Connection, key: str, stored):
+    """The value to save from the preview. A missing semester is added to Semesters now (F7), and a
+    missing Stage or Minor to the list Invulling (spec 024, E1)."""
+    if key == "semester" and stored is not None:
+        conn.execute("INSERT OR IGNORE INTO semesters (number) VALUES (?)", (stored,))
+        return stored
+    if isinstance(stored, str) and stored.startswith(NEW_ITEM):
+        return choices.find_or_add(conn, choices.TRACK, stored[len(NEW_ITEM):])
+    return stored
 
 
 # Rows and preview (F6-F10) -------------------------------------------------------------------
@@ -196,6 +211,7 @@ class Row:
     new_notes: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
     mine_column: str | None = None          # F6: column in which the user's name appears
+    track_from_semester: bool = False       # spec 025, F2: the invulling follows from the semester
 
     @property
     def search(self) -> str:
@@ -204,7 +220,7 @@ class Row:
 
 LABELS = {key: label for key, (label, _) in FIELDS.items()}
 STUDENT_COLUMN = {"student_number": "student_number", "semester": "semester", "squad": "squad_id",
-                  "track": "track", "squad_role": "squad_role", "coach": "coach_id"}
+                  "track": "track_id", "squad_role": "squad_role_id", "coach": "coach_id"}
 
 
 def _convert_row(cells: dict[str, str], lookups: Lookups, row: Row) -> None:
@@ -212,11 +228,16 @@ def _convert_row(cells: dict[str, str], lookups: Lookups, row: Row) -> None:
     def put(key, stored, display):
         row.values[key] = (stored, display)
 
+    conn = lookups.conn
+
     if cells.get("student_number"):
         put("student_number", cells["student_number"], cells["student_number"])
     if cells.get("semester"):
         number, warning = convert_semester(cells["semester"], lookups)
-        put("semester", number, f"semester {number}") if number else row.warnings.append(warning)
+        if number:
+            put("semester", number, f"semester {number}")
+        if warning:
+            row.warnings.append(warning)
     if cells.get("squad"):
         squad, warning = convert_squad(cells["squad"], lookups)
         put("squad", squad["id"], squad["full_name"]) if squad else row.warnings.append(warning)
@@ -229,22 +250,31 @@ def _convert_row(cells: dict[str, str], lookups: Lookups, row: Row) -> None:
                     row.guilds.append(role)
                 elif warning:
                     row.warnings.append(warning)
+    # Spec 024, E1: invulling and rol are looked up in their lists, on code.
     track_value = cells.get("track", "")
     if track_value:
-        track = convert_track(track_value)
-        put("track", track, track) if track else row.warnings.append(f"Invulling '{track_value}' niet herkend")
+        item = choices.find_by_text(conn, lookups.track_list, track_value)
+        put("track", item["id"], item["code"]) if item else row.warnings.append(f"Invulling '{track_value}' niet herkend")
     if cells.get("squad_role"):
-        code = next((c for c, _ in SQUAD_ROLES if c.casefold() == cells["squad_role"].casefold()), None)
-        put("squad_role", code, code) if code else row.warnings.append(f"Rol '{cells['squad_role']}' niet herkend")
+        item = choices.find_by_text(conn, lookups.role_list, cells["squad_role"])
+        put("squad_role", item["id"], item["code"]) if item else row.warnings.append(f"Rol '{cells['squad_role']}' niet herkend")
     if cells.get("coach"):
         value = cells["coach"]
         if value.casefold() == "stage" or value.casefold().startswith("minor"):
             if "track" not in row.values:   # spec 013, F7: Stage / Minor in the coach column is the track
-                track = "Stage" if value.casefold() == "stage" else "Minor"
-                put("track", track, track)
+                code = choices.IMPORT_TRACKS["stage" if value.casefold() == "stage" else "minor"]
+                item = choices.find_by_text(conn, lookups.track_list, code)
+                put("track", item["id"] if item else NEW_ITEM + code, item["code"] if item else code)
         else:
             person, warning = convert_person(value, lookups.coaches, "Coach")
             put("coach", person["id"], person["name"]) if person else row.warnings.append(warning)
+    # Spec 025, F1, F2: no invulling in the row -> it follows from the semester (added when saving if missing).
+    if "track" not in row.values and "semester" in row.values:
+        code = choices.SEMESTER_TRACKS.get(row.values["semester"][0])
+        if code:
+            item = choices.find_by_text(conn, lookups.track_list, code)
+            put("track", item["id"] if item else NEW_ITEM + code, item["code"] if item else code)
+            row.track_from_semester = True
     if cells.get("guild_master"):
         person, warning = convert_person(cells["guild_master"], lookups.guild_masters, "Gildemeester")
         if person and row.guilds:
@@ -267,6 +297,9 @@ def _display(conn, key, value):
         return row[0] if row else ""
     if key == "semester":
         return f"semester {value}"
+    if key in ("track", "squad_role"):   # spec 024
+        row = conn.execute("SELECT code FROM choice_items WHERE id = ?", (value,)).fetchone()
+        return row[0] if row else ""
     return str(value)
 
 
@@ -334,6 +367,8 @@ def _compare(conn: sqlite3.Connection, row: Row, student: dict) -> None:
     row.student_id = student["id"]
     for key, (stored, display) in row.values.items():
         current = student[STUDENT_COLUMN[key]]
+        if key == "track" and row.track_from_semester and current not in (None, ""):
+            continue   # spec 025, F1: a filled invulling never changes
         if current in (None, ""):
             row.fills.append((key, LABELS[key], display))
         elif str(current) != str(stored):
@@ -365,7 +400,7 @@ def apply(conn: sqlite3.Connection, rows: list[Row], *, selected_new: set[int], 
     with conn:
         for row in rows:
             if row.status == "new" and row.number in selected_new:
-                values = {STUDENT_COLUMN[k]: stored for k, (stored, _) in row.values.items()}
+                values = {STUDENT_COLUMN[k]: resolve(conn, k, stored) for k, (stored, _) in row.values.items()}
                 if values.get("coach_id") is None and default_coach_id:
                     values["coach_id"] = default_coach_id
                 values["name"], values["notes"] = row.name, "\n".join(row.notes) or None
@@ -381,12 +416,12 @@ def apply(conn: sqlite3.Connection, rows: list[Row], *, selected_new: set[int], 
                 changed = False
                 for key, _, _ in row.fills:
                     conn.execute(f"UPDATE students SET {STUDENT_COLUMN[key]} = ? WHERE id = ?",
-                                 (row.values[key][0], row.student_id))
+                                 (resolve(conn, key, row.values[key][0]), row.student_id))
                     changed = True
                 for key, _, _, _ in row.changes:
                     if f"{row.number}:{key}" in accepted_changes:
                         conn.execute(f"UPDATE students SET {STUDENT_COLUMN[key]} = ? WHERE id = ?",
-                                     (row.values[key][0], row.student_id))
+                                     (resolve(conn, key, row.values[key][0]), row.student_id))
                         changed = True
                 for role, master, _ in row.guild_fills:
                     student_guilds.add_or_fill(conn, row.student_id, role["id"], master["id"] if master else None)

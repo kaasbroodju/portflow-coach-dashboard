@@ -83,3 +83,9 @@ Geen eigen ontwerp. Volgt de tabel van het studentenoverzicht ([design-system.md
 - 2026-11-10 – projecten worden getoond met hun weergavenaam ([spec 012](../012-projecten/spec.md), F12)
 - 2026-11-10 – aangepast door [spec 006](../006-gildemeesters/spec.md), F21: Coach en Gildemeester tonen de voornaam; de kolommen met de volledige naam staan standaard uit
 - 2026-11-10 – aangepast door [spec 018](../018-beroepsrol-in-gilde/spec.md): het filter Beroepsrol heet Gilde
+- 2026-11-11 – aangepast door [spec 022](../022-studentenlijst-inline/spec.md): de cellen zijn keuzelijsten en boven de kolommen staat een pennetje naar de beheerpagina
+- 2026-11-11 – aangepast door [spec 023](../023-filters-onthouden/spec.md): de filters worden per pagina onthouden, met "Filters wissen"
+- 2026-11-11 – aangepast door [spec 024](../024-keuzelijsten/spec.md): de eigen kolommen staan nu ook in de Studentenlijst; Invulling en Rol hebben een pennetje naar Keuzelijsten
+- 2026-11-11 – aangepast door [spec 025](../025-invulling-en-stage/spec.md): bij Project staat "(Stage)" voor een stagestudent zonder project
+- 2026-11-11 – de paginakop (kopje, titel en uitleg) is vervangen door het kruimelpad in de bovenbalk, zonder uitleg ([spec 002](../002-app-schil/spec.md), F8)
+- 2026-11-11 – aangepast door [spec 027](../027-beheerbalk/spec.md): bovenaan staat de beheerbalk (studenten, verborgen, zonder project) met "+ Student toevoegen"; de knop staat niet meer in de filterbalk

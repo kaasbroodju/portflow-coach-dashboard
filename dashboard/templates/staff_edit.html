@@ -22,6 +22,12 @@
     {% endfor %}
   </fieldset>
   {% endif %}
+  {# Spec 019, F12: evaluations of this assessor are hidden and do not count. #}
+  <label class="checkbox">
+    <input type="checkbox" name="uitsluiten" value="1" {% if excluded %}checked{% endif %}>
+    Evaluaties van deze beoordelaar tellen niet mee
+  </label>
+  <p class="muted">Bijvoorbeeld voor een ouderejaars student die evaluaties afnam. Zijn evaluaties verdwijnen dan uit het overzicht.</p>
   <div class="actions">
     <a class="button button-secondary" href="{{ url_for('pages.' + words.endpoint) }}">Annuleren</a>
     <button class="button button-primary" type="submit">Opslaan</button>

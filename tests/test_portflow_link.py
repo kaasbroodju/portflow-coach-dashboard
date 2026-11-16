@@ -60,7 +60,7 @@ class LinkTestCase(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         base = Path(self.tmp.name)
         self.db_path = base / "data" / "test.sqlite3"
-        self.app = create_app(self.db_path, env_file=base / ".env")
+        self.app = create_app(self.db_path)
         self.client = self.app.test_client()
         self.connection = self.app.extensions["portflow"]
         self.connection.profile_dir = base / "profile"
@@ -68,6 +68,7 @@ class LinkTestCase(unittest.TestCase):
         self.connection.api = self.api
         self.app.extensions["fetcher"].api = self.api
         self.app.extensions["fetcher"].spawn = lambda work: work()
+        self.connection.after_connect = None   # these tests start the round themselves (spec 019, F2)
 
     def tearDown(self):
         portflow_link.clear_cache()

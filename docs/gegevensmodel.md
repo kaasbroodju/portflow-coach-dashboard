@@ -37,20 +37,23 @@ De **lijst met coaches en gildemeesters** heeft twee eigen pagina's in het menu:
 
 | Veld | Toelichting |
 |---|---|
-| Voornaam, achternaam | Een tussenvoegsel hoort bij de achternaam. Voornaam + spatie + achternaam is de volledige naam, precies zoals in Portflow, want de lijst bepaalt welke beoordelaars meetellen. Tabellen tonen standaard de voornaam ([spec 006](../features/006-gildemeesters/spec.md), F20–F21) |
+| Voornaam, achternaam | Een tussenvoegsel hoort bij de achternaam. Voornaam + spatie + achternaam is de volledige naam, precies zoals in Portflow, want daarop herkent de app de beoordelaar. Tabellen tonen standaard de voornaam ([spec 006](../features/006-gildemeesters/spec.md), F20–F21) |
 | Rollen | Coach, gildemeester of beide. Een persoon staat één keer opgeslagen; verwijderen op een van de twee pagina's haalt alleen die rol weg |
 | Gildes | Alleen bij een gildemeester: nul of meer gildes ([Gilde](#gilde)) |
+| Telt niet mee | Vinkje "Evaluaties van deze beoordelaar tellen niet mee" ([spec 019](../features/019-eenvoudige-start/spec.md), F12) |
 
 - Alleen personen met de rol coach zijn te kiezen in het veld *coach* van een student; alleen gildemeesters in het veld *gildemeester*.
-- Evaluaties van beoordelaars die op geen van beide pagina's staan, worden verborgen ([voortgangsregels.md](voortgangsregels.md#welke-evaluaties-tellen)).
+- **Beoordelaars automatisch toevoegen** ([spec 019](../features/019-eenvoudige-start/spec.md), F11): bij elke ophaalronde komt iedere beoordelaar uit de opgehaalde evaluaties die nog niet in de lijst staat erbij. Wie een productvaardigheid (OC, KO, JKO, KPM) beoordeelde, wordt gildemeester én coach (zonder gilde); wie alleen andere vaardigheden beoordeelde, wordt coach.
+- Alle beoordelaars tellen mee, behalve een **uitgesloten** beoordelaar ([voortgangsregels.md](voortgangsregels.md#welke-evaluaties-tellen)). Wie de gebruiker helemaal verwijdert, blijft uitgesloten en wordt niet opnieuw toegevoegd; wie de gebruiker zelf weer toevoegt (namen typen of uit Portflow kiezen), telt weer mee. De gebruiker zelf wordt bij verwijderen niet uitgesloten.
 - De naam van de gebruiker staat automatisch op **Coaches**, niet op Gildemeesters. Verwijdert de gebruiker zichzelf, dan wordt hij niet opnieuw toegevoegd.
 - De gildes van een gildemeester staan los van de **gildes van de gebruiker** hierboven; die stelt de gebruiker apart in.
 
 Daarmee bepaalt de app de filters:
 
-- **Mijn coachstudenten:** studenten bij wie het veld *coach* gelijk is aan de naam van de gebruiker.
-- **Mijn gildestudenten:** studenten bij wie de gebruiker gildemeester is bij één van hun gildes ([spec 016](../features/016-gildes-van-een-student/spec.md)). (De eigen gildes van de gebruiker komen met de spec *Eerste start*.)
-- **Alle gevolgde studenten:** alle studenten in het dashboard.
+- **Alle studenten die ik niet heb verborgen** (standaard): alle studenten in het dashboard, behalve de [verborgen](begrippen.md) studenten ([spec 019](../features/019-eenvoudige-start/spec.md), F6).
+- **Mijn coachstudenten:** studenten bij wie het veld *coach* gelijk is aan de naam van de gebruiker, of ze nu verborgen zijn of niet.
+- **Mijn gildestudenten:** studenten bij wie het veld *gildemeester* bij één van hun gildes gelijk is aan de naam van de gebruiker ([spec 016](../features/016-gildes-van-een-student/spec.md)), of ze nu verborgen zijn of niet. (De eigen gildes van de gebruiker komen met de spec *Eerste start*.)
+- **Alle studenten van wie ik het portfolio kan zien:** alle studenten in het dashboard, ook de verborgen (gedimd). Voorheen "Alle gevolgde studenten".
 
 Nieuwe studenten krijgen **niet** automatisch de naam van de gebruiker als coach of gildemeester. **Uitzondering:** bij "Uit Portflow kiezen" staat het vinkje "Ik ben hun coach" standaard aan ([spec 004](../features/004-studenten-toevoegen/spec.md), F11). Voor de andere manieren bepaalt hun eigen spec dit.
 
@@ -61,14 +64,15 @@ Nieuwe studenten krijgen **niet** automatisch de naam van de gebruiker als coach
 | Naam | ja | |
 | Studentnummer | nee | Het **OV-nummer** (onderwijsovereenkomstnummer) |
 | Semester | ja, maar mag tijdelijk ontbreken | Precies één semester (1–8) per student |
-| Squad | nee | In de interface "project"; zonder squad valt de student onder "Zonder project" |
-| Invulling | nee | Open projecten, Open innovatieproject, Stage, Minor of Afstuderen. In keuzelijsten en filters met uitleg: "Open Projecten (jaar 2)", "Open Innovatieproject (semester 5, 6 of 7)", "Stage (semester 5, 6 of 7)", "Minor (semester 6)", "Afstuderen (semester 8)" |
-| Rol in de squad | nee | PO, SM, 2ePO of 2eSM (product owner, scrum master, tweede PO, tweede SM) |
+| Squad | nee | In de interface "project"; zonder squad valt de student onder "Zonder project". Een student met invulling Stage en zonder project toont bij Project "(Stage)" en staat bij groeperen in een eigen groep "(Stage)" ([spec 025](../features/025-invulling-en-stage/spec.md)) |
+| Invulling | nee | Een keuze uit de keuzelijst Invulling ([spec 024](../features/024-keuzelijsten/spec.md)). Open-ICT-standaard: Open projecten, Open innovatieproject, Stage, Minor of Afstuderen, met de omschrijving "Open Projecten (jaar 2)", "Open Innovatieproject (semester 5, 6 of 7)", "Stage (semester 5, 6 of 7)", "Minor (semester 6)", "Afstuderen (semester 8)". De gebruiker kan de lijst wijzigen. **Uit het semester:** is de invulling leeg en kiest de gebruiker semester 3 of 4, dan wordt het Open projecten; bij semester 8 Afstuderen. Een ingevulde invulling verandert niet ([spec 025](../features/025-invulling-en-stage/spec.md)) |
+| Rol in de squad | nee | Een keuze uit de keuzelijst Rol in de squad ([spec 024](../features/024-keuzelijsten/spec.md)). Open-ICT-standaard: PO, SM, 2ePO of 2eSM (product owner, scrum master, tweede product owner, tweede scrum master) |
 | Startdatum | nee | Eigen begin van de semesterperiode voor deze student (bijvoorbeeld bij een latere instroom); anders geldt het begin uit Instellingen |
 | Gildes | ja, maar mag tijdelijk ontbreken | Nul of meer gildes (en daarmee beroepsrollen), elk met een eigen **gildemeester** (keuze uit de gildemeesters, niet verplicht); geen volgorde of "primair" ([spec 016](../features/016-gildes-van-een-student/spec.md)) |
 | Coach | nee | Keuze uit de beheerde lijst met coaches en gildemeesters |
 | Portflow-koppeling | nee | De Portflow-gebruiker (id en naam) en zijn portfolio-id's; een student kan meer dan één portfolio hebben. Zonder koppeling komen er geen evaluaties binnen |
 | Waarden eigen kolommen | nee | Per eigen kolom een percentage of tekst, ingevuld door de gebruiker in de tabel |
+| Verborgen | nee | Ja of nee (standaard nee). Een verborgen student staat niet in het standaardfilter van Overzicht, maar is **niet verwijderd** ([spec 019](../features/019-eenvoudige-start/spec.md), F4, F5) |
 | Notities | nee | Vrije tekst, te zien en te bewerken bij Student bewerken; de Excel-import zet onbekende kolommen hierin als regels "Kolomnaam: waarde" ([spec 013](../features/013-excel-importeren/spec.md)) |
 
 - Een tribe (bijvoorbeeld "Tribe Peter/David") wordt **niet** bijgehouden.
@@ -77,7 +81,7 @@ Nieuwe studenten krijgen **niet** automatisch de naam van de gebruiker als coach
 
 ## Studenten toevoegen
 
-Bij de eerste start zijn er **0 studenten**. De gebruiker kan studenten op vijf manieren toevoegen (de vijfde, **handmatig invoeren** van één student met een formulier, staat in [spec 017](../features/017-student-handmatig-toevoegen/spec.md)):
+Bij de eerste start zijn er **0 studenten**. **Automatisch** ([spec 019](../features/019-eenvoudige-start/spec.md), F1–F3): bij elke ophaalronde, ook de eerste die direct na het allereerste verbinden vanzelf start, voegt de app alle studenten toe die hun portfolio met de gebruiker hebben gedeeld en nog niet in het dashboard staan (zonder coach, semester of gilde). Een naam die nog niet te koppelen is omdat meer gedeelde studenten zo heten, wordt niet toegevoegd. Daarnaast kan de gebruiker studenten op vijf manieren toevoegen (de vijfde, **handmatig invoeren** van één student met een formulier, staat in [spec 017](../features/017-student-handmatig-toevoegen/spec.md)):
 
 1. **Uit Portflow kiezen:** inloggen bij Portflow, en in de lijst met alle studentportfolio's die met de gebruiker **gedeeld** zijn de studenten aanvinken die de gebruiker wil volgen.
 2. **Excelbestand uploaden** ([spec 013](../features/013-excel-importeren/spec.md)): de app leest het bestand (.xlsx), herkent de kolommen op naam (in elke volgorde; kolomkoppen ongevoelig voor hoofdletters, spaties, `-` en `_`; de kopregel hoeft niet op rij 1 te staan), vraagt de gebruiker om kolommen te koppelen die hij niet herkent, en toont een voorbeeld: nieuwe studenten om aan te vinken, met "selecteer alles" en "selecteer niets", en bestaande studenten die worden aangevuld. Onbekende kolommen komen als notitie bij de student. De console-app kende deze drie bestandsvormen:
@@ -152,7 +156,11 @@ De semesters van de opleiding, met de eisen uit het toetsprogramma als vrije tek
 De kolommen van het studentenoverzicht:
 
 - De **tien vaardigheden** (OC … RE) staan altijd vast, in de vaste volgorde. Ze zijn niet te bewerken of te verwijderen. Hun beschrijving is letterlijk de LEF-tekst ([vaardigheden-niveaus-LEF.md](vaardigheden-niveaus-LEF.md)). De waarde komt uit de evaluaties in Portflow.
-- **Eigen kolommen** kan de gebruiker toevoegen, bewerken en verwijderen. Velden: code, naam, beschrijving, type (**percentage** of **vrije tekst**). De gebruiker vult de waarde per student in de tabel in.
+- **Eigen kolommen** kan de gebruiker toevoegen, bewerken, verplaatsen en verwijderen (pagina Kolommen, [spec 024](../features/024-keuzelijsten/spec.md)). Velden: code, naam, beschrijving, type (**percentage**, **vrije tekst** of **keuzelijst**). Het type ligt vast zodra de kolom bestaat. De gebruiker vult de waarde per student in de tabel in; bij een keuzelijst is dat één keuze uit de eigen lijst van de kolom.
+
+## Keuzelijsten
+
+Een keuzelijst is een geordende lijst keuzes, elk met een **code** (staat in de tabellen) en een **omschrijving** (staat in keuzelijstjes en filters). Er zijn drie soorten: **Invulling**, **Rol in de squad**, en de lijst van elke **keuzelijstkolom**. De gebruiker beheert ze op de pagina Keuzelijsten ([spec 024](../features/024-keuzelijsten/spec.md)). De volgorde van de keuzes is de volgorde in keuzelijstjes, filters en bij groeperen. Een student verwijst naar een keuze, dus een gewijzigde code of omschrijving werkt overal door; wordt een keuze verwijderd, dan is de waarde van die studenten leeg.
 
 ## Open vragen
 

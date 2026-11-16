@@ -1,7 +1,7 @@
 """The progress rules of docs/voortgangsregels.md, in one place and without any HTML.
 
-Input: rows of the `evaluations` table (dicts), the names of known assessors (the
-Coaches and Guild masters pages) and the semester period. Output: per student the
+Input: rows of the `evaluations` table (dicts), the names of excluded assessors
+(spec 019, F12) and the semester period. Output: per student the
 cells OC … RE, the full-assessment marker and the signals (spec 001, F6-F12, F18).
 """
 
@@ -117,13 +117,13 @@ class Progress:
     signals: list[tuple[str, str]] = field(default_factory=list)   # (colour, label)
 
 
-def _counts(row: dict, known: set[str], start: date, end: date) -> bool:
+def _counts(row: dict, excluded: set[str], start: date, end: date) -> bool:
     """voortgangsregels.md#welke-evaluaties-tellen: all four conditions."""
     return (
         row["kind"] == "assessed"
         and row.get("level") not in (None, "")
         and row.get("review_request_status") not in COUNTED_EXCLUDED_STATUSES
-        and normalize_name(row.get("assessor")) in known
+        and normalize_name(row.get("assessor")) not in excluded   # spec 019, F10, F12
         and in_period(row.get("date") or "", start, end)
         and row["skill"] in SKILLS
     )
@@ -133,7 +133,7 @@ def student_progress(
     rows: list[dict],
     *,
     semester: int | None,
-    known_assessors: set[str],
+    excluded_assessors: set[str] = frozenset(),
     period: tuple[date, date],
     start_date: str | None = None,
     has_access: bool = True,
@@ -144,7 +144,7 @@ def student_progress(
             start = date.fromisoformat(start_date[:10])   # the student's own start (gegevensmodel.md)
         except ValueError:
             pass
-    known = {normalize_name(name) for name in known_assessors}
+    excluded = {normalize_name(name) for name in excluded_assessors}
     early = semester is None or semester <= 2
     cells = {skill: Cell(skill, no_access=not has_access, early_semester=early) for skill in SKILLS}
     if not has_access:
@@ -152,7 +152,7 @@ def student_progress(
 
     ordered = sorted(rows, key=lambda r: (r.get("date") or "", r.get("id") or 0))
     for row in ordered:
-        if _counts(row, known, start, end):
+        if _counts(row, excluded, start, end):
             cells[row["skill"]].evaluations.append(Evaluation(row["level"], row.get("date") or "", row.get("assessor")))
 
     # Open requests (voortgangsregels.md#openstaand).

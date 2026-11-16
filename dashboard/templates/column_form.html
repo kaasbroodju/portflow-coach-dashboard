@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{# Kolom toevoegen (spec 024, K2) en bewerken (K3): het type ligt vast zodra de kolom bestaat. #}
+{% block content %}
+<form method="post" class="card names-form manage-form">
+  {% if error %}<p class="panel-message" role="alert">{{ error }}</p>{% endif %}
+  <label>Code <span class="muted">(kort, staat boven de kolom; bijvoorbeeld AW)</span>
+    <input name="code" value="{{ form.code }}" maxlength="12" required class="input-medium">
+  </label>
+  <label>Naam
+    <input name="naam" value="{{ form.naam }}" required>
+  </label>
+  <label>Beschrijving <span class="muted">(niet verplicht; zichtbaar als je de muis op de kolomtitel houdt)</span>
+    <input name="beschrijving" value="{{ form.beschrijving }}">
+  </label>
+  {% if column %}
+  <p class="field-fixed"><strong>Type</strong> {{ column.type_label }} <span class="muted">(ligt vast; wil je een ander type, maak dan een nieuwe kolom)</span></p>
+  {% else %}
+  <fieldset class="type-choice">
+    <legend>Type</legend>
+    {% for value, label in types %}
+    <label class="radio"><input type="radio" name="type" value="{{ value }}" {% if form.type == value %}checked{% endif %}> {{ label }}
+      <span class="muted">{{ {"percentage": "een heel getal van 0 tot en met 100", "text": "vrije tekst", "choice": "een keuze uit een eigen lijst; de keuzes beheer je op de pagina Keuzelijsten"}[value] }}</span></label>
+    {% endfor %}
+    <p class="muted">Het type kun je later niet meer wijzigen.</p>
+  </fieldset>
+  {% endif %}
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.columns') }}">Annuleren</a>
+    <button class="button button-primary" type="submit">Opslaan</button>
+  </div>
+</form>
+{% endblock %}

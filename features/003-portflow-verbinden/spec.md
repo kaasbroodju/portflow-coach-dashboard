@@ -54,7 +54,7 @@ Inspiratie: de console-app ([`docs/portflow-console-app.py`](../../docs/portflow
 - [x] **F10 – Verlopen.** Is het token verlopen, of geeft Portflow `401`, dan wordt de status rood **"Verlopen"** en verschijnt op elke pagina een banner: "Je Portflow-verbinding is verlopen (sinds {tijd}). Log opnieuw in om weer actuele gegevens te zien. [Opnieuw inloggen]". De tijd van de getoonde gegevens komt erbij met de spec *Gegevens ophalen*. Bewaarde gegevens blijven zichtbaar ([architectuur.md](../../docs/architectuur.md#verversen)).
   - *Acceptatie:* token met verlopen `exp` → rode status en banner; de banner verdwijnt na opnieuw inloggen.
 - [x] **F11 – Verbinding verbreken.** In het paneel en in Instellingen: **"Verbinding verbreken"** verwijdert het token (na bevestiging). Het browserprofiel blijft staan.
-  - *Acceptatie:* na verbreken is de status "Niet verbonden" en staat er geen token meer in `.env`.
+  - *Acceptatie:* na verbreken is de status "Niet verbonden" en staat er geen token meer in de database.
 
 ### Weergave
 
@@ -124,7 +124,7 @@ Schets van het paneel (bij "Verbonden"):
 
 - **Bron:** Portflow via de browsersessie; API: `GET /dashboard` (controle), `GET /portfolios/{eigen id}` (naam). Zie [architectuur.md](../../docs/architectuur.md#portflow-api).
 - **Bewaren:**
-  - **Token** in `.env` als `PORTFLOW_BEARER_TOKEN` (regel uit CLAUDE.md: geheimen alleen in `.env`).
+  - **Token** in de database (tabel `settings`, sleutel `portflow_token`); het databasebestand krijgt de rechten `600`. Reservekopieën bevatten geen token. *(Gewijzigd 2026-11-11; eerder in `.env`.)*
   - **Eigen portfolio-id, naam, vervaltijd en "laatst ververst"** in de database (geen geheimen).
   - **Browserprofiel** in `data/browser-profile/`. Daarin staan HU- en Canvas-cookies; de map staat niet in git.
 - **Privacy:** het token komt **nooit** in de browser-JavaScript, in logregels of in foutmeldingen. Het status-endpoint geeft alleen de toestand, naam en tijden terug.
@@ -151,3 +151,4 @@ Schets van het paneel (bij "Verbonden"):
 - 2026-11-09 – open vragen beantwoord; status uitgewerkt
 - 2026-11-09 – gebouwd. Echt getest met Portflow: inloggen via het Chrome-venster, naam en portfolio-id ophalen, live bijwerken van de status, herstart met een geldig token zonder venster. Onzichtbaar verversen bleek te blijven hangen op de accountkeuze van SURFconext; met de gebruiker besloten dat zichtbaar verversen de standaard wordt (F7, F8, F9 aangepast). Herhaalpogingen openen geen venster meer. 46 tests slagen.
 - Niet echt getest: het verversen een uur voor het verlopen (alleen met nep-tijd in tests), een `401` tijdens gebruik, en F17 (vergrendeld browserprofiel; de melding is gebouwd maar niet getest). Status klaar, met F17 open.
+- 2026-11-11 – op verzoek van de gebruiker staat het token nu in de database in plaats van in `.env` (F11, Data). Een bestaand token is eenmalig overgezet; `.env` is verwijderd

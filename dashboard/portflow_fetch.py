@@ -1,7 +1,9 @@
 """Fetching evaluations from Portflow and keeping a local copy (spec 005).
 
-A fetch round runs in a background thread, started only with the "Verversen" button
-(F5, F6). Pages read `status()`; the token never leaves the connection object.
+A fetch round runs in a background thread, started with the "Verversen" button (F5, F6),
+or by itself once after the very first connection (spec 019, F2). Every round adds the
+students who shared their portfolio and are not in the dashboard yet (spec 019, F1, F3).
+Pages read `status()`; the token never leaves the connection object.
 """
 
 import json
@@ -10,7 +12,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Callable
 
-from . import db, portflow_api, portflow_link
+from . import db, portflow_api, portflow_link, staff, student_intake
+from .progress import name_key
 from .skills import skill_for_goal_name
 
 MAX_WORKERS = 8  # architectuur.md#verversen
@@ -134,8 +137,10 @@ class Fetcher:
 
     # Starting -------------------------------------------------------------
 
-    def start(self) -> bool:
-        """F6: start a round for all followed students; False if one is running or not connected."""
+    def start(self, student_ids: list[int] | None = None) -> bool:
+        """F6: start a round; False if one is running or not connected.
+        Spec 019, F14: `student_ids` are the students visible in the list; None means all
+        students that are not hidden."""
         token = self.connection.token
         if not token:
             return False
@@ -143,8 +148,14 @@ class Fetcher:
             if self.running:
                 return False
             self.running, self.done, self.total = True, 0, 0
-        self.spawn(lambda: self._run(token))
+        self.spawn(lambda: self._run(token, student_ids))
         return True
+
+    def start_first(self) -> bool:
+        """Spec 019, F2: after the very first connection the first round starts by itself."""
+        if db.get_setting(self.database, S_LAST_FETCH):
+            return False
+        return self.start()
 
     # Status for the top bar -------------------------------------------------
 
@@ -167,21 +178,31 @@ class Fetcher:
 
     # Work ---------------------------------------------------------------------
 
-    def _students(self) -> list[dict]:
+    def _students(self, student_ids: list[int] | None = None) -> list[dict]:
         conn = db.connect(self.database)
         try:
             rows = conn.execute(
-                "SELECT s.id, s.name, sp.portfolio_id FROM students s "
+                "SELECT s.id, s.name, s.is_hidden, sp.portfolio_id FROM students s "
                 "JOIN student_portfolios sp ON sp.student_id = s.id "
                 "WHERE s.is_demo = 0 AND s.portflow_user_id IS NOT NULL ORDER BY s.name, sp.portfolio_id"
             ).fetchall()
         finally:
             conn.close()
+        wanted = set(student_ids) if student_ids is not None else None
         students: dict[int, dict] = {}
         for row in rows:
+            if (row["id"] not in wanted) if wanted is not None else row["is_hidden"]:
+                continue   # spec 019, F14
             students.setdefault(row["id"], {"id": row["id"], "name": row["name"], "portfolios": []})
             students[row["id"]]["portfolios"].append(row["portfolio_id"])
         return list(students.values())
+
+    def _student_ids(self) -> set[int]:
+        conn = db.connect(self.database)
+        try:
+            return {row[0] for row in conn.execute("SELECT id FROM students")}
+        finally:
+            conn.close()
 
     def _link(self, token: str) -> None:
         try:
@@ -193,6 +214,15 @@ class Fetcher:
         conn = db.connect(self.database)
         try:
             _, unresolved = portflow_link.auto_link(conn, candidates)
+            # Spec 019, F1, F3: every shared student who is not in the dashboard yet is added
+            # (a student with the same name and no link is linked instead, spec 004, F10).
+            # A name that is still unresolved (spec 015, F4: more than one shared student with
+            # that name) is not added; the user links it at Student bewerken.
+            tracked = student_intake.tracked_portflow_ids(conn)
+            waiting = {name_key(n) for n in unresolved}
+            new = [c for c in candidates if c["portflow_user_id"] not in tracked and name_key(c["name"]) not in waiting]
+            if new:
+                student_intake.add_or_link_students_from_portflow(conn, new)
         finally:
             conn.close()
         db.set_setting(self.database, S_UNLINKED, json.dumps(unresolved))
@@ -267,12 +297,27 @@ class Fetcher:
         finally:
             conn.close()
 
-    def _run(self, token: str) -> None:
+    def _add_assessors(self) -> None:
+        """Spec 019, F11: assessors found in the evaluations join the list of coaches and guild masters."""
+        conn = db.connect(self.database)
+        try:
+            staff.add_found_assessors(conn, getattr(self.connection, "user_name", None))
+        finally:
+            conn.close()
+
+    def _run(self, token: str, student_ids: list[int] | None = None) -> None:
         failed_names: list[str] = []
         completed = False
+        first = not db.get_setting(self.database, S_LAST_FETCH)
         try:
+            before = self._student_ids()
             self._link(token)  # spec 015, F2: link on name first, so new links are fetched too
-            students = self._students()
+            # Spec 019, F2, F14: the first round fetches everyone, later rounds the visible students
+            # plus the students that were added in this round (F3).
+            if first or student_ids is None:
+                students = self._students(None)
+            else:
+                students = self._students(list(student_ids) + sorted(self._student_ids() - before))
             self.total = len(students)
             statuses = self._request_statuses(token)
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
@@ -283,6 +328,7 @@ class Fetcher:
                     else:
                         self._save(student["id"], outcome, rows)
                     self.done += 1
+            self._add_assessors()
             completed = True
         except Unauthorized:
             self.connection.mark_unauthorized()  # F11: stop, keep everything

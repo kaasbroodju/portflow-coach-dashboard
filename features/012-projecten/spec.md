@@ -102,3 +102,5 @@ Nieuw project en het formulier volgen de pagina's van de beroepsrollen ([spec 00
 - 2026-11-10 – F10–F12 toegevoegd op verzoek van de gebruiker: een weergavenaam per project (standaard met het nummer tussen haakjes) die in de overzichten de projectnaam vervangt
 - 2026-11-10 – F10–F12 gebouwd en getest (unit tests en in de browser met de echte projecten); status klaar
 - 2026-11-10 – op verzoek van de gebruiker: projecten hebben geen kleur meer (F6 vervallen), en de kaart toont alleen de initialen en de weergavenaam (F3)
+- 2026-11-11 – de paginakop (kopje, titel en uitleg) is vervangen door het kruimelpad in de bovenbalk, zonder uitleg ([spec 002](../002-app-schil/spec.md), F8)
+- 2026-11-11 – aangepast door [spec 027](../027-beheerbalk/spec.md): de samenvattingsbalk is de gedeelde beheerbalk geworden, met de aantallen uit die spec en de knop erin; de uitlegzin vervalt

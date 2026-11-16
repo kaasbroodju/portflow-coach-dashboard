@@ -101,3 +101,5 @@ Toevoegen en het formulier volgen de pagina's van de beroepsrollen ([spec 008](.
 
 - 2026-11-09 – spec aangemaakt op verzoek van de gebruiker; antwoorden verwerkt; status uitgewerkt
 - 2026-11-09 – gebouwd en getest (unit tests en in de browser); status klaar
+- 2026-11-11 – de paginakop (kopje, titel en uitleg) is vervangen door het kruimelpad in de bovenbalk, zonder uitleg ([spec 002](../002-app-schil/spec.md), F8)
+- 2026-11-11 – aangepast door [spec 027](../027-beheerbalk/spec.md): de samenvattingsbalk is de gedeelde beheerbalk geworden, met de aantallen uit die spec en de knop erin; de uitlegzin vervalt

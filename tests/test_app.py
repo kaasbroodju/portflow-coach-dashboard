@@ -5,12 +5,11 @@ import sqlite3
 import tempfile
 import unittest
 from contextlib import contextmanager
-from datetime import datetime
 from pathlib import Path
 
 from app import port_is_free
 from dashboard import create_app
-from dashboard.routes import PAGES, dutch_date, greeting
+from dashboard.routes import PAGES
 
 
 class ShellTestCase(unittest.TestCase):
@@ -59,7 +58,12 @@ class TestPages(ShellTestCase):
                 self.assertIn("Gebruiker", html)
                 self.assertIn('aria-current="page"', html)
                 self.assertRegex(html, rf'is-active"\s+href="{re.escape(page["path"])}"')
-                self.assertIn(page["intro"], html)
+                if page["group"]:   # spec 002, F8: "Beheer ›" only for the pages in that group
+                    self.assertRegex(html, rf'(?s)crumb-section">Beheer</span>.*?<h1 class="crumb-title">{page["title"]}</h1>')
+                else:
+                    self.assertNotIn("crumb-section", html)
+                    self.assertIn(f'<h1 class="crumb-title">{page["title"]}</h1>', html)
+                self.assertNotIn("page-info", html)
                 if page["placeholder"]:
                     self.assertIn(page["placeholder"], html)
 
@@ -69,10 +73,10 @@ class TestPages(ShellTestCase):
         self.assertNotIn("open", group.group(1))
         self.assertIn("Beheer", group.group(2))
         order = re.findall(r'href="(/[a-z]+)"', group.group(2))
-        self.assertEqual(order, ["/semesters", "/gildes", "/gildemeesters", "/coaches", "/projecten",
-                                 "/kolommen"])
+        self.assertEqual(order, ["/studenten", "/semesters", "/gildes", "/gildemeesters", "/coaches", "/projecten",
+                                 "/kolommen", "/keuzelijsten"])
         outside = html.replace(group.group(0), "")
-        for path in ("/", "/studenten", "/evaluaties", "/instellingen"):
+        for path in ("/", "/evaluaties", "/instellingen"):
             self.assertIn(f'href="{path}"', outside)
         html = self.client.get("/gildes").get_data(as_text=True)
         group = re.search(r'<details class="nav-group"([^>]*)>(.*?)</details>', html, re.S)
@@ -85,11 +89,32 @@ class TestPages(ShellTestCase):
         self.assertNotRegex(html, r'(src|href)="https?://')
         self.assertNotIn("http", css)
 
-    def test_overview_header_in_dutch(self):
-        self.assertEqual(dutch_date(datetime(2026, 11, 9)), "maandag 9 november")
-        self.assertEqual(greeting(datetime(2026, 11, 9, 9)), "Goedemorgen")
-        self.assertEqual(greeting(datetime(2026, 11, 9, 14)), "Goedemiddag")
-        self.assertEqual(greeting(datetime(2026, 11, 9, 20)), "Goedenavond")
+    def test_breadcrumb_follows_the_menu(self):  # spec 002, F8
+        html = self.client.get("/semesters").get_data(as_text=True)
+        self.assertIn('crumb-section">Beheer</span>', html)
+        html = self.client.get("/instellingen").get_data(as_text=True)
+        self.assertNotIn("Werkruimte</span>", html)
+        self.assertNotIn("page-header", html)
+        html = self.client.get("/").get_data(as_text=True)
+        self.assertNotIn("crumb-date", html)        # no date and no greeting any more
+        self.assertNotIn("Goedemiddag", html)
+
+    def test_subpage_links_back_to_its_menu_page(self):  # spec 002, F8
+        html = self.client.get("/projecten/nieuw").get_data(as_text=True)
+        self.assertRegex(html, r'(?s)crumb-section">Beheer</span>.*?<a class="crumb-link" href="/projecten">Projecten</a>'
+                               r'.*?<h1 class="crumb-title">Nieuw project</h1>')
+
+    def test_primary_button_in_toolbar_or_above_content(self):  # spec 002, F8
+        with self.db() as conn:
+            conn.execute("INSERT INTO students (name) VALUES ('Verzonnen Student')")
+        html = self.client.get("/").get_data(as_text=True)
+        self.assertRegex(html, r'(?s)id="table-filters".*?toolbar-action" href="/studenten/toevoegen">\+ Student toevoegen</a>\s*</form>')
+        self.assertNotIn('class="page-actions"', html)
+        html = self.client.get("/studenten").get_data(as_text=True)   # spec 027: in the management bar
+        self.assertRegex(html, r'(?s)class="management-bar.*?href="/studenten/toevoegen">\+ Student toevoegen</a>')
+        self.assertNotIn("toolbar-action", html)
+        html = self.client.get("/projecten").get_data(as_text=True)   # no projects: no bar (spec 027, F4)
+        self.assertRegex(html, r'class="page-actions"><a class="button button-primary" href="/projecten/nieuw">')
 
     def test_requests_from_other_hosts_or_sites_are_refused(self):
         self.assertEqual(self.client.get("/", headers={"Host": "evil.example"}).status_code, 400)

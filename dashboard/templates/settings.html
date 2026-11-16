@@ -86,8 +86,8 @@
 
 <section class="card reset-card" id="alles-verwijderen">
   <h2>Alles verwijderen</h2>
-  <p class="muted">Zet het dashboard terug in de begintoestand: alle gegevens en de Portflow-koppeling worden verwijderd.
-    Er wordt eerst een reservekopie gemaakt.</p>
+  <p class="muted">Zet het dashboard terug in de begintoestand: alle gegevens worden verwijderd. De Portflow-koppeling blijft,
+    zodat je direct opnieuw kunt ophalen. Er wordt eerst een reservekopie gemaakt.</p>
   {% if reset_error %}<p class="panel-message" role="alert">{{ reset_error }}</p>{% endif %}
 
   {% if reset_step == "alles-verwijderen" %}
@@ -95,8 +95,8 @@
     <p id="reset-title-1"><strong>Alle gegevens verwijderen?</strong> Dit verdwijnt:</p>
     <ul class="reset-list">
       {% for label, count in reset_summary %}<li>{{ count }} {{ label }}</li>{% endfor %}
-      <li>de Portflow-koppeling (het token) en de HU-login in het browserprofiel</li>
     </ul>
+    <p class="muted">De Portflow-koppeling blijft staan.</p>
     <div class="actions">
       <a class="button button-secondary" href="{{ url_for('pages.settings') }}#alles-verwijderen">Annuleren</a>
       <a class="button button-danger" href="{{ url_for('pages.settings', bevestig='alles-verwijderen-2') }}#alles-verwijderen">Doorgaan</a>

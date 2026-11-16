@@ -33,11 +33,6 @@
   <a class="button button-primary" href="{{ url_for('pages.semesters_add') }}">+ Semester toevoegen</a>
 </section>
 {% else %}
-<section class="summary-bar card">
-  <span><strong>{{ student_total }} student{{ "en" if student_total != 1 }}</strong> <span class="muted">verdeeld over {{ active_count }} actieve semester{{ "s" if active_count != 1 }}</span></span>
-  <span class="muted summary-note">Iedere student is aan precies één semester gekoppeld.</span>
-</section>
-
 <section class="semester-cards">
   {% for s in items %}
   <article class="card staff-card semester-card">

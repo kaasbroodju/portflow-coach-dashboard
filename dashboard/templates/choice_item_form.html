@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{# Een keuze bewerken (spec 024, L2): code en omschrijving werken overal door. #}
+{% block content %}
+<form method="post" class="card names-form manage-form">
+  {% if error %}<p class="panel-message" role="alert">{{ error }}</p>{% endif %}
+  <label>Code <span class="muted">(staat in de tabellen)</span>
+    <input name="code" value="{{ form.code }}" maxlength="40" required class="input-medium">
+  </label>
+  <label>Omschrijving <span class="muted">(niet verplicht; staat in de keuzelijsten en filters)</span>
+    <input name="omschrijving" value="{{ form.omschrijving }}">
+  </label>
+  <p class="muted">Studenten met deze keuze krijgen de nieuwe code en omschrijving.</p>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ back }}">Annuleren</a>
+    <button class="button button-primary" type="submit">Opslaan</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,11 +1,7 @@
 {% extends "base.html" %}
 {# Overzicht: lege staat (spec 004), verkorte studententabel (spec 001, F1). #}
-{% block page_actions %}
-{% if student_count > 0 %}
-<a class="button button-primary" href="{{ url_for('pages.add_students') }}">+ Student toevoegen</a>
-{% endif %}
-{% endblock %}
 {% block content %}
+{% set toolbar_action = {"href": url_for('pages.add_students'), "label": "+ Student toevoegen"} %}{# spec 002, F8 #}
 {% if message %}<div class="alert-success" role="status">{{ message }}</div>{% endif %}
 {% if added or linked %}
 <div class="alert-success" role="status">
@@ -23,7 +19,6 @@
 {% if student_count == 0 %}
 {% include "_empty_students.html" %}
 {% else %}
-<h2 class="section-title">Studentenoverzicht</h2>
 {% include "_student_table.html" %}
 {% endif %}
 {% endblock %}

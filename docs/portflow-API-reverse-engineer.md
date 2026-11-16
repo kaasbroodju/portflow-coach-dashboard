@@ -51,7 +51,7 @@ te starten en het token te onderscheppen:
    `Bearer`-token uit de `authorization`-header.
 5. De token wordt gevalideerd door 'm te gebruiken in een live call naar
    `GET /api/v1/dashboard`; status `200` = geldig.
-6. De token (een JWT) wordt opgeslagen in `.env` als `PORTFLOW_BEARER_TOKEN` en bij elk
+6. De token (een JWT) wordt in de console-app opgeslagen in `.env` als `PORTFLOW_BEARER_TOKEN` (het dashboard bewaart hem in de database) en bij elk
    volgend scriptgebruik lokaal gevalideerd (zie hieronder) — pas als hij verlopen is,
    wordt opnieuw een browservenster geopend.
 

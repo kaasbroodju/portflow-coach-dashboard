@@ -1,7 +1,7 @@
 # 002 – Basisapplicatie en schil
 
 **Status:** klaar <!-- idee | uitgewerkt | in bouw | klaar -->
-**Laatst bijgewerkt:** 2026-11-09
+**Laatst bijgewerkt:** 2026-11-11
 
 ## Doel
 
@@ -38,27 +38,30 @@ Dit is de eerste code van het project. De technische keuzes staan in [architectu
 
 - [x] **F5 – Zijbalk.** Donkergroen. Bovenaan het **terminal-woordmerk**: `>_ portflow` in een monospace letter, met daaronder "coach dashboard" (een knipoog naar de console-app). Daaronder het kopje "Werkruimte" en de menu-items Overzicht, Studenten, Evaluaties, Projecten, Kolommen, Beroepsrollen, Semesters en Instellingen, elk met een icoon. De browsertab heeft een `>_`-icoon. Het actieve item is gemarkeerd.
   - *Acceptatie:* een klik op Projecten opent de pagina Projecten, en dan is Projecten in de zijbalk gemarkeerd. De browsertab heet "Portflow coach dashboard".
-- [x] **F17 – Menugroep Beheer.** De beheerpagina's staan in de zijbalk onder één menu-item **Beheer** dat open- en dichtklapt, in deze volgorde: Semesters, Gildes, Gildemeesters, Coaches, Projecten, Kolommen (Beroepsrollen vervallen door [spec 018](../018-beroepsrol-in-gilde/spec.md)). De zijbalk wordt daarmee: Overzicht, Studenten, Evaluaties, **Beheer ▸**, Instellingen. Bij het openen van de app en op pagina's buiten Beheer is de groep **dichtgeklapt**; op een pagina binnen Beheer is hij **opengeklapt**, met die pagina gemarkeerd. De gebruiker kan hem altijd zelf open- en dichtklikken. Werkt zonder JavaScript.
+- [x] **F17 – Menugroep Beheer.** De beheerpagina's staan in de zijbalk onder één menu-item **Beheer** dat open- en dichtklapt, in deze volgorde: Studenten, Semesters, Gildes, Gildemeesters, Coaches, Projecten, Kolommen (Beroepsrollen vervallen door [spec 018](../018-beroepsrol-in-gilde/spec.md)). De zijbalk wordt daarmee: Overzicht, Evaluaties, **Beheer ▸**, Instellingen (Studenten staat sinds 2026-11-11 onder Beheer). Bij het openen van de app en op pagina's buiten Beheer is de groep **dichtgeklapt**; op een pagina binnen Beheer is hij **opengeklapt**, met die pagina gemarkeerd. De gebruiker kan hem altijd zelf open- en dichtklikken. Werkt zonder JavaScript.
   - *Acceptatie:* op Overzicht zijn de zeven beheerpagina's niet zichtbaar; een klik op Beheer toont ze in de genoemde volgorde; op de pagina Gildes is Beheer open en Gildes gemarkeerd.
 - [x] **F6 – Gebruiker onderin de zijbalk.** Zolang de eerste start (naam invullen) niet gebouwd is: een neutrale avatar met de tekst **"Gebruiker"**, zonder rollen. Geen hulpkaart ("Hulp nodig?"); die komt pas als er een handleiding is.
   - *Acceptatie:* onderin de zijbalk staat "Gebruiker"; er is geen hulpkaart.
 - [x] **F7 – Bovenbalk.** De Portflow-status "Niet verbonden" (deze functie verbindt nog niet) en de avatar van de gebruiker. Geen belletje; dat komt pas als er meldingen zijn.
   - *Acceptatie:* de bovenbalk staat op elke pagina, met de status "Niet verbonden" en zonder belletje.
-- [x] **F8 – Paginakop.** Elke pagina heeft een klein kopje in hoofdletters, een titel en één zin uitleg (teksten: zie de tabel hieronder).
-  - *Acceptatie:* elke pagina toont de kop uit de tabel.
-- [x] **F9 – Lege pagina's.** Onder de kop staat een korte, vriendelijke tekst over wat daar komt, bijvoorbeeld "Hier komt het studentenoverzicht."
+- [x] **F8 – Paginakop in de bovenbalk** (gewijzigd 2026-11-11). Er is geen aparte kop meer boven de inhoud, zodat er zoveel mogelijk ruimte is voor de tabellen. Links in de bovenbalk staat op elke pagina een **kruimelpad**:
+  - voor de pagina's in de menugroep Beheer (F17) eerst **Beheer ›**, bijvoorbeeld **Beheer › Studenten**; de andere pagina's (Overzicht, Evaluaties, Instellingen) tonen alleen hun titel;
+  - op een onderliggende pagina (bewerken, toevoegen, Excel-import) daarachter de naam van die pagina, en is de menupagina een link terug: **Beheer › Studenten › Student bewerken**;
+  - er is geen uitlegzin bij de titel;
+  - het **Overzicht** toont alleen "Overzicht": geen datum, geen begroeting, en boven de tabel geen subkop "Studentenoverzicht";
+  - het hele kruimelpad heeft één lettergrootte en staat op één lijn; "Beheer", de scheidingstekens en een link terug zijn gedempt grijs, de huidige pagina is donker en halfvet. Geen hoofdletters;
+  - de **primaire knop** van een pagina (bijvoorbeeld "+ Student toevoegen", "+ Nieuw project") staat op de Beheer-pagina's rechts in de beheerbalk ([spec 027](../027-beheerbalk/spec.md)); op het Overzicht rechts in de werkbalk boven de tabel; anders rechtsboven de inhoud.
+  - *Acceptatie:* op Semesters toont de bovenbalk "Beheer › Semesters", op Instellingen alleen "Instellingen", op Student bewerken "Beheer › Studenten › Student bewerken" met "Studenten" als link; er staat geen grote kop en geen uitleg boven de inhoud; op Overzicht staat "+ Student toevoegen" in de werkbalk, op Studenten in de beheerbalk.
+
+- [x] **F9 – Lege pagina's.** Bovenaan de inhoud staat een korte, vriendelijke tekst over wat daar komt, bijvoorbeeld "Hier komt het studentenoverzicht."
   - *Acceptatie:* elke pagina behalve Instellingen toont zo'n tekst, en geen foutmelding.
 
-| Pagina | Kopje | Titel | Uitleg | Bron |
-|---|---|---|---|---|
-| Overzicht | datum, bijvoorbeeld "MAANDAG 9 NOVEMBER" | "Goedemorgen, …" (naar tijdstip: morgen, middag, avond) | Dit vraagt vandaag je aandacht. | ontwerp |
-| Studenten | Studievoortgang | Studenten | Alle studenten die je volgt, met hun voortgang per vaardigheid. | afgesproken |
-| Evaluaties | Studievoortgang | Evaluaties | Evaluatieverzoeken die op jouw beoordeling wachten. | afgesproken |
-| Projecten | Beheer | Projecten | Beheer de projectgroepen waarin je studenten zijn ingedeeld. | ontwerp |
-| Kolommen | Curriculum | Kolommen | De bouwstenen van je studentenoverzicht, op één plek beheerd. | ontwerp |
-| Beroepsrollen | Opleidingsprofiel | Beroepsrollen | Beheer rollen en zie direct welke studenten primair of secundair gekoppeld zijn. | ontwerp |
-| Semesters | Studievoortgang | Semesters | Bekijk de bezetting van semester 1 tot en met 8 en verplaats studenten. | ontwerp |
-| Instellingen | Beheer | Instellingen | Je gegevens, de semesterperiode en de koppeling met Portflow. | afgesproken |
+| Pagina | Kruimelpad |
+|---|---|
+| Overzicht | Overzicht |
+| Evaluaties | Evaluaties |
+| Studenten, Semesters, Gildes, Gildemeesters, Coaches, Projecten, Kolommen, Keuzelijsten | Beheer › *titel* |
+| Instellingen | Instellingen |
 
 ### Demodata
 
@@ -137,3 +140,8 @@ Dit is de eerste code van het project. De technische keuzes staan in [architectu
 - 2026-11-09 – F18 toegevoegd op verzoek van de gebruiker: demodata voor beroepsrollen, gildes en semesters
 - 2026-11-09 – F18 gebouwd en getest; status klaar
 - 2026-11-10 – aangepast door [spec 018](../018-beroepsrol-in-gilde/spec.md): het menu-item Beroepsrollen vervalt (F17); de demodata voegen alleen gildes toe, met beroepsrol, beschrijving en kleur (F18)
+- 2026-11-11 – op verzoek van de gebruiker: Studenten staat nu als eerste onder Beheer (F17, kopje "Beheer"), en het Overzicht heeft een compacte kop van één regel zonder uitleg (F8)
+- 2026-11-11 – F8 op verzoek van de gebruiker vervangen (keuze uit drie opties: titel in de bovenbalk): de paginakop is een kruimelpad in de bovenbalk met de sectie uit het menu, uitleg bij een ⓘ-icoon en de primaire knop in de werkbalk. De begroeting op het Overzicht vervalt; de sectie van Semesters is nu Beheer, die van Evaluaties en Instellingen Werkruimte.
+- 2026-11-11 – op verzoek van de gebruiker: "Werkruimte" vervalt in het kruimelpad en de uitleg bij het ⓘ-icoon vervalt helemaal; de uitlegteksten zijn uit de code gehaald (F8)
+- 2026-11-11 – op verzoek van de gebruiker: op het Overzicht vervallen de datum en de subkop "Studentenoverzicht"; "Beheer" en de titel hebben dezelfde lettergrootte, met de ouder gedempt en de huidige pagina halfvet in plaats van een klein kopje in hoofdletters (F8)
+- 2026-11-11 – aangepast door [spec 027](../027-beheerbalk/spec.md): op de Beheer-pagina's staat de primaire knop in de beheerbalk (F8)

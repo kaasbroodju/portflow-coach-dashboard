@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{# Keuzelijsten (spec 024, L1-L5): Invulling, Rol in de squad en de lijst van elke keuzelijstkolom. #}
+{% block content %}
+{% if confirm %}
+<div class="confirm" role="alertdialog" aria-labelledby="remove-title">
+  <p id="remove-title">
+    <strong>{{ confirm.code }} verwijderen uit {{ confirm.list_name }}?</strong>
+    {% if confirm.students %}{{ confirm.students }} student{{ "en hebben" if confirm.students != 1 else " heeft" }} deze keuze; {{ "hun" if confirm.students != 1 else "de" }} waarde wordt leeg.
+    {% else %}Geen enkele student heeft deze keuze.{% endif %}
+  </p>
+  <div class="actions">
+    <a class="button button-secondary" href="{{ url_for('pages.choice_lists', _anchor=confirm.anchor) }}">Annuleren</a>
+    <form method="post" action="{{ url_for('pages.choice_item_delete', item_id=confirm.id) }}">
+      <button class="button button-danger" type="submit">Verwijderen</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% for l in lists %}
+<section class="card manage-card" id="{{ l.anchor }}">
+  <div class="manage-head">
+    <h2>{{ l.name }}</h2>
+    {% if l.standard %}
+    <form method="post" action="{{ url_for('pages.choice_list_standard', list_id=l.id) }}">
+      <button class="button button-secondary button-compact" type="submit" title="Voegt de Open-ICT-keuzes toe die ontbreken; jouw wijzigingen blijven staan">Open-ICT-standaard toevoegen</button>
+    </form>
+    {% else %}
+    <span class="muted">Keuzelijstkolom · <a href="{{ url_for('pages.columns') }}">Kolommen</a></span>
+    {% endif %}
+  </div>
+  {% if added and error_list == l.id|string %}
+  <p class="alert-success" role="status">{% if added == "0" %}Alle Open-ICT-keuzes stonden er al.{% else %}{{ added }} keuze{{ "s" if added != "1" }} toegevoegd.{% endif %}</p>
+  {% endif %}
+  {% if l.entries %}
+  <table class="manage-table">
+    <thead>
+      <tr><th scope="col">Code</th><th scope="col">Omschrijving</th><th scope="col">Studenten</th><th scope="col"><span class="visually-hidden">Acties</span></th></tr>
+    </thead>
+    <tbody>
+      {% for i in l.entries %}
+      <tr>
+        <td><span class="code-chip">{{ i.code }}</span></td>
+        <td>{{ i.description or "–" }}</td>
+        <td>{{ i.students }}</td>
+        <td class="manage-actions">
+          <form method="post" action="{{ url_for('pages.choice_item_move', item_id=i.id, direction='omhoog') }}">
+            <button class="icon-button" type="submit" title="Omhoog" aria-label="{{ i.code }} omhoog" {% if loop.first %}disabled{% endif %}>↑</button>
+          </form>
+          <form method="post" action="{{ url_for('pages.choice_item_move', item_id=i.id, direction='omlaag') }}">
+            <button class="icon-button" type="submit" title="Omlaag" aria-label="{{ i.code }} omlaag" {% if loop.last %}disabled{% endif %}>↓</button>
+          </form>
+          <a class="button button-secondary button-compact" href="{{ url_for('pages.choice_item_edit', item_id=i.id) }}">Bewerken</a>
+          <a class="button button-secondary button-compact" href="{{ url_for('pages.choice_lists', verwijder=i.id, _anchor=l.anchor) }}">Verwijderen</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Nog geen keuzes.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('pages.choice_item_add', list_id=l.id) }}" class="manage-add">
+    {% if error and error_list == l.id|string %}<p class="panel-message" role="alert">{{ error }}</p>{% endif %}
+    <label>Code <input name="code" required maxlength="40" class="input-medium"></label>
+    <label>Omschrijving <span class="muted">(niet verplicht)</span> <input name="omschrijving"></label>
+    <button class="button button-secondary" type="submit">+ Toevoegen</button>
+  </form>
+</section>
+{% endfor %}
+{% endblock %}

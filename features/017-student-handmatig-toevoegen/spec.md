@@ -60,3 +60,4 @@ Geen eigen ontwerp: het formulier van Student bewerken, met de titel "Student to
 
 - 2026-11-10 – spec aangemaakt op verzoek van de gebruiker; antwoorden verwerkt; status uitgewerkt
 - 2026-11-10 – gebouwd en getest (unit tests en in de browser); status klaar
+- 2026-11-11 – aangepast door [spec 026](../026-eigen-kolommen-bewerken/spec.md): ook hier het blok Eigen kolommen

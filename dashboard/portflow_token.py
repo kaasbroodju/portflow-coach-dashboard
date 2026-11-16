@@ -1,16 +1,20 @@
-"""The Portflow bearer token: reading its expiry, and keeping it in .env.
+"""The Portflow bearer token: reading its expiry, and keeping it in the database.
 
-The token is a secret. It is only stored in .env (see CLAUDE.md) and never
-shown in the browser, in logs or in error messages.
+The token is a secret. It is only stored in the local database (settings table,
+see CLAUDE.md), never in backups, and never shown in the browser, in logs or in
+error messages.
 """
 
 import base64
 import json
 import os
+import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-ENV_KEY = "PORTFLOW_BEARER_TOKEN"
+from . import db
+
+TOKEN_KEY = "portflow_token"   # key in the settings table
 
 
 def decode_payload(token: str) -> dict | None:
@@ -36,35 +40,27 @@ def expires_at(token: str) -> datetime | None:
 
 
 class TokenStore:
-    """Reads and writes PORTFLOW_BEARER_TOKEN in a .env file, keeping other lines."""
+    """Reads and writes the token in the settings table of the database."""
 
-    def __init__(self, env_path: Path | str):
-        self.path = Path(env_path)
-
-    def _lines(self) -> list[str]:
-        return self.path.read_text(encoding="utf-8").splitlines() if self.path.exists() else []
+    def __init__(self, database: Path | str):
+        self.database = str(database)
 
     def read(self) -> str | None:
-        for line in self._lines():
-            key, sep, value = line.partition("=")
-            if sep and key.strip().removeprefix("export ").strip() == ENV_KEY:
-                return value.strip().strip("'\"") or None
-        return None
+        return db.get_setting(self.database, TOKEN_KEY) or None
 
     def save(self, token: str) -> None:
-        lines = [line for line in self._lines() if not self._is_token_line(line)]
-        lines.append(f"{ENV_KEY}={token}")
-        self._write(lines)
+        db.set_setting(self.database, TOKEN_KEY, token)
+        os.chmod(self.database, 0o600)  # readable for the user only
 
     def delete(self) -> None:
-        if self.path.exists():
-            self._write([line for line in self._lines() if not self._is_token_line(line)])
+        remove_token(self.database)
 
-    @staticmethod
-    def _is_token_line(line: str) -> bool:
-        key, sep, _ = line.partition("=")
-        return bool(sep) and key.strip().removeprefix("export ").strip() == ENV_KEY
 
-    def _write(self, lines: list[str]) -> None:
-        self.path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
-        os.chmod(self.path, 0o600)  # readable for the user only
+def remove_token(database: Path | str) -> None:
+    """Delete the token from a database file (also used to clean a backup copy)."""
+    conn = sqlite3.connect(str(database))
+    try:
+        with conn:
+            conn.execute("DELETE FROM settings WHERE key = ?", (TOKEN_KEY,))
+    finally:
+        conn.close()

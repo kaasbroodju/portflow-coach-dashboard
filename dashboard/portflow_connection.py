@@ -45,7 +45,7 @@ DISPLAY = {
     State.EXPIRED: ("red", "Verlopen", False),
 }
 
-# Setting keys in the database (no secrets here).
+# Setting keys in the database (the token has its own key, see portflow_token.py).
 S_CANVAS_URL = "portflow_canvas_url"
 S_ALWAYS_VISIBLE = "portflow_always_visible"
 S_PORTFOLIO_ID = "portflow_portfolio_id"
@@ -109,6 +109,8 @@ class PortflowConnection:
         self._lock = threading.Lock()
         self._busy = False
         self._cancel = threading.Event()
+        # Called after a successful connection (spec 019, F2: the first fetch round starts by itself).
+        self.after_connect: Callable[[], None] | None = None
 
     # Settings ---------------------------------------------------------------
 
@@ -141,6 +143,7 @@ class PortflowConnection:
         if token and expiry and expiry > self.now():
             self._set_token(token, expiry)
             self.state = State.CONNECTED
+            self._connected()
         elif token:
             self._set_token(token, expiry)
             self.state = State.EXPIRED
@@ -349,6 +352,11 @@ class PortflowConnection:
         db.set_setting(self.database, S_LAST_REFRESH, self.now().isoformat())
         db.set_setting(self.database, S_LAST_REFRESH_KIND, kind)
         self.state, self.message = State.CONNECTED, None
+        self._connected()
+
+    def _connected(self) -> None:
+        if self.after_connect:
+            self.after_connect()
 
     def _token_still_valid(self) -> bool:
         return bool(self._token and self.expires and self.expires > self.now())

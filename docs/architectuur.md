@@ -14,7 +14,7 @@ Een dashboard voor coaches en gildemeesters dat de Portflow-voortgang van groepe
 | Webframework | **Flask** (enige dependency) | Eén dependency, leesbare code, templates met automatische escaping |
 | Interface | Server-HTML (Jinja-templates) + **één eigen CSS-bestand en één eigen JS-bestand** | Geen npm en geen build-stap; filteren, sorteren en zoeken gebeuren in de browser |
 | Opslag / cache | **SQLite** (`sqlite3`, standaardbibliotheek), bestand `data/dashboard.sqlite3` | Eén bestand, robuust, geen dependency; staat niet in git |
-| Installatie | **venv + requirements.txt** | Standaard Python, geen extra tools; overstappen op uv kan later |
+| Installatie | **venv + requirements.txt** | Standaard Python, geen extra tools; overstappen op uv kan later. Eenvoudiger manieren (één terminalopdracht, PyInstaller, zip) staan als idee in [spec 020](../features/020-installatie/spec.md) |
 | Tests | **unittest** (standaardbibliotheek), `python -m unittest` | Geen extra dependency |
 | HTTP naar Portflow | `urllib` (standaardbibliotheek) | Geen extra dependency nodig |
 | Excel-import (later) | openpyxl | Excel lezen kan niet met de standaardbibliotheek |
@@ -46,12 +46,11 @@ dashboard/
     favicon.svg
     fonts/             ← DM Sans + licentie (OFL.txt)
 tests/                 ← unittest
-data/                  ← database en browserprofiel (niet in git)
-.env                   ← Portflow-token (niet in git)
+data/                  ← database (met het Portflow-token) en browserprofiel (niet in git)
 .claude/launch.json    ← startconfiguratie voor de preview in Claude Code
 ```
 
-Portflow (spec 003): `portflow_api.py` (alle API-aanroepen), `portflow_token.py` (token en `.env`), `portflow_login.py` (Chrome-venster, Playwright), `portflow_connection.py` (toestandsmachine), `portflow_routes.py`. Later komt er onder meer `progress.py` (voortgangsregels, op één plek en getest) bij. Houd de structuur zo plat mogelijk; splits pas als een bestand onoverzichtelijk wordt.
+Portflow (spec 003): `portflow_api.py` (alle API-aanroepen), `portflow_token.py` (token: vervaltijd en opslag in de database), `portflow_login.py` (Chrome-venster, Playwright), `portflow_connection.py` (toestandsmachine), `portflow_routes.py`. Later komt er onder meer `progress.py` (voortgangsregels, op één plek en getest) bij. Houd de structuur zo plat mogelijk; splits pas als een bestand onoverzichtelijk wordt.
 
 ## Bestaande console-app
 
@@ -73,7 +72,7 @@ Portflow heeft geen login-endpoint. Net als in de console-app:
 1. De app opent een Chrome-venster (Playwright, met een blijvend browserprofiel in `data/browser-profile/`) op de Portflow-tool in Canvas.
 2. De gebruiker logt zo nodig in via Canvas/HU-SSO; met een nog geldige HU-login in het profiel gaat dit vanzelf.
 3. De app vangt het bearer-token op uit de uitgaande verzoeken van Portflow en leest het eigen portfolio-id uit de pagina.
-4. Het token staat in `.env` (`PORTFLOW_BEARER_TOKEN`); het eigen portfolio-id in de database. Nooit in de repository, nooit in de browser-JavaScript of in logregels.
+4. Het token staat in de database (tabel `settings`, sleutel `portflow_token`), net als het eigen portfolio-id. Bij het opslaan krijgt het databasebestand de rechten `600` (alleen de gebruiker). Reservekopieën van de database bevatten geen token. Nooit in de repository, nooit in de browser-JavaScript of in logregels.
 5. Een token is **8 uur** geldig en bevat geen naam. De app ververst het 1 uur voor het verlopen, standaard in een **zichtbaar** venster: onzichtbaar (headless) verversen blijft hangen op de accountkeuze van SURFconext, omdat de Canvas-sessiecookie het sluiten van de browser niet overleeft. Lukt verversen niet, dan vraagt de app de gebruiker opnieuw in te loggen.
 
 De uitgewerkte eisen en de toestanden van de verbinding staan in [spec 003](../features/003-portflow-verbinden/spec.md).
@@ -99,7 +98,9 @@ De uitgewerkte eisen en de toestanden van de verbinding staan in [spec 003](../f
 ### Verversen
 
 - De laatst opgehaalde Portflow-gegevens worden **lokaal bewaard**, zodat de app direct opent.
-- Verversen gebeurt **alleen met de knop "Verversen"** in de bovenbalk, naast de Portflow-status; niet vanzelf bij het openen en niet na het toevoegen van studenten. Naast de knop staat "Bijgewerkt om …".
+- Verversen gebeurt **met de knop "Verversen"** in de bovenbalk, naast de Portflow-status; niet vanzelf bij het openen en niet na het toevoegen van studenten. Naast de knop staat "Bijgewerkt om …".
+- **Uitzondering:** direct na het allereerste verbinden (nog nooit opgehaald) start de eerste ophaalronde vanzelf, voor alle studenten ([spec 019](../features/019-eenvoudige-start/spec.md), F2).
+- Op een pagina met een studentenlijst haalt Verversen alleen de evaluaties op van de studenten die **op dat moment zichtbaar** zijn in de lijst, plus studenten die in die ronde nieuw zijn toegevoegd; op andere pagina's alle studenten die niet verborgen zijn. De lijst met gedeelde portfolio's wordt altijd volledig opgehaald ([spec 019](../features/019-eenvoudige-start/spec.md), F14).
 - Tijdens het ophalen is de voortgang zichtbaar. Feedback items worden parallel opgehaald, hooguit 8 tegelijk.
 - De uitgewerkte eisen staan in [spec 005](../features/005-gegevens-ophalen/spec.md).
 
@@ -110,6 +111,7 @@ Het dashboard toont gegevens van studenten. Uitgangspunten:
 - Alleen tonen wat een coach nodig heeft.
 - Geen echte studentgegevens in screenshots, testdata of de repository. Ontwerpscreenshots met echte namen staan in `.gitignore` tot ze geanonimiseerd zijn.
 - Studentgegevens blijven lokaal op de laptop van de gebruiker; de lokale database, het Portflow-token en het browserprofiel staan niet in de repository.
+- Het dashboard bewaart de evaluaties van **alle** studenten die hun portfolio met de gebruiker hebben gedeeld, ook als de gebruiker ze niet actief volgt. De student heeft het portfolio zelf gedeeld; een share eindigt in Portflow standaard aan het einde van het schooljaar ([spec 019](../features/019-eenvoudige-start/spec.md)).
 - Ingelezen Excelbestanden worden niet bewaard. Notities bij een student kunnen contactgegevens bevatten als de gebruiker die bij het importeren meeneemt; ze blijven lokaal in de database ([spec 013](../features/013-excel-importeren/spec.md)).
 
 ## Beslissingen
@@ -123,10 +125,15 @@ Het dashboard toont gegevens van studenten. Uitgangspunten:
 | 2026-11-09 | Token verversen in een zichtbaar Chrome-venster met hetzelfde profiel (standaard); onzichtbaar verversen als instelling | Portflow heeft geen refresh-endpoint; headless blijft hangen op de accountkeuze van SURFconext |
 | 2026-11-09 | Portflow-gegevens lokaal bewaren; verversen alleen met een knop in de bovenbalk | Ophalen duurt even; de app moet direct openen, en de gebruiker bepaalt zelf wanneer er Portflow-verkeer is |
 | 2026-11-09 | Flask + server-HTML + eigen JS/CSS + SQLite; venv; code in het Engels | Eenvoudigste codebase met de minste dependencies; geen build-stap |
-| 2026-11-09 | Alleen evaluaties van beoordelaars uit de eigen lijst tellen; de vaste uitzondering in de console-app vervalt | Evaluaties door bijvoorbeeld ouderejaars studenten onderscheiden van die door coaches en gildemeesters |
+| 2026-11-09 | *(Vervangen op 2026-11-11.)* Alleen evaluaties van beoordelaars uit de eigen lijst tellen; de vaste uitzondering in de console-app vervalt | Evaluaties door bijvoorbeeld ouderejaars studenten onderscheiden van die door coaches en gildemeesters |
 | 2026-11-09 | Coaches en gildemeesters in één tabel met personen en rollen, met twee eigen pagina's | Iemand kan beide zijn; één naam op één plek wijzigen |
 | 2026-11-09 | Gildes als eigen lijst (code, naam, kleur), één per beroepsrol; start leeg | De gebruiker beheert de gildes; de Open-ICT-gildes zijn met één knop toe te voegen |
 | 2026-11-09 | Beroepsrollen starten leeg en worden niet meer vanzelf aangemaakt; de negen Open-ICT-rollen met één knop | Net als bij gildes; een verwijderde rol komt niet terug |
 | 2026-11-09 | Semesters als eigen lijst met de eisen als vrije tekst; start leeg, de 8 Open-ICT-semesters met één knop; het semester van een student blijft een nummer | Weergave van het toetsprogramma; de rekenregels blijven op één plek (voortgangsregels.md) |
 | 2026-11-09 | Projecten met nummer, naam, opdrachtgever en kleur; start leeg, de Open-ICT-projecten met één knop | Net als bij de andere beheerlijsten |
+| 2026-11-11 | Het Portflow-token in de database in plaats van in `.env`; reservekopieën zonder token | Alle gegevens van de app op één plek (eenvoudiger, ook voor de installatie van spec 020); het token is maar 8 uur geldig. Het blijft lokaal en buiten git |
 | 2026-11-09 | Excelbestanden (.xlsx) inlezen zonder extra pakket (zip met XML); het bestand wordt niet bewaard | Geen nieuwe dependency; studentgegevens blijven zo kort mogelijk in de app |
+| 2026-11-11 | Alle beoordelaars tellen mee, behalve uitgesloten beoordelaars; gevonden beoordelaars worden automatisch toegevoegd | Zonder instellen bruikbaar (spec 019); wie ouderejaars wil weglaten, sluit ze uit |
+| 2026-11-11 | Alle gedeelde studenten komen automatisch in het dashboard; verbergen in plaats van aanvinken | Overzicht met zo weinig mogelijk handelingen (spec 019) |
+| 2026-11-11 | De eerste ophaalronde start vanzelf na het allereerste verbinden; Verversen haalt daarna de zichtbare studenten op | De eenvoudige gebruiker ziet direct niveaus; minder Portflow-verkeer (spec 019) |
+| 2026-11-11 | Invulling en Rol in de squad zijn keuzelijsten die de gebruiker beheert; eigen kolommen kunnen een keuzelijst zijn; studenten verwijzen naar een keuze ([spec 024](../features/024-keuzelijsten/spec.md)) | Eén beheeronderdeel voor alle eenvoudige lijsten; een gewijzigde code of omschrijving werkt overal door |

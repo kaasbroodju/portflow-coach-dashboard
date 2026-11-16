@@ -105,3 +105,4 @@ Er is geen eigen ontwerp. De knop "Verversen" en "Bijgewerkt om …" staan in de
 - 2026-11-09 – gebouwd en getest, ook met echte Portflow-gegevens (13 studenten); status klaar. De beoordelaar staat in `evaluation.reviewer.name` en de datum in `date`
 - 2026-11-09 – F8 aangepast op verzoek van de gebruiker: "Bijgewerkt om …" staat in de knop, en de knop is even hoog als de Portflow-statusknop
 - 2026-11-09 – de knop Verversen en de Portflow-statusknop zijn nu ook even breed (op verzoek van de gebruiker)
+- 2026-11-11 – aangepast door [spec 019](../019-eenvoudige-start/spec.md): de eerste ronde start vanzelf na het allereerste verbinden; Verversen haalt de studenten op die zichtbaar zijn in de lijst (F6); elke ronde voegt gedeelde studenten en gevonden beoordelaars toe; een evaluatie van een onbekende beoordelaar telt nu wel mee

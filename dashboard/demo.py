@@ -7,7 +7,7 @@ of spec 001, so the progress rules can be tried out and tested later.
 
 import sqlite3
 
-from . import guilds, projects, semesters
+from . import choices, guilds, projects, semesters
 from .skills import SKILLS
 
 STAFF = ["Marieke Ploeg", "Joost Hendriks", "Femke Bos", "Ruben Smit"]
@@ -285,14 +285,15 @@ def _lookup(conn, sql, value):
 def _insert_student(conn: sqlite3.Connection, student: dict) -> None:
     staff_id = "SELECT id FROM staff WHERE name = ? AND is_demo = 1"
     cursor = conn.execute(
-        """INSERT INTO students (name, semester, squad_id, squad_role, track, coach_id, has_access, is_demo)
+        """INSERT INTO students (name, semester, squad_id, squad_role_id, track_id, coach_id, has_access, is_demo)
            VALUES (?, ?, ?, ?, ?, ?, ?, 1)""",
         (
             student["name"],
             student["semester"],
             _lookup(conn, "SELECT id FROM squads WHERE name = ? AND is_demo = 1", student["squad"]),
-            student.get("squad_role"),
-            student["track"],
+            # Spec 024: the items of Invulling and Rol (added if the user removed them).
+            choices.find_or_add(conn, choices.SQUAD_ROLE, student["squad_role"]) if student.get("squad_role") else None,
+            choices.find_or_add(conn, choices.TRACK, student["track"]) if student.get("track") else None,
             _lookup(conn, staff_id, student["coach"]),
             int(student.get("has_access", True)),
         ),

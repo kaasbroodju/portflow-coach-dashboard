@@ -1,6 +1,7 @@
 {# Filters, grouping and search for the student tables (spec 001 F13-F17, spec 010 F2). #}
 {% set t = table %}
   <form method="get" class="table-toolbar" id="table-filters">
+    <input type="hidden" name="f" value="1">{# spec 023: the filters are a choice and are remembered #}
     <input type="search" class="table-search" id="table-search" placeholder="Zoek op naam, project of profiel"
            aria-label="Zoek op naam, project of profiel" autocomplete="off">
     <kbd class="kbd" aria-hidden="true">⌘K</kbd>
@@ -39,6 +40,16 @@
         {% for guild in t.options.guilds %}<option value="{{ guild.id }}" {% if t.args.gilde == guild.id|string %}selected{% endif %}>{{ guild.code }} · {{ guild.name }}</option>{% endfor %}
       </select>
     </label>
+    {# Spec 024, G2: a filter per choice column. #}
+    {% for f in t.options.choice_columns %}
+    <label class="select">
+      <span class="visually-hidden">{{ f.name }}</span>
+      <select name="{{ f.key }}">
+        <option value="">Alle {{ f.name|lower }}</option>
+        {% for i in f["items"] %}<option value="{{ i.id }}" {% if t.args.get(f.key) == i.id|string %}selected{% endif %}>{{ i.label }}</option>{% endfor %}
+      </select>
+    </label>
+    {% endfor %}
     <label class="select">
       <span class="visually-hidden">Groeperen</span>
       <select name="groep">
@@ -50,4 +61,6 @@
       Aan te sporen
     </label>
     <button class="button button-secondary js-hide" type="submit">Toepassen</button>
+    {% if t.filtered %}<a class="filters-clear" href="?f=1">Filters wissen</a>{% endif %}{# spec 023, F4 #}
+    {% if toolbar_action %}<a class="button button-primary toolbar-action" href="{{ toolbar_action.href }}">{{ toolbar_action.label }}</a>{% endif %}{# spec 002, F8 #}
   </form>

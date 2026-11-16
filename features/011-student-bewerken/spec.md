@@ -89,3 +89,7 @@ Geen eigen ontwerp. Het formulier volgt de formulieren van de beheerpagina's ([s
 - 2026-11-10 – op verzoek van de gebruiker: de toelichting bij Gildes is weg en "Startdatum" heet "Afwijkende semester startdatum"
 - 2026-11-10 – op verzoek van de gebruiker staat Coach op de plaats van Rol, met Rol in dezelfde regel in de tweede kolom, hernoemd tot "Teamrol"
 - 2026-11-10 – aangepast door [spec 018](../018-beroepsrol-in-gilde/spec.md): bij de gildes kies je een gilde in plaats van een beroepsrol
+- 2026-11-11 – zie [spec 019](../019-eenvoudige-start/spec.md): een student die je niet meer volgt maar die zijn portfolio nog deelt, komt bij de volgende Verversen-ronde terug; gebruik Verbergen (open keuze in spec 019)
+- 2026-11-11 – aangepast door [spec 024](../024-keuzelijsten/spec.md): Invulling en Teamrol zijn keuzes uit de keuzelijsten
+- 2026-11-11 – aangepast door [spec 025](../025-invulling-en-stage/spec.md): een lege invulling volgt uit semester 3, 4 of 8
+- 2026-11-11 – aangepast door [spec 026](../026-eigen-kolommen-bewerken/spec.md): het formulier heeft een blok Eigen kolommen boven Notities

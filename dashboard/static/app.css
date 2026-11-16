@@ -77,7 +77,7 @@ a { color: inherit; }
 
 .main { flex: 1; min-width: 0; }
 
-.content { max-width: 1440px; padding: 40px 48px 64px; }
+.content { max-width: 1440px; padding: 24px 48px 64px; }
 
 /* Sidebar --------------------------------------------------------------- */
 
@@ -146,7 +146,7 @@ a { color: inherit; }
   justify-content: flex-end;
   gap: 20px;
   height: 76px;
-  padding: 0 32px;
+  padding: 0 32px 0 48px;   /* the breadcrumb lines up with the content */
   background: var(--card);
   border-bottom: 1px solid var(--border);
 }
@@ -181,9 +181,16 @@ a { color: inherit; }
 
 /* Page header and cards -------------------------------------------------- */
 
-.page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
-.page-header h1 { margin: 6px 0 6px; font-size: 40px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
-.page-intro { margin: 0; font-size: 17px; color: var(--text-muted); }
+/* Spec 002, F8: the page heading is a breadcrumb in the top bar. */
+/* One size and one baseline for the whole path: the parents are muted, the current page is dark. */
+.crumbs { display: flex; align-items: baseline; gap: 10px; min-width: 0; margin-right: auto;
+          font-size: 22px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; color: var(--text-muted); white-space: nowrap; }
+.crumb-sep { font-weight: 400; opacity: 0.5; }
+.crumb-link { color: var(--text-muted); text-decoration: none; }
+.crumb-link:hover { color: var(--text); text-decoration: underline; }
+.crumb-title { margin: 0; font: inherit; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; }
+.page-actions { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px; }
+.toolbar-action { margin-left: auto; }
 
 .card {
   padding: 28px 32px;
@@ -450,9 +457,12 @@ thead .cat-personal { border-top-color: #cba084 !important; }
 th.col-student { display: flex; align-items: center; gap: 10px; }
 thead th.col-student { display: table-cell; }
 .avatar-small { width: 32px; height: 32px; font-size: 12px; flex: none; }
-.student-text { display: flex; flex-direction: column; line-height: 1.3; }
+/* One line per student: name, labels and semester side by side; guilds without wrapping. */
+.student-text { display: flex; align-items: baseline; gap: 8px; line-height: 1.3; white-space: nowrap; }
 .student-name { font-weight: 600; }
 .student-sub { font-size: 12px; color: var(--text-muted); }
+.student-table:not(.student-list) .col-profile,
+.student-table:not(.student-list) .col-extra { white-space: nowrap; }
 .role-label, .mark-assessment, .signal, .tag {
   display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px;
   font-size: 11px; font-weight: 600; line-height: 1.6; vertical-align: 1px; white-space: nowrap;
@@ -518,7 +528,12 @@ thead th.col-student { display: table-cell; }
 
 /* Coaches and Gildemeesters (specs 006, 007) ------------------------------------------ */
 
-.summary-bar { display: flex; align-items: center; gap: 28px; margin-bottom: 24px; padding: 18px 28px; }
+/* Spec 027: the management bar on top of every Beheer page. */
+.management-bar { display: flex; align-items: center; gap: 24px; margin-bottom: 24px; padding: 14px 20px 14px 28px; }
+.management-counts { display: flex; flex-wrap: wrap; gap: 8px 32px; margin: 0; padding: 0; list-style: none; color: var(--text-muted); }
+.management-counts strong { margin-right: 2px; font-size: 18px; color: var(--text); }
+.management-counts .is-attention strong:first-child { color: #b56a1f; }   /* the orange of the signals, readable on white */
+.management-actions { display: flex; gap: 10px; margin-left: auto; }
 .staff-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .staff-card { display: flex; flex-direction: column; gap: 8px; }
 .staff-card-head { display: flex; gap: 14px; align-items: flex-start; }
@@ -566,7 +581,6 @@ thead th.col-student { display: table-cell; }
 .button-compact { padding: 5px 10px; font-size: 13px; }
 .role-counts { margin: 4px 0; }
 .role-counts .tag { margin: 0 6px 0 0; }
-.summary-note { margin-left: auto; }
 
 /* Semesters (spec 009) --------------------------------------------------------------------- */
 
@@ -710,3 +724,71 @@ html.js .noscript-hint { display: none; }
 .portflow-link .link-choice { display: grid; grid-template-columns: auto minmax(240px, 360px); align-items: center; gap: 12px; }
 .portflow-link .link-choice select { height: 39px; }
 .link-hint { font-size: 13px; }
+
+/* Spec 019: hiding a student (F4, F5) and choosing the semester in the table (F7). */
+.col-hide { width: 40px; text-align: center; }
+.icon-button {
+  display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0;
+  border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.icon-button:hover, .icon-button:focus-visible { background: var(--page); color: var(--text); }
+.icon-button .icon { width: 18px; height: 18px; }
+.hide-form { display: inline; }
+.make-me-form { display: inline; }
+/* Spec 022: lists in the student list, in the style of .semester-pick; the pencil above a column. */
+.inline-pick { display: inline; }
+.filters-clear { align-self: center; font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+.filters-clear:hover { color: var(--text); }
+.inline-pick select {
+  max-width: 100%; padding: 1px 2px; border: 0; border-radius: 4px; background: transparent; color: inherit;
+  font: inherit; cursor: pointer;
+}
+.inline-pick select:hover, .inline-pick select:focus-visible { background: var(--page); }
+.guild-master-pick { display: block; white-space: nowrap; }
+.student-list thead th .col-manage {
+  display: block; width: 14px; height: 14px; margin-bottom: 2px; color: var(--text-muted);
+}
+.student-list thead th .col-manage:hover, .student-list thead th .col-manage:focus-visible { color: var(--text); }
+.student-list thead th .col-manage .icon { width: 14px; height: 14px; }
+.make-me-form .icon-button { width: 24px; height: 24px; margin: -4px 0; }
+.hide-form[data-hide-action="show"] { display: none; }
+.student-row.is-hidden-student .hide-form[data-hide-action="hide"] { display: none; }
+.student-row.is-hidden-student .hide-form[data-hide-action="show"] { display: inline; }
+.student-row.is-hidden-student > :not(.col-hide) { opacity: .45; }
+.semester-pick { display: inline; }
+.semester-pick select {
+  padding: 0 2px; border: 0; border-radius: 4px; background: transparent; color: inherit;
+  font: inherit; font-size: 12px; cursor: pointer;
+}
+.semester-pick select:hover, .semester-pick select:focus-visible { background: var(--page); }
+.tag-excluded { background: #f3e3dc; color: #8e5a49; }
+
+/* Kolommen en Keuzelijsten (spec 024): a simple table per list. */
+.manage-card { margin-bottom: 20px; }
+.manage-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.manage-head h2 { margin: 0; font-size: 18px; }
+.manage-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.manage-table th { padding: 6px 10px; text-align: left; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.manage-table td { padding: 8px 10px; border-top: 1px solid var(--border); vertical-align: middle; }
+.manage-actions { white-space: nowrap; text-align: right; }
+.manage-actions form { display: inline; }
+.manage-actions .icon-button:disabled { opacity: .3; cursor: default; }
+.code-chip { display: inline-block; padding: 1px 8px; border-radius: 999px; background: #e6ecf5; color: #3f5578; font-size: 12px; font-weight: 600; }
+.manage-note { margin: 10px 0 0; font-size: 13px; }
+.manage-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-top: 14px; }
+.manage-add .panel-message { flex-basis: 100%; margin: 0; }
+.manage-add label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; }
+.manage-add input, .manage-form input:not([type=radio]) { padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); font: inherit; font-weight: 400; }
+.input-medium { width: 160px; }
+.type-choice { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.type-choice legend { margin-bottom: 6px; font-weight: 600; font-size: 14px; }
+.type-choice .radio { display: block; font-weight: 400; }
+.type-choice .radio .muted { margin-left: 4px; }
+.field-fixed { margin: 0; font-size: 14px; }
+.field-fixed strong { margin-right: 8px; }
+.custom-select { max-width: 100%; padding: 1px 2px; border: 0; border-radius: 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.custom-select:hover, .custom-select:focus-visible { background: var(--page); }
+/* Spec 026: the custom columns in Student bewerken. */
+.custom-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin: 0; padding: 0; border: 0; }
+.custom-fields legend { margin-bottom: 8px; font-weight: 600; font-size: 14px; }
+.input-suffix { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; }

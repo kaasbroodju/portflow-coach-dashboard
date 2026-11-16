@@ -81,6 +81,23 @@
     closePanelOnEscapeOrOutsideClick();
     poll();
   }
+
+  // Spec 019, F14: on a page with a student list, "Verversen" fetches the students visible in it.
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    const list = document.getElementById("student-table");
+    if (!form.matches("form.refresh") || !list) return;
+    form.querySelectorAll("input[name=student], input[name=lijst]").forEach((el) => el.remove());
+    const add = (name, value) => {
+      const input = document.createElement("input");
+      input.type = "hidden"; input.name = name; input.value = value;
+      form.appendChild(input);
+    };
+    add("lijst", "1");
+    list.querySelectorAll("tr[data-student-id]").forEach((row) => {
+      if (!row.hidden && !row.closest(".table-group")?.hidden) add("student", row.dataset.studentId);
+    });
+  }, true);
 })();
 
 (() => {
@@ -193,13 +210,84 @@
   columnForm?.addEventListener("change", () => columnForm.submit());
 
   // Custom columns (F8): save when the field loses focus after a change, or with Enter.
-  card.querySelectorAll(".custom-cell input[name=waarde]").forEach((input) => {
+  card.querySelectorAll(".custom-cell [name=waarde]").forEach((input) => {   // spec 024: also the choice list
     input.addEventListener("change", () => input.form.submit());
   });
 
   const table = document.getElementById("students");
   const count = document.getElementById("table-count");
   const search = document.getElementById("table-search");
+
+  // Spec 019: small saves without reloading the overview.
+  async function post(form) {
+    const response = await fetch(form.action, {
+      method: "POST", body: new FormData(form), headers: { "X-Requested-With": "fetch" },
+    });
+    if (!response.ok) throw new Error(await response.text() || "Opslaan is niet gelukt.");
+    if (response.status === 205) location.reload();   // spec 025: the invulling was filled as well
+    return response;
+  }
+
+  // F7: the semester list saves right away; the row stays where it is until the page reloads.
+  card.querySelectorAll(".semester-pick select").forEach((select) => {
+    select.addEventListener("change", () => {
+      post(select.form).catch((error) => { alert(error.message); location.reload(); });
+    });
+  });
+
+  // F4, F5: hide a student, or show again. With "Alle studenten die ik niet heb verborgen"
+  // the row disappears; with "Alle studenten van wie ik het portfolio kan zien" it is dimmed.
+  const who = document.querySelector("#table-filters select[name=wie]");
+  card.querySelectorAll(".hide-form").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const row = form.closest(".student-row");
+      const hide = form.dataset.hideAction === "hide";
+      post(form).then(() => {
+        if (hide && who?.value === "zichtbaar") {
+          const group = row.closest(".table-group");
+          row.remove();
+          const header = group?.querySelector(".group-count");
+          const left = group ? group.querySelectorAll(".student-row").length : 0;
+          if (header) header.textContent = `${left} student${left === 1 ? "" : "en"}`;
+          if (group && left === 0) group.remove();
+          if (!table.querySelector(".student-row")) { location.reload(); return; }
+          updateCount();
+        } else {
+          row.classList.toggle("is-hidden-student", hide);
+        }
+      }).catch((error) => alert(error.message));
+    });
+  });
+
+  // Spec 022: the lists in the student list save right away. The sort value follows the choice;
+  // a guild change reloads in place, because the guild master column changes along.
+  card.querySelectorAll(".inline-pick select").forEach((select) => {
+    select.addEventListener("change", () => {
+      const form = select.form;
+      post(form).then(() => {
+        if (form.hasAttribute("data-reload")) { location.reload(); return; }
+        // The first-name and full-name columns save the same field: keep both lists in step.
+        form.closest("tr").querySelectorAll(".inline-pick").forEach((other) => {
+          if (other.action !== form.action) return;
+          const list = other.querySelector("select");
+          list.value = select.value;
+          const cell = other.closest("td");
+          const text = list.value ? list.selectedOptions[0].textContent.trim().toLowerCase() : "~";
+          if (cell.dataset.col === "semester") cell.dataset.sortValue = list.value || "99";
+          else if (!cell.dataset.col.startsWith("guildmaster")) cell.dataset.sortValue = text;
+        });
+      }).catch((error) => { alert(error.message); location.reload(); });
+    });
+  });
+
+  // Spec 021: make me coach or guild master; reload in place, because more cells can change.
+  card.querySelectorAll(".make-me-form").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      post(form).then(() => location.reload()).catch((error) => alert(error.message));
+    });
+  });
 
   function updateCount() {
     if (!table || !count) return;

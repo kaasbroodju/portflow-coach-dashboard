@@ -13,7 +13,7 @@ from dashboard.portflow_connection import (
     S_PORTFOLIO_ID, PortflowConnection, State, initials, local_time, remaining,
 )
 from dashboard.portflow_login import CaptureResult, LoginError
-from dashboard.portflow_token import ENV_KEY, TokenStore, decode_payload, expires_at
+from dashboard.portflow_token import TOKEN_KEY, TokenStore, decode_payload, expires_at
 
 NOW = datetime(2026, 11, 9, 12, 0, tzinfo=timezone.utc)
 
@@ -63,7 +63,7 @@ class ConnectionTestCase(unittest.TestCase):
         self.dir = Path(self.tmp.name)
         self.database = str(self.dir / "test.sqlite3")
         db.init_db(self.database)
-        self.store = TokenStore(self.dir / ".env")
+        self.store = TokenStore(self.database)
         self.api = FakeApi()
         self.browser = FakeBrowser()
         self.clock = [NOW]
@@ -94,17 +94,17 @@ class TestToken(ConnectionTestCase):
         self.assertEqual(expires_at(token), NOW + timedelta(hours=8))
         self.assertIsNone(decode_payload("geen-token"))
 
-    def test_store_keeps_other_lines(self):
-        (self.dir / ".env").write_text("OTHER=1\n")
+    def test_store_in_database(self):
+        db.set_setting(self.database, "other", "1")
         self.store.save("abc.def.ghi")
         self.assertEqual(self.store.read(), "abc.def.ghi")
         self.store.save("new.token.value")
-        text = (self.dir / ".env").read_text()
-        self.assertEqual(text.count(ENV_KEY), 1)
-        self.assertIn("OTHER=1", text)
+        self.assertEqual(db.get_setting(self.database, TOKEN_KEY), "new.token.value")
+        self.assertEqual(Path(self.database).stat().st_mode & 0o777, 0o600)   # readable for the user only
         self.store.delete()
         self.assertIsNone(self.store.read())
-        self.assertIn("OTHER=1", (self.dir / ".env").read_text())
+        self.assertEqual(db.get_setting(self.database, "other"), "1")
+        self.assertFalse((self.dir / ".env").exists())
 
     def test_display_helpers(self):
         self.assertEqual(initials("Anna van der Berg"), "AB")
@@ -311,7 +311,7 @@ class TestStatusDisplay(ConnectionTestCase):
 class TestRoutes(ConnectionTestCase):
     def setUp(self):
         super().setUp()
-        self.app = create_app(self.database, env_file=self.dir / ".env")
+        self.app = create_app(self.database)
         self.app.extensions["portflow"] = self.conn
         self.client = self.app.test_client()
 

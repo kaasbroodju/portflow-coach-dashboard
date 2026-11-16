@@ -13,22 +13,23 @@ Waar de ontwerpen en de docs van elkaar afwijken, gelden de docs. Bekende afwijk
 ### Schil (alle schermen)
 
 - **Zijbalk** (donkergroen) met bovenaan het terminal-woordmerk `>_ portflow` / "coach dashboard" (in plaats van het Kompas-logo), het kopje "Werkruimte" en de menu-items: Overzicht, Studenten, Evaluaties (met teller), **Beheer** (een uitklapbare groep met Semesters, Gildes, Gildemeesters, Coaches, Projecten en Kolommen, in het ontwerp nog "Leerdoelen"; dicht, behalve op een pagina daarbinnen; [spec 002](../features/002-app-schil/spec.md), F17), Instellingen. De groep Beheer en Coaches, Gildemeesters en Gildes staan niet in het ontwerp ([spec 007](../features/007-coaches/spec.md), [spec 006](../features/006-gildemeesters/spec.md)). Onderaan de gebruiker met naam en rollen ("Coach · Gildemeester"). De hulpkaart uit het ontwerp ("Hulp nodig?", "Open handleiding") komt pas als er een handleiding is.
-- **Bovenbalk** met de verbindingsstatus van Portflow (een statusknop met gekleurde stip: grijs, blauw, groen, oranje of rood, en een paneel met details; zie [spec 003](../features/003-portflow-verbinden/spec.md)), daarnaast de knop **"Verversen"**, even hoog en even breed als de statusknop (260 × 52 pixels; een te lange onderregel wordt afgekapt met "…", de volledige tekst staat bij hover) en met dezelfde opbouw: "Verversen" met daaronder "Bijgewerkt om …" of de voortgang van het ophalen ([spec 005](../features/005-gegevens-ophalen/spec.md)), en de avatar van de gebruiker. Het belletje uit het ontwerp komt pas als er meldingen zijn.
-- **Paginakop:** klein kopje in hoofdletters (bijvoorbeeld "Beheer", "Studievoortgang"), titel, één zin uitleg, en rechts de primaire knop (bijvoorbeeld "+ Nieuw project").
+- **Bovenbalk** met links het kruimelpad van de pagina (zie Paginakop) en rechts de verbindingsstatus van Portflow (een statusknop met gekleurde stip: grijs, blauw, groen, oranje of rood, en een paneel met details; zie [spec 003](../features/003-portflow-verbinden/spec.md)), daarnaast de knop **"Verversen"**, even hoog en even breed als de statusknop (260 × 52 pixels; een te lange onderregel wordt afgekapt met "…", de volledige tekst staat bij hover) en met dezelfde opbouw: "Verversen" met daaronder "Bijgewerkt om …" of de voortgang van het ophalen ([spec 005](../features/005-gegevens-ophalen/spec.md)), en de avatar van de gebruiker. Het belletje uit het ontwerp komt pas als er meldingen zijn.
+- **Paginakop:** **afwijking** van de ontwerpen (kopje, grote titel en uitleg boven de inhoud): de kop staat als kruimelpad links in de bovenbalk, bijvoorbeeld "Beheer › Studenten › Student bewerken"; pagina's buiten de menugroep Beheer tonen alleen hun titel. Er is geen uitlegzin. Het hele pad heeft één lettergrootte (22 px); de ouders ("Beheer", een link terug) en de scheidingstekens zijn gedempt grijs, de huidige pagina is donker en halfvet. De primaire knop (bijvoorbeeld "+ Nieuw project") staat rechts in de werkbalk boven de tabel, of rechtsboven de inhoud als er geen werkbalk is. Zo blijft er zoveel mogelijk ruimte voor de tabellen ([spec 002](../features/002-app-schil/spec.md), F8).
 
 <a id="overzicht"></a>
 ### Overzicht ([`kompas-dashboard-ontwerp.png`](../screenshots/kompas-dashboard-ontwerp.png))
 
-- Kop met datum, begroeting ("Goedemorgen, …") en subtitel "Dit vraagt vandaag je aandacht." **Afwijking:** "Bijgewerkt om …" staat niet in deze kop, maar in de bovenbalk naast de knop "Verversen".
+- Kop met datum, begroeting ("Goedemorgen, …") en subtitel "Dit vraagt vandaag je aandacht." **Afwijking:** er is geen aparte kop en geen begroeting; de bovenbalk toont alleen "Overzicht", zonder datum, en boven de tabel staat geen subkop "Studentenoverzicht" ([spec 002](../features/002-app-schil/spec.md), F8). **Afwijking:** "Bijgewerkt om …" staat niet in deze kop, maar in de bovenbalk naast de knop "Verversen".
 - **Drie signaalkaarten** met een getal, een label en "Bekijken →": evaluaties te beoordelen, studenten zonder recente update (geen activiteit in Portflow in de laatste *X* dagen; *X* instelbaar, standaard 14), actieve coachstudenten.
 - **Studentenoverzicht:** tabel met student (avatar met initialen, naam, squad en semester), gilde (alle codes, bijvoorbeeld "FE, UX") en per vaardigheid (OC … RE) een niveaulabel. Daarboven een zoekveld (sneltoets ⌘K; **afwijking:** zoeken op naam, squad of profiel, niet op tribe), een filter en een legenda. Rijen zijn standaard gegroepeerd per squad (groepskop met gekleurde streep, naam, volledige squadnaam en aantal studenten), met "Nog in te delen" en "Zonder project" als laatste groepen. Onderaan "7 van 18 studenten". **Afwijking:** de tabel staat volledig op Overzicht, zonder "Alle studenten bekijken →"; de pagina Studenten toont de basisgegevens zonder voortgang ([spec 001](../features/001-studentenoverzicht/spec.md), F1; [spec 010](../features/010-studentenlijst/spec.md)).
   - Een rij kan het **rol-label** van de student tonen (PO, SM, 2ePO, 2eSM) en de markering **"Assessment ingeleverd"**.
   - Een student zonder toegang staat grijs, met `n/b` in de cellen.
-  - **Geen signaallabels** bij de naam: de signalen uit [voortgangsregels.md](voortgangsregels.md#signalen) bepalen alleen het filter "Aan te sporen". Onder de naam staat alleen het semester ("Sem 3"); het project staat al in de groepskop.
+  - **Geen signaallabels** bij de naam: de signalen uit [voortgangsregels.md](voortgangsregels.md#signalen) bepalen alleen het filter "Aan te sporen". Naast de naam staat alleen het semester ("Sem 3"), op dezelfde regel; het project staat al in de groepskop. Elke student past op één regel: ook meerdere gildes en namen in de extra kolommen lopen niet door naar een tweede regel.
   - Extra kolommen Coach, Gildemeester en Invulling, aan en uit te zetten; standaard alleen Gildemeester. De pijl naar de detailpagina komt pas met die pagina.
   - De uitgewerkte eisen staan in [spec 001](../features/001-studentenoverzicht/spec.md).
 - **Weekgrafiek** (uit de console-app): een staafgrafiek met per week van de semesterperiode het aantal evaluaties, gestapeld als *behaald* (groen) en *ingediend, nog te beoordelen* (`?`, blauw). Plaats in het ontwerp nog bepalen.
-  - Filter: Mijn coachstudenten, Mijn gildestudenten, Alle gevolgde studenten, plus filters op semester, invulling, squad en gilde.
+  - Filter: Alle studenten die ik niet heb verborgen (standaard), Mijn coachstudenten, Mijn gildestudenten, Alle studenten van wie ik het portfolio kan zien, plus filters op semester, invulling, squad en gilde ([spec 019](../features/019-eenvoudige-start/spec.md)).
+  - Verbergen: een icoon (oog met streep) aan het eind van de rij, altijd zichtbaar; een verborgen rij is gedimd met een open oog om hem weer te tonen. Het semester kies je in de rij met een klein keuzelijstje ("–", "Sem 1" … "Sem 8").
   - Groeperen: standaard per squad; ook te kiezen per invulling, semester of gilde.
   - **Afwijking:** het ontwerp toont één getal per cel. De cel toont alle behaalde niveaus volgens [voortgangsregels.md](voortgangsregels.md#weergave-per-vaardigheid), bijvoorbeeld `1/2`.
 - **Zijpaneel "Te beoordelen"** met openstaande evaluatieverzoeken aan de gebruiker: student, titel van het verzoek (door de student gekozen, bijvoorbeeld "OC & KO 1ste evaluatie"), inleverdatum en gewenste datum ("Vandaag", "Morgen", datum), plus "Alle evaluaties bekijken →". Een klik opent het verzoek in Portflow; beoordelen gebeurt daar.
@@ -41,7 +42,7 @@ Beheer van squads ("Beheer de projectgroepen waarin je studenten zijn ingedeeld.
 <a id="semesters"></a>
 ### Semesters ([`semesters-CRUD-met-studenten.png`](../screenshots/semesters-CRUD-met-studenten.png))
 
-"Bekijk de bezetting van semester 1 tot en met 8 en verplaats studenten." Een samenvattingsbalk ("7 studenten verdeeld over 3 actieve semesters", "Iedere student is aan exact één semester gekoppeld") en acht kaarten: nummer, fase, naam, aantal studenten, avatars en "Open semester →".
+"Bekijk de bezetting van semester 1 tot en met 8 en verplaats studenten." Een samenvattingsbalk ("7 studenten verdeeld over 3 actieve semesters", "Iedere student is aan exact één semester gekoppeld"; **afwijking:** de beheerbalk van [spec 027](../features/027-beheerbalk/spec.md)) en acht kaarten: nummer, fase, naam, aantal studenten, avatars en "Open semester →".
 
 - **Afwijking:** het ontwerp zet semester 7 in de afstudeerfase. Juist is: propedeuse 1–2, hoofdfase 3–7, afstudeerfase 8 (zie [begrippen](begrippen.md)).
 - **Kleur per fase** (nummervlak, uit het ontwerp): propedeuse `#5B76A8` (blauw), hoofdfase `#4F6F62` (groen), afstudeerfase `#7D6BA8` (paars).
@@ -129,7 +130,7 @@ Kleuren van de tegels op [lef.hu.nl](https://lef.hu.nl) (zie [`screenshots/vaard
 - Logo: terminal-woordmerk in de monospace letter van het systeem.
 - Schermbreedte: laptop en groter (vanaf ongeveer 1280 pixels).
 - Iconen: eenvoudige, zelfgetekende **SVG-lijniconen** in de stijl van het ontwerp, in `dashboard/templates/_icons.html`; geen icoonbibliotheek.
-- Kleine koppen in hoofdletters met extra letterafstand (zoals "WERKRUIMTE", "BEHEER" en kolomkoppen).
+- Kleine koppen in hoofdletters met extra letterafstand (zoals "WERKRUIMTE" in de zijbalk en kolomkoppen; niet in het kruimelpad).
 
 <a id="componenten"></a>
 ## Componenten
@@ -140,13 +141,13 @@ Herbruikbare onderdelen uit de ontwerpen:
 - **Bovenbalk** met Portflow-status en avatar
 - **Statusknop + paneel**: knop met gekleurde stip, tekst en subtekst; een klik opent een paneel met details en acties (sluit met Escape of een klik ernaast)
 - **Banner**: smalle balk onder de bovenbalk voor demodata (geel) of een verlopen verbinding (rood), met één actie
-- **Paginakop** met kopje, titel, uitleg en primaire knop
-- **Samenvattingsbalk** met kerngetallen bovenaan een beheerscherm
+- **Kruimelpad** in de bovenbalk ("Beheer › …" of alleen de titel); de primaire knop staat in de werkbalk
+- **Beheerbalk** bovenaan elke Beheer-pagina: hoogstens drie aantallen (vet getal, kort label) in een vaste volgorde, met de primaire knop rechts; een aantal dat aandacht vraagt is oranje als het groter is dan 0. Geen uitlegzin. Niet bij een lege pagina ([spec 027](../features/027-beheerbalk/spec.md))
 - **Beheerkaart**: gekleurd vlak met initialen of code, naam, subregel, avatars, aantal, Bewerken / Verwijderen
 - **Toevoegkaart** met stippellijn ("Project toevoegen")
 - **Signaalkaart**: icoon, getal, label, link
 - **Niveaulabel**: label met de behaalde niveaus, gekleurd naar aantal evaluaties
-- **Studentrij**: avatar met initialen, naam, subregel, profiel, tien niveaulabels (plus eigen kolommen), pijl naar detail
+- **Studentrij** (één regel): avatar met initialen, naam, semester, profiel, tien niveaulabels (plus eigen kolommen), pijl naar detail
 - **Groepskop** in een tabel: gekleurde streep, naam, aantal studenten
 - **Evaluatie-item**: avatar, naam, type, inleverdatum, deadline-indicatie
 - **Zoekveld** met sneltoets (⌘K)

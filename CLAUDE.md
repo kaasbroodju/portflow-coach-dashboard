@@ -51,6 +51,6 @@ Volg dit bij **elke** functie, ook als de gebruiker alleen "bouw X" zegt:
 
 - Code staat niet in `features/`; die map bevat alleen specs en ontwerpen.
 - Zo weinig mogelijk dependencies (zie `docs/architectuur.md`); geen CDN's of externe fonts.
-- Geheimen (Portflow-tokens, wachtwoorden) alleen in `.env`, nooit in code, specs of commits.
+- Geheimen (Portflow-tokens, wachtwoorden) alleen in de lokale database in `data/` (niet in git), nooit in code, specs of commits. Reservekopieën van de database bevatten geen token.
 - Geen echte studentgegevens in testdata, screenshots of de repository. Gebruik verzonnen namen in testdata. De huidige ontwerpscreenshots bevatten echte namen en staan in `.gitignore`; haal ze daar pas uit als ze geanonimiseerd zijn.
 - Waar ontwerp en docs verschillen, gelden de docs (bekende afwijkingen staan in `docs/design-system.md`).

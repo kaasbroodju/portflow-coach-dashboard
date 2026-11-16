@@ -1,0 +1,9 @@
+{# Spec 027: the counts of a Beheer page, with the page's primary button on the right. #}
+<section class="management-bar card" aria-label="Aantallen">
+  <ul class="management-counts">
+    {% for c in management %}
+    <li{% if c.attention %} class="is-attention"{% endif %}><strong>{{ c.value }}</strong> {{ c.label }}{% if c.extra %}, waarvan <strong>{{ c.extra.value }}</strong> {{ c.extra.label }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% if actions %}<div class="management-actions">{{ actions|safe }}</div>{% endif %}
+</section>

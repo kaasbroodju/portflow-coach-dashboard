@@ -33,8 +33,8 @@ def _job(key: str) -> dict:
     return job
 
 
-def _page(title: str, intro: str) -> dict:
-    return {"eyebrow": "Studievoortgang", "title": title, "intro": intro, "label": title}
+def _page(title: str) -> dict:
+    return {"title": title, "label": title}
 
 
 def _select_sheet(job: dict, index: int) -> None:
@@ -68,8 +68,7 @@ def upload():
                 _select_sheet(job, excel_import.choose_sheet(sheets))
                 _store()[key] = job
                 return redirect(url_for("excel.preview", key=key))
-    return render_template("excel_upload.html", page=_page("Excelbestand uploaden",
-                           "Kies een .xlsx-bestand met studenten. De kolommen mogen in elke volgorde staan."),
+    return render_template("excel_upload.html", page=_page("Excelbestand uploaden"),
                            active="students", error=error)
 
 
@@ -85,7 +84,7 @@ def preview(key: str):
     user = current_app.extensions["portflow"].user_name
     rows = excel_import.build_preview(get_db(), sheet, job["header"], job["mapping"], user)
     coaches = [dict(r) for r in get_db().execute("SELECT id, name FROM staff WHERE is_coach = 1 ORDER BY name COLLATE NOCASE")]
-    return render_template("excel_preview.html", page=_page("Voorbeeld van de import", job["filename"]),
+    return render_template("excel_preview.html", page=_page("Voorbeeld van de import"),
                            active="students", key=key, job=job, rows=rows, counts=excel_import.counts(rows),
                            coaches=coaches, sheet_choices=_sheet_choices(job), labels=dict(FIELD_CHOICES),
                            header=sheet.rows[job["header"]], user_known=bool(excel_import.user_keys(user)),
@@ -126,7 +125,7 @@ def mapping(key: str):
                         "choice": job["mapping"][i] if i < len(job["mapping"]) else excel_import.UNUSED})
     if error is None and request.method == "GET" and excel_import.mapping_error(job["mapping"]) and job["header"] is not None:
         error = "De app herkent niet alle kolommen. Koppel minstens een kolom aan Naam."
-    return render_template("excel_mapping.html", page=_page("Kolommen koppelen", job["filename"]),
+    return render_template("excel_mapping.html", page=_page("Kolommen koppelen"),
                            active="students", key=key, columns=columns, choices=FIELD_CHOICES, error=error,
                            header_row=header_index + 1, sheet=sheet, sheet_choices=_sheet_choices(job),
                            sheet_index=job["sheet_index"])

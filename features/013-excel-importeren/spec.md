@@ -75,7 +75,7 @@ Daarnaast kent de console-app drie vormen ([gegevensmodel.md](../../docs/gegeven
   - *Acceptatie:* een bestand met 2 nieuwe en 1 bestaande student met een ander project toont 2 rijen "Nieuw" en 1 rij "Bestaand" met "project: … → …" en een uitgevinkt "overnemen". Is de gebruiker "Peter Snoek", dan is van de nieuwe rijen alleen die met "Peter" (of "Peter Snoek") in een cel aangevinkt; een cel "Pieter" of een zin waarin "Peter" voorkomt telt niet.
 - [x] **F7 – Waarden omzetten.** Per veld:
   - **Studentnummer**: als tekst; een getal uit Excel zonder ".0".
-  - **Semester**: het eerste getal van 1 tot en met 8 in de tekst ("Semester 3 (her)" → 3). Het semester moet op de pagina Semesters bestaan ([spec 009](../009-semesters/spec.md)); anders leeg met de melding "Semester 3 bestaat nog niet".
+  - **Semester**: het eerste getal van 1 tot en met 8 in de tekst ("Semester 3 (her)" → 3). Staat het semester nog niet op de pagina Semesters ([spec 009](../009-semesters/spec.md)), dan voegt de import het daar bij het importeren toe, zonder toetsprogramma; de voorvertoning meldt dat met "Semester 3 wordt toegevoegd aan Semesters". *(Gewijzigd 2026-11-11; eerder bleef het semester leeg met de melding "Semester 3 bestaat nog niet".)*
   - **Project**: het nummer vooraan ("01 - …" → project 01). Een onbekend nummer blijft leeg met de melding "Project 21 bestaat niet".
   - **Primaire en secundaire beroepsrol**: de code tussen haakjes ("Front-end developer (FE)" → FE), anders een code of naam die precies overeenkomt. Anders leeg met een melding (bijvoorbeeld bij "ja").
   - **Coach en gildemeester**: eerst de volledige naam; anders een **voornaam** die bij precies één persoon met die rol hoort ("Peter" → de enige coach die zo heet). Namen worden vergeleken zonder hoofdletters, extra spaties en accenten ("André" = "Andre"). Bij de coachkolom wordt "Stage" de invulling **Stage** en "Minor …" de invulling **Minor** (als de invulling nog leeg is). Al het andere (geen of meer dan één match, "Studiepauze …") blijft leeg met een melding.
@@ -100,7 +100,7 @@ Daarnaast kent de console-app drie vormen ([gegevensmodel.md](../../docs/gegeven
 
 - .xls, .csv en geplakte cellen (manier 4 is een eigen spec)
 - Een naam samenstellen uit meer kolommen (zoals roepnaam, voorvoegsels en achternaam in een Osiris-export)
-- Projecten, semesters, rollen of coaches aanmaken tijdens het importeren
+- Projecten, rollen of coaches aanmaken tijdens het importeren (semesters wel, sinds 2026-11-11: zie F7)
 - Automatisch koppelen aan Portflow op naam ([gegevensmodel.md](../../docs/gegevensmodel.md#koppelen-aan-portflow)): eigen spec
 
 ## Schermen
@@ -140,3 +140,6 @@ Geen eigen ontwerp. Uploadpagina, koppelstap en voorbeeld volgen de pagina's van
 - 2026-11-09 – na het importeren wordt direct aan Portflow gekoppeld als de verbinding geldig is ([spec 015](../015-koppelen-aan-portflow/spec.md), F3)
 - 2026-11-10 – aangepast door [spec 016](../016-gildes-van-een-student/spec.md): de gildekolommen worden samen de gildes van de student; een kolom Gildemeester hoort bij het eerste gilde in de rij
 - 2026-11-10 – aangepast door [spec 018](../018-beroepsrol-in-gilde/spec.md): een gildekolom herkent een gilde aan zijn code, naam of beroepsrol
+- 2026-11-11 – aangepast door [spec 024](../024-keuzelijsten/spec.md): invulling en rol worden op code opgezocht in de keuzelijsten; ontbreekt Stage of Minor (F7), dan voegt de import die keuze toe (E1)
+- 2026-11-11 – aangepast door [spec 025](../025-invulling-en-stage/spec.md): zonder invulling in de rij volgt die uit semester 3, 4 of 8, alleen als de student nog geen invulling heeft
+- 2026-11-11 – F7 gewijzigd op verzoek van de gebruiker: een semester dat nog niet op de pagina Semesters staat, wordt bij het importeren toegevoegd. Aanleiding: na Alles verwijderen was die lijst leeg, en nam de import van een echt bestand geen enkel semester over

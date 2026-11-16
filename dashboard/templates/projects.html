@@ -33,12 +33,6 @@
   <a class="button button-primary" href="{{ url_for('pages.projects_add') }}">+ Nieuw project</a>
 </section>
 {% else %}
-<section class="summary-bar card">
-  <span><strong>{{ active_count }}</strong> {{ "actief project" if active_count == 1 else "actieve projecten" }}</span>
-  <span><strong>{{ in_project }}</strong> student{{ "en" if in_project != 1 }}</span>
-  <span><strong>{{ without|length }}</strong> zonder project</span>
-</section>
-
 <section class="staff-cards">
   {% for p in items %}
   <article class="card staff-card">
