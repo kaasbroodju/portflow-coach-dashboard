@@ -575,6 +575,8 @@ def settings():
         canvas_url=connection.canvas_url,
         update_check=current_app.extensions["updater"].enabled(),   # spec 020, U4
         data=data_paths(),                                          # spec 031
+        version_check=request.args.get("versie") if request.args.get("versie") in ("nieuw", "actueel", "mislukt") else None,
+        latest_release=current_app.extensions["updater"].latest(),  # spec 020, U6
         always_visible=connection.always_visible,
     )
 

@@ -154,7 +154,7 @@ Herbruikbare onderdelen uit de ontwerpen:
 - **Zoekveld** met sneltoets (⌘K)
 - **Avatar-stapel**: overlappende avatars met initialen
 - **Weekgrafiek**: gestapelde staven per week (behaald / ingediend)
-- **Updatebalk** ([spec 020](../features/020-installatie/spec.md), U2): een smalle balk onder de bovenbalk, zoals de demobanner, maar lichtblauw (`#E6ECF5` / `#2F4F86`): "Versie 1.3.0 is beschikbaar (je hebt 1.2.0)." met "Wat is er nieuw", "Nu bijwerken" (alleen in een installatie) en "Later".
+- **Updatebalk** ([spec 020](../features/020-installatie/spec.md), U2): een smalle balk onder de bovenbalk, zoals de demobanner, maar lichtblauw (`#E6ECF5` / `#2F4F86`): "Versie 1.3.0 is beschikbaar (je hebt 1.2.0)." met "Wat is er nieuw", "Nu bijwerken" (alleen in een installatie) en "Later". In Instellingen › Versie staat ook een knop "Nu bijwerken" die meteen controleert en een nieuwere versie aanbiedt (U6).
 
 ## Taal en toon
 

@@ -289,6 +289,34 @@ class TestPages(UpdaterCase):   # R1, U2, U4, I5
         self.assertFalse(self.updater.enabled())
         self.assertNotIn('name="controleren" value="1" checked', self.html("/instellingen"))
 
+    def check(self):
+        response = self.client.post("/instellingen/versie-controleren")
+        self.assertEqual(response.status_code, 302)
+        return self.client.get(response.headers["Location"]).get_data(as_text=True)
+
+    def test_update_now_offers_newer_version(self):   # U6 acceptance
+        self.assertIn(">Nu bijwerken</button>", self.html("/instellingen"))
+        (self.project / ".installed").write_text("{}", encoding="utf-8")
+        self.updater.set_enabled(False)            # also when checking is switched off
+        db.set_setting(self.database, updates.S_DISMISSED, "9.9.9")   # and after "Later"
+        self.answers[updates.LATEST_URL] = json.dumps(release("9.9.9")).encode()
+        html = self.check()
+        self.assertIn(f"<strong>Versie 9.9.9 is beschikbaar</strong> (je hebt {VERSION})", html)
+        self.assertIn(">Versie 9.9.9 installeren</button>", html)
+        self.assertIn('action="/bijwerken"', html)
+
+    def test_update_now_in_a_checkout_points_to_git(self):   # U6, U5
+        self.answers[updates.LATEST_URL] = json.dumps(release("9.9.9")).encode()
+        html = self.check()
+        self.assertNotIn("installeren</button>", html)
+        self.assertIn("git pull", html)
+
+    def test_update_now_when_up_to_date_or_offline(self):   # U6
+        self.answers[updates.LATEST_URL] = json.dumps(release(VERSION)).encode()
+        self.assertIn(f"Je hebt de nieuwste versie ({VERSION}).", self.check())
+        del self.answers[updates.LATEST_URL]
+        self.assertIn("Controleren is niet gelukt.", self.check())
+
     def test_stop(self):   # I5
         self.assertIn("Dashboard afsluiten", self.html("/"))
         response = self.client.post("/afsluiten")

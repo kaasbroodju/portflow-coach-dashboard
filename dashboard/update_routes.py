@@ -80,6 +80,14 @@ def save_check():
     return redirect(url_for("pages.settings", _anchor="versie"))
 
 
+@bp.post("/instellingen/versie-controleren")
+def check_now():
+    """U6: check GitHub right away (also when switched off or put off with "Later")."""
+    release = _updater().check_now()
+    outcome = "mislukt" if release is None else ("nieuw" if updates.is_newer(release["version"]) else "actueel")
+    return redirect(url_for("pages.settings", versie=outcome, _anchor="versie"))
+
+
 @bp.post("/afsluiten")
 def stop():
     """I5: stop the dashboard."""

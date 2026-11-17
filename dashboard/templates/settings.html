@@ -144,7 +144,24 @@
 <section class="card" id="versie">
   <h2>Versie</h2>
   <p>Versie {{ app_version }}{% if not can_update %} <span class="muted">(vanuit de broncode; bijwerken gaat met git)</span>{% endif %}</p>
-  {% if update_available %}<p><a href="{{ url_for('updates.whats_new') }}">Versie {{ update_available.version }} is beschikbaar</a></p>{% endif %}
+  {# Spec 020, U6: check right away and offer the newer version. #}
+  {% if version_check == "nieuw" and latest_release %}
+  <div class="version-offer" role="status">
+    <p><strong>Versie {{ latest_release.version }} is beschikbaar</strong> (je hebt {{ app_version }}). <a href="{{ url_for('updates.whats_new') }}">Wat is er nieuw</a></p>
+    {% if can_update %}
+    <form method="post" action="{{ url_for('updates.start_update') }}"><button class="button button-primary" type="submit">Versie {{ latest_release.version }} installeren</button></form>
+    {% else %}
+    <p class="muted">Je gebruikt de broncode: werk bij met <code>git pull</code>.</p>
+    {% endif %}
+  </div>
+  {% elif version_check == "actueel" %}
+  <p class="version-result" role="status">Je hebt de nieuwste versie ({{ app_version }}).</p>
+  {% elif version_check == "mislukt" %}
+  <p class="version-result panel-message" role="alert">Controleren is niet gelukt. Controleer je internetverbinding en probeer het opnieuw.</p>
+  {% elif update_available %}<p><a href="{{ url_for('updates.whats_new') }}">Versie {{ update_available.version }} is beschikbaar</a></p>{% endif %}
+  <form method="post" action="{{ url_for('updates.check_now') }}" class="version-check">
+    <button class="button button-secondary" type="submit">Nu bijwerken</button>
+  </form>
   <form method="post" action="{{ url_for('updates.save_check') }}" class="settings-form" id="update-check-form">
     <label class="checkbox">
       <input type="checkbox" name="controleren" value="1" {% if update_check %}checked{% endif %}>

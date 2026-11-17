@@ -113,6 +113,12 @@ Gevonden bij de installatie van v0.9.0 op een Mac met een ontwikkelomgeving (zie
 - [x] **U4 – Uitzetten.** In Instellingen staat **"Controleren op nieuwe versies"** (standaard aan).
 - [x] **U5 – Git-checkout.** Draait de app vanuit een git-checkout, dan toont de balk alleen de melding met "Wat is er nieuw", zonder "Nu bijwerken".
 
+- [x] **U6 – Nu bijwerken in Instellingen.** In de kaart **Versie** in Instellingen staat een knop **"Nu bijwerken"**. Die vraagt meteen bij GitHub de nieuwste release op (ook als "Controleren op nieuwe versies" uit staat of de balk met "Later" is weggeklikt) en toont de uitkomst in dezelfde kaart:
+  - **nieuwere versie:** "Versie 0.9.3 is beschikbaar (je hebt 0.9.2)." met **"Wat is er nieuw"** en de knop **"Versie 0.9.3 installeren"**, die bijwerkt zoals U3. Vanuit een git-checkout staat er in plaats van de knop dat bijwerken met `git pull` gaat (U5);
+  - **geen nieuwere versie:** "Je hebt de nieuwste versie (0.9.2).";
+  - **controleren lukt niet:** "Controleren is niet gelukt. Controleer je internetverbinding en probeer het opnieuw."
+  - *Acceptatie:* met 0.9.2 geïnstalleerd en 0.9.3 op GitHub toont een klik op "Nu bijwerken" de knop "Versie 0.9.3 installeren"; met 0.9.3 op GitHub en 0.9.3 geïnstalleerd staat er "Je hebt de nieuwste versie (0.9.3)."
+
 ### Buiten scope
 
 - Een ondertekend programma (aanpak B), Linux, Homebrew of de Microsoft Store.
@@ -173,3 +179,6 @@ Geen eigen ontwerp. De updatebalk lijkt op de demobanner ([design-system.md](../
 - 2026-11-17 – release **v0.9.1** gemaakt met `/release` (I8–I12 en spec 031). De eerste run faalde op een test van het macOS-script die ook op Windows draaide (daar is ook `sh`); de test draait nu alleen op macOS en de tag is na akkoord verplaatst. De tweede run is geheel geslaagd, met de installatieregels op de releasepagina
 - 2026-11-17 – workflow bijgewerkt naar bouwstenen op Node 24 (checkout v7, setup-python v7, upload-artifact v7, download-artifact v8), naar aanleiding van de waarschuwing "Node.js 20 is deprecated"; wordt bij de volgende release getest
 - 2026-11-17 – bij de release van v0.9.2 bleef bij verwijderen op Windows de programmamap staan, terwijl het script meldde dat het gelukt was. Hersteld: beide scripts stoppen vóór verwijderen of vervangen alle processen van de installatie (het dashboard, Playwright en de Chrome met het profiel uit de installatie; je eigen Chrome niet), Windows probeert verwijderen twee keer, en lukt het niet, dan noemt het script wat er nog staat (exitcode 1). De workflow toont het logboek van het verwijderen
+- 2026-11-17 – release **v0.9.2** gepubliceerd (tweede run geheel geslaagd). In die run vond het Windows-script bij het verwijderen geen andere processen en lukte verwijderen in één keer; de oorzaak van de eerdere mislukking is dus niet zeker (mogelijk een proces dat nog aan het stoppen was). De nieuwe maatregelen en de eerlijke melding blijven staan
+- 2026-11-17 – U6 toegevoegd op verzoek van de gebruiker: knop "Nu bijwerken" in de kaart Versie van Instellingen, die meteen controleert en zo nodig aanbiedt te installeren
+- 2026-11-17 – U6 gebouwd: route `POST /instellingen/versie-controleren` (`update_routes.check_now`), uitkomst in de kaart Versie; tests in `tests/test_install.py`. In de browser gecontroleerd tegen GitHub: "Je hebt de nieuwste versie (0.9.2)." Het aanbod om te installeren alleen met tests (er is nog geen nieuwere release)
