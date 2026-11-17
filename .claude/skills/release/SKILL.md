@@ -38,10 +38,10 @@ Vraag met **AskUserQuestion** of de releasenote goed is (opties zoals "Akkoord",
 
 ## 5. Publiceren, alleen na "ja"
 
-1. Zet het versienummer in `dashboard/version.py` (`VERSION`) en `pyproject.toml` (`version`).
-2. Draai de tests nog een keer (een test controleert dat beide nummers gelijk zijn).
-3. Laat zien wat er gaat gebeuren: de commit "Versie X.Y.Z" met de twee nummers en de releasenote, de tag `vX.Y.Z`, en `git push origin main vX.Y.Z`. Vraag dan met **AskUserQuestion**: "Versie X.Y.Z publiceren op GitHub?" met de opties "Ja, publiceren" en "Nee, nog niet".
-4. Alleen bij "Ja, publiceren": `git add dashboard/version.py pyproject.toml releases/vX.Y.Z.md`, `git commit -m "Versie X.Y.Z"` (met de attributieregels die voor commits gelden), `git tag vX.Y.Z`, `git push origin main vX.Y.Z`.
+1. Zet het versienummer in `dashboard/version.py` (`VERSION`), `pyproject.toml` (`version`) en `uv.lock` (de regel `version = …` in het blok `name = "portflow-coach-dashboard"`; met uv kan dat met `uv lock`).
+2. Draai de tests nog een keer (een test controleert dat de drie nummers gelijk zijn).
+3. Laat zien wat er gaat gebeuren: de commit "Versie X.Y.Z" met de drie nummers en de releasenote, de tag `vX.Y.Z`, en `git push origin main vX.Y.Z`. Vraag dan met **AskUserQuestion**: "Versie X.Y.Z publiceren op GitHub?" met de opties "Ja, publiceren" en "Nee, nog niet".
+4. Alleen bij "Ja, publiceren": `git add dashboard/version.py pyproject.toml uv.lock releases/vX.Y.Z.md`, `git commit -m "Versie X.Y.Z"` (met de attributieregels die voor commits gelden), `git tag vX.Y.Z`, `git push origin main vX.Y.Z`.
    Bij "Nee": laat de wijzigingen staan, commit niet, en zeg hoe de beheerder later verder kan (`/release` opnieuw, of de stappen in `docs/releases.md`).
 
 ## 6. Volgen

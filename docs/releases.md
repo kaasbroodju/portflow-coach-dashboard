@@ -24,8 +24,8 @@ Gebruikers installeren altijd de nieuwste release via de vaste adressen `https:/
    - **minor** (1.2.1 → 1.3.0): iets nieuws of merkbaar verbeterd, en alles werkt zoals de gebruiker gewend is;
    - **major** (1.3.0 → 2.0.0): de gebruiker moet iets anders doen dan hij gewend is, of gegevens veranderen ingrijpend.
 4. **Releasenote schrijven** in `releases/vX.Y.Z.md`, met het sjabloon hieronder.
-5. **Versienummer zetten** op twee plekken: `VERSION` in [`dashboard/version.py`](../dashboard/version.py) en `version` in [`pyproject.toml`](../pyproject.toml) (een test controleert dat ze gelijk zijn).
-6. **Commit en tag:** `git commit -am "Versie X.Y.Z"` (met de nieuwe releasenote erbij: `git add releases/vX.Y.Z.md`), `git tag vX.Y.Z`.
+5. **Versienummer zetten** op drie plekken: `VERSION` in [`dashboard/version.py`](../dashboard/version.py), `version` in [`pyproject.toml`](../pyproject.toml) en het blok `name = "portflow-coach-dashboard"` in [`uv.lock`](../uv.lock) (met uv: `uv lock`; zonder uv: pas die ene regel `version = …` met de hand aan). Een test controleert dat ze gelijk zijn.
+6. **Commit en tag:** `git commit -am "Versie X.Y.Z"` (met `dashboard/version.py`, `pyproject.toml` en `uv.lock`) (met de nieuwe releasenote erbij: `git add releases/vX.Y.Z.md`), `git tag vX.Y.Z`.
 7. **Publiceren:** `git push origin main vX.Y.Z`.
 8. **Volgen:** op GitHub onder *Actions* (of `gh run watch`). Als alles groen is, staat de release onder *Releases*.
 

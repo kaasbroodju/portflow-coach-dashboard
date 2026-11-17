@@ -49,6 +49,9 @@ class TestVersion(unittest.TestCase):   # R1
         self.assertRegex(VERSION, r"^\d+\.\d+\.\d+$")
         project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         self.assertEqual(project["project"]["version"], VERSION)
+        lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+        own = [p for p in lock["package"] if p["name"] == "portflow-coach-dashboard"]
+        self.assertEqual(own[0]["version"], VERSION)
 
     def test_lockfile_matches_requirements(self):   # technical requirement: same packages as requirements.txt
         lock = (ROOT / "uv.lock").read_text(encoding="utf-8")
