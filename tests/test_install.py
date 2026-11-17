@@ -354,7 +354,7 @@ class TestScripts(unittest.TestCase):   # I1, I2, I7, R2, R3
                 for kind in ("OPDRACHT", "AFLOOP", "CONTROLE", "MELDING", "VRAAG", "FOUT", "EINDE"):
                     self.assertIn(kind, text)
 
-    @unittest.skipUnless(shutil.which("sh"), "geen sh")
+    @unittest.skipUnless(shutil.which("sh") and sys.platform == "darwin", "alleen macOS")
     def test_macos_script_writes_log_in_current_folder(self):   # I8 acceptance (a failed run)
         with tempfile.TemporaryDirectory() as folder:
             env = dict(os.environ, PORTFLOW_INSTALL_ROOT=str(Path(folder) / "root"),
