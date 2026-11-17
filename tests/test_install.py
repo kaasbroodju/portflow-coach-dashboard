@@ -301,6 +301,29 @@ class TestScripts(unittest.TestCase):   # I1, I2, I7, R2, R3
                 self.assertIn("--verwijderen", text)
                 self.assertIn(updates.ZIP_NAME, text)
 
+    def test_scripts_keep_a_log(self):   # I8
+        for name in ("install-macos.sh", "install-windows.ps1"):
+            with self.subTest(name=name):
+                text = (ROOT / "install" / name).read_text(encoding="utf-8")
+                self.assertIn("install.log", text)
+                for kind in ("OPDRACHT", "AFLOOP", "CONTROLE", "MELDING", "VRAAG", "FOUT", "EINDE"):
+                    self.assertIn(kind, text)
+
+    @unittest.skipUnless(shutil.which("sh"), "geen sh")
+    def test_macos_script_writes_log_in_current_folder(self):   # I8 acceptance (a failed run)
+        with tempfile.TemporaryDirectory() as folder:
+            env = dict(os.environ, PORTFLOW_INSTALL_ROOT=str(Path(folder) / "root"),
+                       PORTFLOW_APPLICATIONS=str(Path(folder) / "apps"), PORTFLOW_NO_START="1",
+                       PORTFLOW_PORT="5099", PORTFLOW_RELEASE_URL="file:///bestaat/niet", PATH="/usr/bin:/bin")
+            done = subprocess.run(["sh", str(ROOT / "install" / "install-macos.sh")], cwd=folder, env=env,
+                                  capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=60)
+            self.assertNotEqual(done.returncode, 0)
+            log = (Path(folder) / "install.log").read_text(encoding="utf-8")
+            self.assertIn(f"[{os.path.realpath(folder)}]", log)   # the current folder on every line
+            self.assertRegex(log, r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \[")
+            self.assertIn("EINDE: mislukt", log)
+            self.assertIn("install.log", done.stderr)
+
     @unittest.skipUnless(shutil.which("sh"), "geen sh")
     def test_macos_script_syntax(self):
         subprocess.run(["sh", "-n", str(ROOT / "install" / "install-macos.sh")], check=True)

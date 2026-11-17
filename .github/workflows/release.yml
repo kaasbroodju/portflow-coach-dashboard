@@ -72,6 +72,7 @@ jobs:
           PORTFLOW_NO_START: "1"
         run: |
           sh dist/install-macos.sh < /dev/null
+          grep "EINDE: gelukt" install.log && grep "OPDRACHT: .*uv.* sync" install.log   # I8: the log
           root="$PORTFLOW_INSTALL_ROOT"
           test -x "$PORTFLOW_APPLICATIONS/Portflow coach dashboard.app/Contents/MacOS/start"
           nohup "$root/venv/bin/python" "$root/app/app.py" --no-browser --port 5099 > app.log 2>&1 &
@@ -91,6 +92,9 @@ jobs:
           $env:PORTFLOW_INSTALL_ROOT = Join-Path $env:RUNNER_TEMP "installatie"
           $root = $env:PORTFLOW_INSTALL_ROOT
           & .\dist\install-windows.ps1
+          Get-Content install.log
+          if (-not (Select-String -Path install.log -Pattern "EINDE: gelukt")) { throw "install.log meldt geen geslaagde installatie" }
+          if (-not (Select-String -Path install.log -Pattern "OPDRACHT: .*uv.* sync")) { throw "install.log mist de opdrachten" }
           if (-not (Test-Path "$root\venv\Scripts\pythonw.exe")) { throw "pythonw.exe ontbreekt" }
           $menu = Join-Path ([Environment]::GetFolderPath("Programs")) "Portflow coach dashboard.lnk"
           if (-not (Test-Path $menu)) { throw "snelkoppeling in het Startmenu ontbreekt" }
