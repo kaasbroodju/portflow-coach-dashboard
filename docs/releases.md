@@ -27,7 +27,7 @@ Gebruikers installeren altijd de nieuwste release via de vaste adressen `https:/
 5. **Versienummer zetten** op drie plekken: `VERSION` in [`dashboard/version.py`](../dashboard/version.py), `version` in [`pyproject.toml`](../pyproject.toml) en het blok `name = "portflow-coach-dashboard"` in [`uv.lock`](../uv.lock) (met uv: `uv lock`; zonder uv: pas die ene regel `version = …` met de hand aan). Een test controleert dat ze gelijk zijn.
 6. **Commit en tag:** `git commit -am "Versie X.Y.Z"` (met `dashboard/version.py`, `pyproject.toml` en `uv.lock`) (met de nieuwe releasenote erbij: `git add releases/vX.Y.Z.md`), `git tag vX.Y.Z`.
 7. **Publiceren:** `git push origin main vX.Y.Z`.
-8. **Volgen:** op GitHub onder *Actions* (of `gh run watch`). Als alles groen is, staat de release onder *Releases*.
+8. **Volgen:** op GitHub onder *Actions* (of `gh run watch`). Dat duurt meestal ongeveer 5 minuten (geslaagde runs: 4 à 6,5 minuut). Als alles groen is, staat de release onder *Releases*.
 
 ## Releasenote
 

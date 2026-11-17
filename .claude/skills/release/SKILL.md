@@ -46,6 +46,6 @@ Vraag met **AskUserQuestion** of de releasenote goed is (opties zoals "Akkoord",
 
 ## 6. Volgen
 
-Volg de workflow met `gh run list --workflow release.yml --limit 1` en `gh run watch <id> --exit-status` (op de achtergrond; dat duurt enkele minuten). Meld daarna:
+Volg de workflow met `gh run list --workflow release.yml --limit 1` en `gh run watch <id> --exit-status` (op de achtergrond). Zeg daarbij hoe lang het normaal duurt: **ongeveer 5 minuten** (geslaagde runs duurden 4 à 6,5 minuut; een run die faalt stopt vaak eerder, na 3 à 5 minuten). Bijvoorbeeld: "Ik volg hem en meld de uitkomst zodra hij klaar is; dat duurt meestal ongeveer 5 minuten." Meld daarna:
 - gelukt: het adres van de release (`gh release view vX.Y.Z --json url -q .url`) en dat gebruikers de melding binnen een dag krijgen (of direct, als ze de app opnieuw starten);
 - mislukt: welke stap faalde en de relevante regels uit `gh run view <id> --log-failed`, en het herstel uit `docs/releases.md` (fout herstellen, tag verwijderen, opnieuw). Verwijder de tag niet zelf zonder te vragen.
