@@ -907,3 +907,10 @@ html.js .noscript-hint { display: none; }
 .stopped h1 { margin: 12px 0 6px; font-size: 22px; }
 .stopped p { margin: 0; color: var(--text-muted); }
 .stopped .wordmark-name { color: var(--text); font-family: var(--mono); font-weight: 700; }
+
+/* Spec 031: the data paths in Instellingen. */
+.data-paths { display: grid; grid-template-columns: max-content 1fr; gap: 10px 20px; margin: 0 0 18px; }
+.data-paths dt { font-weight: 600; }
+.data-paths dd { display: flex; flex-direction: column; gap: 2px; margin: 0; min-width: 0; }
+.data-paths code { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; user-select: all; }
+.data-paths .muted { font-size: 13px; }

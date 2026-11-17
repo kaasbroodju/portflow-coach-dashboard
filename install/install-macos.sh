@@ -17,7 +17,11 @@ REPO="petersnoek-hu/portflow-coach-dashboard"
 BASE="${PORTFLOW_RELEASE_URL:-https://github.com/$REPO/releases/latest/download}"
 NAME="Portflow coach dashboard"
 ROOT="${PORTFLOW_INSTALL_ROOT:-$HOME/Library/Application Support/$NAME}"
-APPS="${PORTFLOW_APPLICATIONS:-$HOME/Applications}"
+# I9: de app bij Programma's (/Applications) als dat mag, anders in Apps in de thuismap.
+if [ -n "${PORTFLOW_APPLICATIONS:-}" ]; then APPS="$PORTFLOW_APPLICATIONS"; APPS_NAME="de map $APPS"
+elif [ -w /Applications ]; then APPS="/Applications"; APPS_NAME="Programma's"
+else APPS="$HOME/Applications"; APPS_NAME="Apps in je thuismap ($HOME/Applications)"
+fi
 LAUNCHER="$APPS/$NAME.app"
 PORT="${PORTFLOW_PORT:-5050}"
 ZIP="portflow-coach-dashboard.zip"
@@ -50,7 +54,7 @@ fail() {
 run() {
     log "OPDRACHT: $*"
     status=0
-    output="$("$@" 2>&1)" || status=$?
+    output="$("$@" 2>&1 < /dev/null)" || status=$?   # opdrachten lezen nooit de antwoorden van de gebruiker weg
     if [ -n "$output" ]; then log "$(printf '%s\n' "$output" | sed 's/^/  | /')"; fi
     log "AFLOOP: exitcode $status"
     return $status
@@ -80,25 +84,50 @@ trap finish EXIT
 log "=================================================================="
 log "Portflow coach dashboard – installatiescript macOS, gestart met: ${*:-(geen opties)}"
 log "Systeem: $(sw_vers -productName 2> /dev/null) $(sw_vers -productVersion 2> /dev/null) ($(uname -m)), gebruiker $(id -un)"
-log "Programma en gegevens: $ROOT; snelkoppeling: $LAUNCHER; downloads: $BASE; poort: $PORT"
+log "Programma en gegevens: $ROOT; snelkoppeling: $LAUNCHER ($APPS_NAME); downloads: $BASE; poort: $PORT"
 
-# Een draaiend dashboard netjes stoppen (I5), zodat de bestanden vrij zijn.
+# I11: draait het geïnstalleerde dashboard (dus niet een versie uit de broncode)?
+installed_running() { ps -axo command= | grep -F "$ROOT/app/app.py" | grep -vq grep; }
+
+# Het geïnstalleerde dashboard netjes stoppen (I5), zodat de bestanden vrij zijn. Een ander
+# dashboard (bijvoorbeeld de ontwikkelversie uit een git-checkout) blijft draaien.
 stop_running() {
-    if run curl -fsS --max-time 2 "http://127.0.0.1:$PORT/versie" && printf '%s' "$output" | grep -q '"portflow-coach-dashboard"'; then
-        check "dashboard draait op poort $PORT" "ja"
+    if installed_running; then
+        check "geïnstalleerd dashboard draait" "ja"
         say "  Het dashboard draait nog; het wordt gestopt."
         run curl -fsS --max-time 2 -X POST "http://127.0.0.1:$PORT/afsluiten" || true
         sleep 2
+        if installed_running; then run pkill -f "$ROOT/app/app.py" || true; sleep 1; fi
     else
-        check "dashboard draait op poort $PORT" "nee"
+        check "geïnstalleerd dashboard draait" "nee"
     fi
+}
+
+# Draait er op de poort een ander dashboard dan het geïnstalleerde?
+other_on_port() {
+    curl -fsS --max-time 2 "http://127.0.0.1:$PORT/versie" 2> /dev/null | grep -q '"portflow-coach-dashboard"' && ! installed_running
+}
+
+# I10: het aantal studenten in de database van de installatie ("geen" zonder database).
+student_count() {
+    if [ ! -f "$ROOT/data/dashboard.sqlite3" ]; then echo geen; return; fi
+    "$ROOT/venv/bin/python" -c 'import sqlite3, sys; print(sqlite3.connect(sys.argv[1]).execute("SELECT COUNT(*) FROM students").fetchone()[0])' \
+        "$ROOT/data/dashboard.sqlite3" 2> /dev/null || echo onbekend
+}
+
+# I9: de app staat in /Applications of in ~/Applications (versie 0.9.0); haal ze allebei weg.
+remove_launchers() {
+    for old in "/Applications/$NAME.app" "$HOME/Applications/$NAME.app" "$LAUNCHER"; do
+        if [ -d "$old" ]; then run rm -rf "$old" || say "  $old kon niet worden verwijderd; sleep het zelf naar de prullenmand."; fi
+    done
 }
 
 # I7 – verwijderen ---------------------------------------------------------------------
 if [ "${1:-}" = "--verwijderen" ]; then
     say "Portflow coach dashboard verwijderen"
     stop_running
-    run rm -rf "$ROOT/app" "$ROOT/app-oud" "$ROOT/app-nieuw" "$ROOT/venv" "$LAUNCHER"
+    run rm -rf "$ROOT/app" "$ROOT/app-oud" "$ROOT/app-nieuw" "$ROOT/venv"
+    remove_launchers
     say "Het programma en de snelkoppeling zijn verwijderd."
     if [ -d "$ROOT/data" ] && ask "Ook je gegevens verwijderen (studenten, instellingen, Portflow-verbinding)?"; then
         run rm -rf "$ROOT"
@@ -165,11 +194,13 @@ run env UV_PROJECT_ENVIRONMENT="$ROOT/venv" "$UV" sync --frozen --no-dev --pytho
     --python-preference only-managed --project "$TMP/app" \
     || fail "Python of de pakketten konden niet worden geïnstalleerd. Controleer je internetverbinding en probeer het opnieuw."
 
-# I3 – bestaande gegevens uit een git-checkout overnemen (een kopie) ----------------------------
-if [ -f "$ROOT/data/dashboard.sqlite3" ]; then
-    check "gegevens in $ROOT/data" "ja, die blijven staan"
+# I3, I10 – bestaande gegevens uit een git-checkout overnemen (een kopie) ---------------------
+# Ook als de installatie al een database heeft zonder studenten (bijvoorbeeld van een eerste start).
+STUDENTS="$(student_count)"
+check "studenten in $ROOT/data" "$STUDENTS"
+if [ "$STUDENTS" != geen ] && [ "$STUDENTS" != 0 ]; then
+    check "gegevens overnemen" "niet nodig, de gegevens van de installatie blijven staan"
 else
-    check "gegevens in $ROOT/data" "nee"
     SOURCE=""
     if [ -f "$PWD/data/dashboard.sqlite3" ]; then
         check "gegevens in $PWD/data" "ja"
@@ -187,7 +218,15 @@ else
         fi
     fi
     if [ -n "$SOURCE" ]; then
+        stop_running   # de database moet vrij zijn
+        if [ -f "$ROOT/data/dashboard.sqlite3" ]; then
+            ASIDE="$ROOT/data-voor-overnemen-$(date '+%Y%m%d-%H%M%S')"
+            run mv "$ROOT/data" "$ASIDE" || fail "De lege gegevensmap kon niet opzij worden gezet."
+            say "  De lege gegevens van de installatie staan apart in $ASIDE."
+            mkdir -p "$ROOT/data"
+        fi
         run cp -R "$SOURCE/." "$ROOT/data/" || fail "Je gegevens konden niet worden gekopieerd."
+        run rm -f "$ROOT/data/browser-profile/SingletonLock" "$ROOT/data/browser-profile/SingletonSocket" "$ROOT/data/browser-profile/SingletonCookie"
         say "  Gegevens overgenomen uit $SOURCE."
     fi
 fi
@@ -202,7 +241,7 @@ run mv "$TMP/app" "$ROOT/app"
 
 # I4 – snelkoppeling: een kleine app in ~/Applications --------------------------------------------
 step "Snelkoppeling maken"
-run rm -rf "$LAUNCHER"
+remove_launchers
 run mkdir -p "$LAUNCHER/Contents/MacOS" "$LAUNCHER/Contents/Resources"
 run cp "$ROOT/app/install/icon.icns" "$LAUNCHER/Contents/Resources/icon.icns"
 cat > "$LAUNCHER/Contents/Info.plist" <<PLIST
@@ -234,13 +273,22 @@ DONE=1
 
 # I2.6 – starten ------------------------------------------------------------------------------------
 step "Dashboard starten"
-if [ -z "${PORTFLOW_NO_START:-}" ]; then
-    run open "$LAUNCHER" || say "  Het dashboard kon niet automatisch worden geopend; open het met de snelkoppeling."
-else
+STARTED=0
+if [ -n "${PORTFLOW_NO_START:-}" ]; then
     log "OVERGESLAGEN: starten (PORTFLOW_NO_START)"
+elif other_on_port; then
+    check "ander dashboard op poort $PORT" "ja"   # I11
+    say "  Op poort $PORT draait al een ander dashboard (bijvoorbeeld de ontwikkelversie)."
+    say "  Stop dat eerst; open daarna het geïnstalleerde dashboard met de snelkoppeling."
+else
+    run open "$LAUNCHER" && STARTED=1 || say "  Het dashboard kon niet automatisch worden geopend; open het met de snelkoppeling."
 fi
 say ""
-say "Klaar. Versie ${VERSION:-?} is geïnstalleerd en het dashboard opent in je browser."
-say "Je vindt het voortaan als \"$NAME\" in de map Apps in je thuismap ($APPS)."
+if [ "$STARTED" = 1 ]; then
+    say "Klaar. Versie ${VERSION:-?} is geïnstalleerd en het dashboard opent in je browser."
+else
+    say "Klaar. Versie ${VERSION:-?} is geïnstalleerd."
+fi
+say "Je vindt het voortaan als \"$NAME\" bij $APPS_NAME."
 say "Sleep het naar het Dock om het vast te zetten."
 say "Het logboek van deze installatie staat in $LOG"

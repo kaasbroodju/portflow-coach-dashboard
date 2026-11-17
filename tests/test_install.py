@@ -8,6 +8,8 @@ import os
 import re
 import shutil
 import subprocess
+import sys
+import time
 import tempfile
 import tomllib
 import unittest
@@ -257,7 +259,11 @@ class TestPages(UpdaterCase):   # R1, U2, U4, I5
         return self.client.get(path).get_data(as_text=True)
 
     def test_version_endpoint_and_settings(self):
-        self.assertEqual(self.client.get("/versie").get_json()["app"], "portflow-coach-dashboard")
+        answer = self.client.get("/versie").get_json()
+        self.assertEqual(answer["app"], "portflow-coach-dashboard")
+        self.assertFalse(answer["installed"])   # I11: a git checkout
+        (self.project / ".installed").write_text("{}", encoding="utf-8")
+        self.assertTrue(self.client.get("/versie").get_json()["installed"])
         self.assertIn(f"Versie {VERSION}", self.html("/instellingen"))
 
     def test_banner_with_later_and_whats_new(self):   # U2, U5, R6
@@ -300,6 +306,45 @@ class TestScripts(unittest.TestCase):   # I1, I2, I7, R2, R3
                 self.assertIn(f"{latest}/{name}", text)
                 self.assertIn("--verwijderen", text)
                 self.assertIn(updates.ZIP_NAME, text)
+
+    def test_scripts_stop_only_the_installed_dashboard(self):   # I9, I10, I11
+        mac = (ROOT / "install" / "install-macos.sh").read_text(encoding="utf-8")
+        self.assertIn('ps -axo command= | grep -F "$ROOT/app/app.py"', mac)
+        self.assertIn('elif [ -w /Applications ]; then APPS="/Applications"', mac)
+        self.assertIn('"/Applications/$NAME.app" "$HOME/Applications/$NAME.app"', mac)
+        windows = (ROOT / "install" / "install-windows.ps1").read_text(encoding="utf-8")
+        self.assertIn("Installed-Processes", windows)
+        for text in (mac, windows):
+            self.assertIn("data-voor-overnemen-", text)
+            self.assertIn("SELECT COUNT(*) FROM students", text)
+            self.assertIn("draait al een ander dashboard", text)
+
+    @unittest.skipUnless(shutil.which("sh") and shutil.which("script") and sys.platform == "darwin", "alleen macOS")
+    def test_macos_other_dashboard_keeps_running(self):   # I11 acceptance, without network or uv
+        with tempfile.TemporaryDirectory() as folder:
+            stub = Path(folder) / "versie.py"
+            stub.write_text(
+                "from http.server import BaseHTTPRequestHandler, HTTPServer\n"
+                "class H(BaseHTTPRequestHandler):\n"
+                "    def do_GET(self):\n"
+                "        self.send_response(200); self.end_headers(); self.wfile.write(b'{\"app\":\"portflow-coach-dashboard\"}')\n"
+                "    def do_POST(self):\n"
+                "        open(__file__ + '.gestopt', 'w').write('x'); self.send_response(200); self.end_headers()\n"
+                "    def log_message(self, *a): pass\n"
+                "HTTPServer(('127.0.0.1', 5097), H).serve_forever()\n")
+            server = subprocess.Popen([sys.executable, str(stub)])
+            try:
+                time.sleep(0.8)
+                env = dict(os.environ, PORTFLOW_INSTALL_ROOT=str(Path(folder) / "root"), PORTFLOW_PORT="5097",
+                           PORTFLOW_APPLICATIONS=str(Path(folder) / "apps"))
+                subprocess.run(["sh", str(ROOT / "install" / "install-macos.sh"), "--verwijderen"], cwd=folder,
+                               env=env, capture_output=True, stdin=subprocess.DEVNULL, timeout=30)
+                self.assertFalse(Path(str(stub) + ".gestopt").exists())
+                self.assertIn("geïnstalleerd dashboard draait: nee",
+                              (Path(folder) / "install.log").read_text(encoding="utf-8"))
+            finally:
+                server.terminate()
+                server.wait()
 
     def test_scripts_keep_a_log(self):   # I8
         for name in ("install-macos.sh", "install-windows.ps1"):

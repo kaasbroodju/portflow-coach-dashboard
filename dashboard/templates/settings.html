@@ -105,7 +105,7 @@
   {% elif reset_step == "alles-verwijderen-2" %}
   <form method="post" action="{{ url_for('pages.reset_everything') }}" class="confirm" role="alertdialog" aria-labelledby="reset-title-2">
     <p id="reset-title-2"><strong>Weet je het zeker? Dit kun je in de app niet ongedaan maken.</strong>
-      Er wordt eerst een reservekopie gemaakt in data/reservekopieen/.</p>
+      Er wordt eerst een reservekopie gemaakt, in de map met reservekopieën (zie Data).</p>
     <label class="reset-word">Typ <strong>{{ confirm_word }}</strong> om te bevestigen
       <input name="bevestiging" autocomplete="off" required id="reset-word" data-word="{{ confirm_word }}">
     </label>
@@ -124,6 +124,20 @@
     {% endif %}
   </div>
   {% endif %}
+</section>
+
+{# Spec 031: the files and folders this dashboard uses. #}
+<section class="card" id="data">
+  <h2>Data</h2>
+  <dl class="data-paths">
+    <dt>Database</dt><dd><code>{{ data.database }}</code><span class="muted">Herkomst: {{ data.source }}</span></dd>
+    <dt>Chrome-profiel</dt><dd><code>{{ data.profile }}</code><span class="muted">De Portflow-login</span></dd>
+    <dt>Reservekopieën</dt><dd><code>{{ data.backups }}</code></dd>
+    <dt>Logbestand</dt><dd>{% if data.log %}<code>{{ data.log }}</code>{% else %}<span class="muted">nog niet aangemaakt</span>{% endif %}</dd>
+  </dl>
+  <form method="post" action="{{ url_for('pages.open_data_folder') }}">
+    <button class="button button-secondary" type="submit">Map openen in {{ data.file_manager }}</button>
+  </form>
 </section>
 
 {# Spec 020: version (R1) and checking for new versions (U4). #}

@@ -33,6 +33,19 @@ def install_root(project_dir: Path = PROJECT_DIR) -> Path | None:
     return project_dir.parent if install_info(project_dir) is not None else None
 
 
+# Spec 031, F2: where the choice of the data folder comes from (shown in Instellingen).
+SOURCES = {"standaard": "standaard (de map data/ naast de code)",
+           "installatie": "installatie (de gegevensmap van het geïnstalleerde dashboard)",
+           "omgevingsvariabele": f"omgevingsvariabele {DATA_ENV}",
+           "opdrachtregel": "opdrachtregel (--database)"}
+
+
+def data_source(project_dir: Path = PROJECT_DIR) -> str:
+    if os.environ.get(DATA_ENV):
+        return "omgevingsvariabele"
+    return "installatie" if install_root(project_dir) else "standaard"
+
+
 def data_dir(project_dir: Path = PROJECT_DIR) -> Path:
     if os.environ.get(DATA_ENV):
         return Path(os.environ[DATA_ENV])

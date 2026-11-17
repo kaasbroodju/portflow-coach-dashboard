@@ -15,7 +15,6 @@ from .portflow_token import TokenStore
 PROJECT_DIR = paths.PROJECT_DIR
 DATA_DIR = paths.data_dir()          # spec 020, I3: next to the code, or the folder of an installation
 DEFAULT_DATABASE = DATA_DIR / "dashboard.sqlite3"
-DEFAULT_BROWSER_PROFILE = DATA_DIR / "browser-profile"
 LOCAL_HOSTS = {"127.0.0.1", "localhost"}
 TICK_SECONDS = 30
 
@@ -23,18 +22,21 @@ TICK_SECONDS = 30
 def create_app(
     database_path: Path | str | None = None,
     start_background: bool = False,
+    data_source: str | None = None,
 ) -> Flask:
     """start_background=True (only from app.py) connects to Portflow, starts the refresh timer and
     checks for a new version (spec 020, U1)."""
     app = Flask(__name__)
     app.config["DATABASE"] = str(database_path or DEFAULT_DATABASE)
+    # Spec 031: where the database comes from; the browser profile and backups live next to it.
+    app.config["DATA_SOURCE"] = data_source or (paths.data_source() if database_path is None else "opdrachtregel")
     app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024  # Excel import: files up to 10 MB (spec 013)
 
     db.init_app(app)
     app.extensions["portflow"] = PortflowConnection(
         app.config["DATABASE"],
         TokenStore(app.config["DATABASE"]),
-        DEFAULT_BROWSER_PROFILE,
+        Path(app.config["DATABASE"]).parent / "browser-profile",
     )
     app.extensions["fetcher"] = Fetcher(app.config["DATABASE"], app.extensions["portflow"])  # spec 005
     app.extensions["portflow"].after_connect = app.extensions["fetcher"].start_first   # spec 019, F2

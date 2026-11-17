@@ -83,15 +83,42 @@ Log "Systeem: $([Environment]::OSVersion.VersionString), PowerShell $($PSVersion
 Log "Programma en gegevens: $Root; snelkoppelingen: $StartMenu en $Desktop; downloads: $Base; poort: $Port"
 
 # Een draaiend dashboard netjes stoppen (I5), zodat de bestanden vrij zijn.
+# I11: de processen van het geïnstalleerde dashboard (dus niet een versie uit de broncode).
+function Installed-Processes {
+    $app = "$Root\app\app.py"
+    try {
+        return @(Get-CimInstance Win32_Process -Filter "Name LIKE 'python%'" -ErrorAction Stop |
+                 Where-Object { $_.CommandLine -and $_.CommandLine.Contains($app) })
+    } catch { return @() }
+}
+# Het geïnstalleerde dashboard netjes stoppen (I5), zodat de bestanden vrij zijn. Een ander
+# dashboard (bijvoorbeeld de ontwikkelversie uit een git-checkout) blijft draaien.
 function Stop-Dashboard {
-    $running = $false
-    try { $running = (Invoke-RestMethod -Uri "http://127.0.0.1:$Port/versie" -TimeoutSec 2).app -eq "portflow-coach-dashboard" } catch { }
-    Check "dashboard draait op poort $Port" $(if ($running) { "ja" } else { "nee" })
+    $running = (Installed-Processes).Count -gt 0
+    Check "geinstalleerd dashboard draait" $(if ($running) { "ja" } else { "nee" })
     if ($running) {
         Say "  Het dashboard draait nog; het wordt gestopt."
         Try-Log "POST http://127.0.0.1:$Port/afsluiten" { Invoke-WebRequest -Uri "http://127.0.0.1:$Port/afsluiten" -Method Post -TimeoutSec 2 -UseBasicParsing | Out-Null } | Out-Null
         Start-Sleep -Seconds 2
+        foreach ($process in Installed-Processes) {
+            Try-Log "stoppen: proces $($process.ProcessId)" { Stop-Process -Id $process.ProcessId -Force } | Out-Null
+        }
     }
+}
+# Draait er op de poort een ander dashboard dan het geïnstalleerde?
+function Other-On-Port {
+    $answer = $false
+    try { $answer = (Invoke-RestMethod -Uri "http://127.0.0.1:$Port/versie" -TimeoutSec 2).app -eq "portflow-coach-dashboard" } catch { }
+    return $answer -and (Installed-Processes).Count -eq 0
+}
+# I10: het aantal studenten in de database van de installatie ("geen" zonder database).
+function Student-Count {
+    if (-not (Test-Path "$Root\data\dashboard.sqlite3")) { return "geen" }
+    try {
+        $count = & "$Root\venv\Scripts\python.exe" -c "import sqlite3, sys; print(sqlite3.connect(sys.argv[1]).execute('SELECT COUNT(*) FROM students').fetchone()[0])" "$Root\data\dashboard.sqlite3" 2>$null
+        if ($LASTEXITCODE -eq 0 -and $count) { return "$count".Trim() }
+    } catch { }
+    return "onbekend"
 }
 function Remove-Logged($path) {
     if (Test-Path $path) { Try-Log "verwijderen: $path" { Remove-Item -Recurse -Force $path } | Out-Null }
@@ -177,11 +204,13 @@ try {
         Fail "Python of de pakketten konden niet worden geinstalleerd. Controleer je internetverbinding en probeer het opnieuw."
     }
 
-    # I3 - bestaande gegevens uit een git-checkout overnemen (een kopie) -------------------------------
-    if (Test-Path "$Root\data\dashboard.sqlite3") {
-        Check "gegevens in $Root\data" "ja, die blijven staan"
+    # I3, I10 - bestaande gegevens uit een git-checkout overnemen (een kopie) ------------------------
+    # Ook als de installatie al een database heeft zonder studenten (bijvoorbeeld van een eerste start).
+    $students = Student-Count
+    Check "studenten in $Root\data" $students
+    if ($students -ne "geen" -and $students -ne "0") {
+        Check "gegevens overnemen" "niet nodig, de gegevens van de installatie blijven staan"
     } else {
-        Check "gegevens in $Root\data" "nee"
         $source = $null
         $here = (Get-Location -PSProvider FileSystem).ProviderPath
         if (Test-Path "$here\data\dashboard.sqlite3") {
@@ -198,8 +227,20 @@ try {
             }
         }
         if ($source) {
+            Stop-Dashboard   # de database moet vrij zijn
+            if (Test-Path "$Root\data\dashboard.sqlite3") {
+                $aside = "$Root\data-voor-overnemen-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+                if (-not (Try-Log "verplaatsen: $Root\data -> $aside" { Move-Item "$Root\data" $aside })) {
+                    Fail "De lege gegevensmap kon niet opzij worden gezet."
+                }
+                Say "  De lege gegevens van de installatie staan apart in $aside."
+                New-Item -ItemType Directory -Force -Path "$Root\data" | Out-Null
+            }
             if (-not (Try-Log "kopieren: $source -> $Root\data" { Copy-Item -Recurse -Force -Path "$source\*" -Destination "$Root\data" })) {
                 Fail "Je gegevens konden niet worden gekopieerd."
+            }
+            foreach ($lock in @("SingletonLock", "SingletonSocket", "SingletonCookie", "lockfile")) {
+                Remove-Item -Force "$Root\data\browser-profile\$lock" -ErrorAction SilentlyContinue
             }
             Say "  Gegevens overgenomen uit $source."
         }
@@ -234,15 +275,21 @@ try {
 
     # I2.6 - starten ------------------------------------------------------------------------------------
     Step "Dashboard starten"
-    if (-not $env:PORTFLOW_NO_START) {
-        Try-Log "starten: $Root\venv\Scripts\pythonw.exe `"$Root\app\app.py`"" {
-            Start-Process -FilePath "$Root\venv\Scripts\pythonw.exe" -ArgumentList "`"$Root\app\app.py`"" -WorkingDirectory "$Root\app"
-        } | Out-Null
-    } else {
+    $started = $false
+    if ($env:PORTFLOW_NO_START) {
         Log "OVERGESLAGEN: starten (PORTFLOW_NO_START)"
+    } elseif (Other-On-Port) {
+        Check "ander dashboard op poort $Port" "ja"   # I11
+        Say "  Op poort $Port draait al een ander dashboard (bijvoorbeeld de ontwikkelversie)."
+        Say "  Stop dat eerst; open daarna het geinstalleerde dashboard met de snelkoppeling."
+    } else {
+        $started = Try-Log "starten: $Root\venv\Scripts\pythonw.exe `"$Root\app\app.py`"" {
+            Start-Process -FilePath "$Root\venv\Scripts\pythonw.exe" -ArgumentList "`"$Root\app\app.py`"" -WorkingDirectory "$Root\app"
+        }
     }
     Say ""
-    Say "Klaar. Versie $Version is geinstalleerd en het dashboard opent in je browser."
+    if ($started) { Say "Klaar. Versie $Version is geinstalleerd en het dashboard opent in je browser." }
+    else { Say "Klaar. Versie $Version is geinstalleerd." }
     Say "Je vindt het voortaan als `"$Name`" in het Startmenu en op je bureaublad."
     Say "Het logboek van deze installatie staat in $Log"
     Log "EINDE: gelukt"

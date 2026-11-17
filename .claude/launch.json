@@ -4,9 +4,9 @@
     {
       "name": "dashboard",
       "runtimeExecutable": ".venv/bin/python",
-      "runtimeArgs": ["app.py", "--no-browser"],
-      "port": 5050,
-      "url": "http://127.0.0.1:5050"
+      "runtimeArgs": ["app.py", "--no-browser", "--port", "5051"],
+      "port": 5051,
+      "url": "http://127.0.0.1:5051"
     }
   ]
 }

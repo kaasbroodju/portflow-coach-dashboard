@@ -15,6 +15,8 @@ import threading
 import urllib.request
 import webbrowser
 
+from pathlib import Path
+
 from dashboard import DATA_DIR, create_app
 from dashboard.update_routes import APP_ID
 
@@ -54,21 +56,37 @@ def running_dashboard(port: int, host: str = HOST) -> bool:
         return False
 
 
-def log_without_terminal() -> None:
+def log_without_terminal(data_dir: Path) -> None:
     """Started from the shortcut (pythonw on Windows) there is no terminal: write to a log file."""
     if sys.stdout is None or sys.stderr is None:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        log = open(DATA_DIR / "dashboard.log", "a", encoding="utf-8", buffering=1)
+        data_dir.mkdir(parents=True, exist_ok=True)
+        log = open(data_dir / "dashboard.log", "a", encoding="utf-8", buffering=1)
         sys.stdout = sys.stdout or log
         sys.stderr = sys.stderr or log
 
 
+def database_from_option(value: str) -> Path | None:
+    """Spec 031, F4, F5: the chosen database file, or None (with a message) if it does not exist."""
+    path = Path(value).expanduser().resolve()
+    if not path.is_file():
+        print(f"Het databestand {path} bestaat niet. Controleer het pad.")
+        return None
+    return path
+
+
 def main() -> None:
-    log_without_terminal()
     parser = argparse.ArgumentParser(description="Portflow coach dashboard")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"poort (standaard {DEFAULT_PORT})")
     parser.add_argument("--no-browser", action="store_true", help="browser niet automatisch openen")
+    parser.add_argument("--database", metavar="PAD",
+                        help="ander databestand; Chrome-profiel en reservekopieën komen in dezelfde map")
     args = parser.parse_args()
+    database = None
+    if args.database:
+        database = database_from_option(args.database)
+        if database is None:
+            sys.exit(1)
+    log_without_terminal(database.parent if database else DATA_DIR)
 
     url = f"http://{HOST}:{args.port}"
     if not port_is_free(args.port):
@@ -76,6 +94,8 @@ def main() -> None:
             if not args.no_browser:
                 webbrowser.open(url)
             print(f"Het dashboard draait al: {url}")
+            if database:   # spec 031, F6
+                print(f"Let op: het draaiende dashboard gebruikt misschien een ander databestand dan {database}.")
             return
         print(f"Poort {args.port} is al in gebruik. Draait het dashboard al?")
         print(f"Kies een andere poort, bijvoorbeeld: python app.py --port {args.port + 1}")
@@ -85,7 +105,10 @@ def main() -> None:
     print(f"  → {url}")
     print("  Stoppen: Ctrl+C\n")
 
-    app = create_app(start_background=True)  # connects to Portflow (spec 003)
+    if database:
+        print(f"  Databestand: {database}")
+    app = create_app(database, start_background=True,  # connects to Portflow (spec 003)
+                     data_source="opdrachtregel" if database else None)
     if not args.no_browser:
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
     app.run(host=HOST, port=args.port, debug=False)

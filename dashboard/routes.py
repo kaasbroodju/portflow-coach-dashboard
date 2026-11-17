@@ -1,6 +1,9 @@
 """Pages of the dashboard (spec 002 shell; specs 001, 004, 006 and 007)."""
 
+import os
+import subprocess
 from datetime import date
+from pathlib import Path
 
 from urllib.parse import urlencode
 
@@ -8,7 +11,7 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 
 from . import (choices, columns as column_data, demo, guilds, overview as overview_data, portflow_link, projects, reset,
                requests_to_review, semesters as semester_data, staff, student_edit, student_intake, summary, timeline)
-from . import db
+from . import db, paths
 from .db import get_db
 from .portflow_fetch import S_REQUESTS_FETCHED
 from .portflow_connection import initials
@@ -522,6 +525,34 @@ def semesters():
                        added=request.args.get("toegevoegd", ""))
 
 
+def data_paths() -> dict:
+    """Spec 031, F1, F2: the files and folders this dashboard uses."""
+    database = Path(current_app.config["DATABASE"]).resolve()
+    log = database.parent / "dashboard.log"
+    return {
+        "database": str(database),
+        "profile": str(database.parent / "browser-profile"),
+        "backups": str(database.parent / reset.BACKUP_DIR),
+        "log": str(log) if log.exists() else None,
+        "source": paths.SOURCES.get(current_app.config.get("DATA_SOURCE"), current_app.config.get("DATA_SOURCE")),
+        "file_manager": "Verkenner" if os.name == "nt" else "Finder",
+    }
+
+
+@bp.post("/instellingen/data/openen")
+def open_data_folder():
+    """Spec 031, F3: open the folder of the database, never a path from the request."""
+    folder = str(Path(current_app.config["DATABASE"]).resolve().parent)
+    opener = current_app.config.get("OPEN_FOLDER") or (
+        (lambda path: subprocess.Popen(["explorer", path])) if os.name == "nt"
+        else (lambda path: subprocess.Popen(["open", path])))
+    try:
+        opener(folder)
+    except OSError:
+        pass
+    return redirect(url_for("pages.settings", _anchor="data"))
+
+
 @bp.get("/instellingen")
 def settings():
     conn = get_db()
@@ -543,6 +574,7 @@ def settings():
         confirm_disconnect=request.args.get("bevestig") == "verbinding-verbreken",
         canvas_url=connection.canvas_url,
         update_check=current_app.extensions["updater"].enabled(),   # spec 020, U4
+        data=data_paths(),                                          # spec 031
         always_visible=connection.always_visible,
     )
 

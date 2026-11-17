@@ -44,7 +44,8 @@ source .venv/bin/activate
 python app.py
 ```
 
-- Andere poort: `python app.py --port 8000`. Poort 5000 is op macOS bezet door de AirPlay-ontvanger.
+- Andere poort: `python app.py --port 8000`. Poort 5000 is op macOS bezet door de AirPlay-ontvanger. Een geïnstalleerd dashboard gebruikt 5050; de preview in Claude Code draait op 5051.
+- Ander databestand: `python app.py --database ~/test/dashboard.sqlite3`. Het Chrome-profiel en de reservekopieën komen dan in dezelfde map. Welk bestand in gebruik is, staat in **Instellingen › Data**.
 - Zonder automatisch openen van de browser: `python app.py --no-browser`.
 - Stoppen: Ctrl+C.
 - Bij de eerste start opent een Chrome-venster om in te loggen bij Portflow (via Canvas/HU). Het venster sluit vanzelf. Het token staat daarna in de database, het browserprofiel in `data/`; beide staan niet in git.

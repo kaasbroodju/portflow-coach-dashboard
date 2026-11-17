@@ -98,6 +98,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 028 | [Filters inklappen](028-filters-inklappen/spec.md) | `klaar` |
 | 029 | [Tijdlijn van evaluaties en compacte voortgangstabel](029-tijdlijn-evaluaties/spec.md) | `klaar` |
 | 030 | [Te beoordelen](030-te-beoordelen/spec.md) | `klaar` |
+| 031 | [Gegevensbestand tonen en kiezen](031-gegevensbestand/spec.md) | `klaar` |
 
 ## Kandidaten
 

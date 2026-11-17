@@ -62,7 +62,7 @@ releases/              ← releasenotes per versie (docs/releases.md)
 | Python en pakketten | `…/venv/` | `…\venv\` |
 | Gegevens | `…/data/` | `…\data\` |
 
-De app herkent een installatie aan het bestand `app/.installed` (geschreven door het installatiescript). `PORTFLOW_DASHBOARD_DATA` zet de gegevensmap om.
+De app herkent een installatie aan het bestand `app/.installed` (geschreven door het installatiescript). `PORTFLOW_DASHBOARD_DATA` zet de gegevensmap om, en `python app.py --database <bestand>` kiest een ander databestand; het Chrome-profiel, de reservekopieën en `dashboard.log` staan altijd in de map van de database. Instellingen › Data toont de paden en waar de keuze vandaan komt ([spec 031](../features/031-gegevensbestand/spec.md)).
 
 **Versies en bijwerken** (spec 020): het versienummer staat in `dashboard/version.py`. `dashboard/updates.py` vraagt bij het starten en dagelijks `GET https://api.github.com/repos/petersnoek-hu/portflow-coach-dashboard/releases/latest` op (zonder gegevens, met de versie in de User-Agent). Bijwerken (alleen in een installatie): reservekopie zonder token, zip downloaden en de SHA-256 controleren, uitpakken naast de oude code; daarna stopt de app en wisselt `dashboard/update_swap.py` de mappen, laat uv de pakketten bijwerken en start de app opnieuw (of de oude versie, als iets mislukt). Releases maken: [releases.md](releases.md).
 

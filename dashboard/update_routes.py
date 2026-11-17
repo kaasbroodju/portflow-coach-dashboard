@@ -34,7 +34,8 @@ def _shutdown():
 def version():
     """I4: lets app.py see that the dashboard already runs; U3: the update page polls this."""
     updater = _updater()
-    return jsonify(app=APP_ID, version=VERSION, update=updater.state, result=updater.result())
+    return jsonify(app=APP_ID, version=VERSION, installed=updater.can_update(),   # spec 020, I11
+                   update=updater.state, result=updater.result())
 
 
 @bp.get("/nieuwe-versie")
