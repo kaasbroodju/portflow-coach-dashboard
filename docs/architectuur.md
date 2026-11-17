@@ -13,8 +13,8 @@ Een dashboard voor coaches en gildemeesters dat de Portflow-voortgang van groepe
 | Taal backend | Python 3.14 | De bestaande console-app is in Python geschreven |
 | Webframework | **Flask** (enige dependency) | Eén dependency, leesbare code, templates met automatische escaping |
 | Interface | Server-HTML (Jinja-templates) + **één eigen CSS-bestand en één eigen JS-bestand** | Geen npm en geen build-stap; filteren, sorteren en zoeken gebeuren in de browser |
-| Opslag / cache | **SQLite** (`sqlite3`, standaardbibliotheek), bestand `data/dashboard.sqlite3` | Eén bestand, robuust, geen dependency; staat niet in git |
-| Installatie | **venv + requirements.txt** | Standaard Python, geen extra tools; overstappen op uv kan later. Eenvoudiger manieren (één terminalopdracht, PyInstaller, zip) staan als idee in [spec 020](../features/020-installatie/spec.md) |
+| Opslag / cache | **SQLite** (`sqlite3`, standaardbibliotheek), bestand `dashboard.sqlite3` in de gegevensmap (zie *Mappen*) | Eén bestand, robuust, geen dependency; staat niet in git |
+| Installatie | Gebruikers: **installatiescript met [uv](https://docs.astral.sh/uv/)** (`install/`, `pyproject.toml`, `uv.lock`); ontwikkelaars: **venv + requirements.txt** | Gebruikers hoeven geen Python of pakketten te installeren en krijgen geen waarschuwing van macOS of Windows; uv is alleen een installatiehulpmiddel, geen dependency van de app ([spec 020](../features/020-installatie/spec.md)) |
 | Tests | **unittest** (standaardbibliotheek), `python -m unittest` | Geen extra dependency |
 | HTTP naar Portflow | `urllib` (standaardbibliotheek) | Geen extra dependency nodig |
 | Excel-import (later) | openpyxl | Excel lezen kan niet met de standaardbibliotheek |
@@ -47,8 +47,24 @@ dashboard/
     fonts/             ← DM Sans + licentie (OFL.txt)
 tests/                 ← unittest
 data/                  ← database (met het Portflow-token) en browserprofiel (niet in git)
+install/               ← installatiescripts en iconen (spec 020)
+releases/              ← releasenotes per versie (docs/releases.md)
+.github/workflows/     ← release bij een tag (spec 020, R2)
 .claude/launch.json    ← startconfiguratie voor de preview in Claude Code
+.claude/skills/release ← /release voor Claude Code (spec 020, R4)
 ```
+
+**Gegevensmap** (`dashboard/paths.py`, spec 020, I3): in een git-checkout `data/` naast de code. Een geïnstalleerd dashboard heeft programma, Python en gegevens apart, zodat bijwerken alleen `app/` vervangt:
+
+| | macOS | Windows |
+|---|---|---|
+| Programma | `~/Library/Application Support/Portflow coach dashboard/app/` | `%LOCALAPPDATA%\Portflow coach dashboard\app\` |
+| Python en pakketten | `…/venv/` | `…\venv\` |
+| Gegevens | `…/data/` | `…\data\` |
+
+De app herkent een installatie aan het bestand `app/.installed` (geschreven door het installatiescript). `PORTFLOW_DASHBOARD_DATA` zet de gegevensmap om.
+
+**Versies en bijwerken** (spec 020): het versienummer staat in `dashboard/version.py`. `dashboard/updates.py` vraagt bij het starten en dagelijks `GET https://api.github.com/repos/petersnoek-hu/portflow-coach-dashboard/releases/latest` op (zonder gegevens, met de versie in de User-Agent). Bijwerken (alleen in een installatie): reservekopie zonder token, zip downloaden en de SHA-256 controleren, uitpakken naast de oude code; daarna stopt de app en wisselt `dashboard/update_swap.py` de mappen, laat uv de pakketten bijwerken en start de app opnieuw (of de oude versie, als iets mislukt). Releases maken: [releases.md](releases.md).
 
 Portflow (spec 003): `portflow_api.py` (alle API-aanroepen), `portflow_token.py` (token: vervaltijd en opslag in de database), `portflow_login.py` (Chrome-venster, Playwright), `portflow_connection.py` (toestandsmachine), `portflow_routes.py`. Later komt er onder meer `progress.py` (voortgangsregels, op één plek en getest) bij. Houd de structuur zo plat mogelijk; splits pas als een bestand onoverzichtelijk wordt.
 

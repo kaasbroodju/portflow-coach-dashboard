@@ -1,0 +1,18 @@
+<!doctype html>
+{# Spec 020, I5: shown after "Dashboard afsluiten"; the app stops right after sending it. #}
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestopt · Portflow coach dashboard</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body class="stopped-page">
+  <main class="card stopped">
+    <p class="wordmark-name"><span class="wordmark-prompt">&gt;_</span> portflow</p>
+    <h1>Het dashboard is gestopt.</h1>
+    <p>Open het weer met de snelkoppeling.</p>
+  </main>
+</body>
+</html>

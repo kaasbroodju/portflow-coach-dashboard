@@ -1,6 +1,6 @@
 # 020 – Installatie, releases en bijwerken
 
-**Status:** uitgewerkt <!-- idee | uitgewerkt | in bouw | klaar -->
+**Status:** in bouw <!-- idee | uitgewerkt | in bouw | klaar -->
 **Laatst bijgewerkt:** 2026-11-17
 
 ## Doel
@@ -37,11 +37,11 @@ Clonen met git, venv en `requirements.txt` blijft bestaan voor ontwikkelaars ([a
 
 ### Releases (voor de beheerder van de repository)
 
-- [ ] **R1 – Versienummer.** De app heeft één versienummer (`MAJOR.MINOR.PATCH`, bijvoorbeeld `1.2.0`) op één plek in de code. De release op GitHub heeft de tag `v1.2.0` en Nederlandse release-notes ("Wat is er nieuw"). De app toont zijn versie onderaan Instellingen.
+- [x] **R1 – Versienummer.** De app heeft één versienummer (`MAJOR.MINOR.PATCH`, bijvoorbeeld `1.2.0`) op één plek in de code. De release op GitHub heeft de tag `v1.2.0` en Nederlandse release-notes ("Wat is er nieuw"). De app toont zijn versie onderaan Instellingen.
   - *Acceptatie:* na het installeren van release `v1.2.0` staat in Instellingen "Versie 1.2.0".
 - [ ] **R2 – Release maken.** Een tag `vX.Y.Z` pushen start een GitHub Actions-workflow die de tests draait op macOS en Windows en de release aanmaakt met als bijlagen: de code als zip, `install-macos.sh`, `install-windows.ps1` en een bestand met de SHA-256-controlesom van de zip. Faalt een test, dan komt er geen release.
   - *Acceptatie:* `git tag v1.2.0 && git push --tags` levert binnen enkele minuten een release met de vier bijlagen op.
-- [ ] **R3 – Vaste adressen.** De installatiescripts zijn altijd te vinden op `https://github.com/petersnoek-hu/portflow-coach-dashboard/releases/latest/download/<bestand>`, zodat de instructie in de README en op de releasepagina niet per versie verandert.
+- [x] **R3 – Vaste adressen.** De installatiescripts zijn altijd te vinden op `https://github.com/petersnoek-hu/portflow-coach-dashboard/releases/latest/download/<bestand>`, zodat de instructie in de README en op de releasepagina niet per versie verandert.
 - [ ] **R4 – Release met Claude Code.** In de repository staat een Claude Code-skill **`/release`** die een release voor de beheerder voorbereidt en, na zijn akkoord, publiceert. De skill:
   1. controleert dat de werkmap schoon is, op `main` staat en dat alle tests slagen;
   2. toont wat er sinds de vorige release veranderd is (commits en de logboekregels van de specs) en vraagt of het een **patch**, **minor** of **major** versie wordt, met een voorstel;
@@ -50,8 +50,8 @@ Clonen met git, venv en `requirements.txt` blijft bestaan voor ontwikkelaars ([a
   5. zet het versienummer, maakt de commit en de tag, en pusht pas na een uitdrukkelijk "ja";
   6. volgt de GitHub Actions-run en meldt het adres van de release, of de fout als het misgaat.
   - *Acceptatie:* `/release` in Claude Code levert, na de vragen en het akkoord, een gepubliceerde release met een Nederlandse releasenote; zonder akkoord wordt er niets gepusht.
-- [ ] **R5 – Instructie.** `docs/releases.md` beschrijft hetzelfde stappenplan voor wie het zonder Claude Code doet, met een sjabloon voor de releasenote. De skill volgt dat document.
-- [ ] **R6 – Releasenote in de app.** "Wat is er nieuw" in de updatebalk (U2) toont de releasenote van GitHub, zodat de gebruiker ziet wat de nieuwe versie brengt.
+- [x] **R5 – Instructie.** `docs/releases.md` beschrijft hetzelfde stappenplan voor wie het zonder Claude Code doet, met een sjabloon voor de releasenote. De skill volgt dat document.
+- [x] **R6 – Releasenote in de app.** "Wat is er nieuw" in de updatebalk (U2) toont de releasenote van GitHub, zodat de gebruiker ziet wat de nieuwe versie brengt.
 
 ### Installeren (voor de gebruiker)
 
@@ -67,7 +67,7 @@ Clonen met git, venv en `requirements.txt` blijft bestaan voor ontwikkelaars ([a
   5. Maakt de snelkoppeling (I4).
   6. Start de app.
   - *Acceptatie:* zonder internet of zonder Chrome stopt het script met een begrijpelijke melding en blijft er geen halve installatie achter.
-- [ ] **I3 – Vaste mappen.** Programma en gegevens staan gescheiden, zodat bijwerken de gegevens niet raakt:
+- [x] **I3 – Vaste mappen.** Programma en gegevens staan gescheiden, zodat bijwerken de gegevens niet raakt:
 
   | | macOS | Windows |
   |---|---|---|
@@ -77,19 +77,19 @@ Clonen met git, venv en `requirements.txt` blijft bestaan voor ontwikkelaars ([a
   Vanuit een git-checkout blijft de app `data/` naast de code gebruiken. Vindt het script bij de eerste installatie een git-checkout met gegevens, of geeft de gebruiker er een op, dan biedt het aan die `data/` over te nemen (een kopie; het origineel blijft staan).
 - [ ] **I4 – Snelkoppeling.** macOS: een app **"Portflow coach dashboard"** in `~/Applications`, met het `>_`-icoon, vast te zetten in het Dock. Windows: een snelkoppeling met dat icoon in het **Startmenu** en op het **bureaublad**. Een klik start de app **zonder terminalvenster** en opent het dashboard in de standaardbrowser. Draait de app al, dan opent alleen het dashboard.
   - *Acceptatie:* twee keer klikken geeft twee browsertabbladen en één draaiende app, geen foutmelding over een bezette poort.
-- [ ] **I5 – Afsluiten.** In het gebruikersmenu (onderin de zijbalk) staat **"Dashboard afsluiten"**; dat stopt de app en toont "Het dashboard is gestopt. Open het weer met de snelkoppeling."
+- [x] **I5 – Afsluiten.** In het gebruikersmenu (onderin de zijbalk) staat **"Dashboard afsluiten"**; dat stopt de app en toont "Het dashboard is gestopt. Open het weer met de snelkoppeling."
 - [ ] **I6 – Nog een keer installeren.** Het script opnieuw uitvoeren werkt de installatie bij (zoals U3) en raakt de gegevens niet.
-- [ ] **I7 – Verwijderen.** Het script met `--verwijderen` haalt het programma en de snelkoppeling weg. De gegevens blijven staan, tenzij de gebruiker op de vraag "Ook je gegevens verwijderen?" ja antwoordt.
+- [ ] **I7 – Verwijderen.** Het script met `--verwijderen` (macOS: `… | sh -s -- --verwijderen`; Windows: `& ([scriptblock]::Create((irm …))) --verwijderen`, omdat `irm | iex` geen argumenten doorgeeft) haalt het programma en de snelkoppeling weg. De gegevens blijven staan, tenzij de gebruiker op de vraag "Ook je gegevens verwijderen?" ja antwoordt.
 
 ### Bijwerken
 
-- [ ] **U1 – Controleren op een nieuwe versie.** Bij het starten en daarna eens per dag vraagt de app de nieuwste release op bij GitHub (`GET https://api.github.com/repos/petersnoek-hu/portflow-coach-dashboard/releases/latest`). Er gaan geen gegevens mee, behalve het verzoek zelf. Lukt het niet (geen internet), dan gebeurt er niets.
-- [ ] **U2 – Melding.** Is de versie op GitHub nieuwer, dan staat op elke pagina een smalle balk (zoals de demobanner): **"Versie 1.3.0 is beschikbaar (je hebt 1.2.0)."** met **"Wat is er nieuw"** (de releasepagina), **"Nu bijwerken"** en **"Later"**. "Later" verbergt de balk tot de volgende versie.
+- [x] **U1 – Controleren op een nieuwe versie.** Bij het starten en daarna eens per dag vraagt de app de nieuwste release op bij GitHub (`GET https://api.github.com/repos/petersnoek-hu/portflow-coach-dashboard/releases/latest`). Er gaan geen gegevens mee, behalve het verzoek zelf. Lukt het niet (geen internet), dan gebeurt er niets.
+- [x] **U2 – Melding.** Is de versie op GitHub nieuwer, dan staat op elke pagina een smalle balk (zoals de demobanner): **"Versie 1.3.0 is beschikbaar (je hebt 1.2.0)."** met **"Wat is er nieuw"** (een pagina in de app met de releasenote, R6, en een link naar GitHub), **"Nu bijwerken"** en **"Later"**. "Later" verbergt de balk tot de volgende versie.
   - *Acceptatie:* met versie 1.2.0 geïnstalleerd en 1.3.0 op GitHub verschijnt de balk; na "Later" niet meer, tot 1.4.0 verschijnt.
-- [ ] **U3 – Nu bijwerken.** De app maakt eerst een reservekopie van de database (zonder token, zoals [spec 014](../014-alles-verwijderen/spec.md)), downloadt de zip, controleert de controlesom, zet de nieuwe code in de programmamap, laat uv de pakketten bijwerken en start zichzelf opnieuw. De pagina toont "Bijwerken…" en herlaadt vanzelf. Lukt het niet, dan blijft de oude versie werken en staat er een melding.
+- [x] **U3 – Nu bijwerken.** De app maakt eerst een reservekopie van de database (zonder token, zoals [spec 014](../014-alles-verwijderen/spec.md)), downloadt de zip, controleert de controlesom, zet de nieuwe code in de programmamap, laat uv de pakketten bijwerken en start zichzelf opnieuw. De pagina toont "Bijwerken…" en herlaadt vanzelf. Lukt het niet, dan blijft de oude versie werken en staat er een melding.
   - *Acceptatie:* na "Nu bijwerken" staat in Instellingen de nieuwe versie, en de studenten, instellingen en Portflow-verbinding zijn er nog.
-- [ ] **U4 – Uitzetten.** In Instellingen staat **"Controleren op nieuwe versies"** (standaard aan).
-- [ ] **U5 – Git-checkout.** Draait de app vanuit een git-checkout, dan toont de balk alleen de melding met "Wat is er nieuw", zonder "Nu bijwerken".
+- [x] **U4 – Uitzetten.** In Instellingen staat **"Controleren op nieuwe versies"** (standaard aan).
+- [x] **U5 – Git-checkout.** Draait de app vanuit een git-checkout, dan toont de balk alleen de melding met "Wat is er nieuw", zonder "Nu bijwerken".
 
 ### Buiten scope
 
@@ -112,7 +112,7 @@ Geen eigen ontwerp. De updatebalk lijkt op de demobanner ([design-system.md](../
 
 - Dependencies blijven Flask en Playwright ([architectuur.md](../../docs/architectuur.md#techstack)); `requests` is niet nodig (de app gebruikt `urllib`). uv is alleen een installatiehulpmiddel, geen dependency van de app. Voor uv komt een `pyproject.toml` met lockfile (`uv.lock`) naast `requirements.txt`.
 - Playwright gebruikt de geïnstalleerde Chrome (`channel="chrome"`), dus het script hoeft geen browser te downloaden (`playwright install` is niet nodig).
-- De app krijgt de gegevensmap van de starter mee (bijvoorbeeld een omgevingsvariabele); zonder die waarde blijft het `data/` naast de code.
+- De app herkent een installatie aan het bestand `app/.installed` dat het script schrijft (met het pad van uv), en gebruikt dan `<root>/data`; zonder dat bestand blijft het `data/` naast de code. `PORTFLOW_DASHBOARD_DATA` kan de gegevensmap omzetten. Python en de pakketten staan in `<root>/venv`, los van de code, zodat bijwerken alleen `app/` vervangt.
 - Starten zonder terminalvenster: op Windows met `pythonw.exe`, op macOS via de kleine app uit I4.
 - De scripts staan in de repository (bijvoorbeeld `install/`) en hebben tests waar dat kan (bijvoorbeeld een droge run).
 - Testen op echte laptops: een schone Mac, een schone Windows-laptop en een beheerde HU-laptop.
@@ -138,3 +138,4 @@ Geen eigen ontwerp. De updatebalk lijkt op de demobanner ([design-system.md](../
 - 2026-11-17 – de gebruiker kiest voor dubbelklikken in plaats van een terminalregel; de vorm (installatiebestand of kant-en-klaar programma) en ondertekenen zijn nog open
 - 2026-11-17 – aanpak A gekozen: installeren via de console geeft geen waarschuwing van macOS of Windows; het script installeert uv en Python zelf
 - 2026-11-17 – open vragen beantwoord: bijwerken met één klik, knop Afsluiten, gegevens in de gebruikersmap met aanbod om bestaande over te nemen, releases automatisch bij een tag met een Claude Code-skill `/release` die de releasenote schrijft (R4–R6), eerste versie 1.0.0. Status uitgewerkt
+- 2026-11-17 – gebouwd: versie in `dashboard/version.py` (Instellingen en het gebruikersmenu), gegevensmap in `dashboard/paths.py`, `pyproject.toml` en `uv.lock`, installatiescripts en iconen in `install/`, updatecontrole, updatebalk, pagina "Wat is er nieuw" en bijwerken in `dashboard/updates.py`, `update_routes.py` en `update_swap.py`, "Dashboard afsluiten" in het gebruikersmenu, een tweede klik opent alleen de browser (`app.py`), workflow `.github/workflows/release.yml` (tests op macOS en Windows, zip met controlesom, de installatiescripts proberen op een schone Mac en Windows-machine, release met de releasenote uit `releases/vX.Y.Z.md`), `docs/releases.md` en de skill `.claude/skills/release/`. Tests in `tests/test_install.py`. Op deze Mac in een testmap gecontroleerd: installeren met een nagebouwde release, starten met een eigen gegevensmap, tweede start, afsluiten, verwijderen met behoud van gegevens, en bijwerken met één klik van 1.0.0 naar 1.0.1 (reservekopie, controlesom, wisselen, pakketten, herstart). Nog niet gecontroleerd: het Windows-script (alleen syntaxis; de workflow test het bij de eerste release), de snelkoppelingen via Finder en het Startmenu, de tests op Windows, de skill `/release` en de eerste echte release. Status blijft in bouw tot de eerste release en de test op echte laptops

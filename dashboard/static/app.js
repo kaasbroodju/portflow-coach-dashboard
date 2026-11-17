@@ -468,3 +468,34 @@
   display.addEventListener("input", () => { display.dataset.edited = display.value ? "1" : ""; });
   ["nummer", "naam", "opdrachtgever"].forEach((name) => form.querySelector(`[name=${name}]`).addEventListener("input", fill));
 })();
+
+(() => {
+  "use strict";
+
+  // Spec 020, U3: while updating, ask the app for its version until the new one answers.
+  const box = document.getElementById("updating");
+  const step = document.getElementById("updating-step");
+  if (!box || !step) return;
+  const oldVersion = box.dataset.version;
+  const attempt = box.dataset.attempt;
+  const poll = async () => {
+    try {
+      const answer = await fetch("/versie", { cache: "no-store" }).then((r) => r.json());
+      if (answer.version !== oldVersion) {
+        window.location.href = "/instellingen#versie";
+        return;
+      }
+      const failed = answer.result && answer.result.attempt === attempt && !answer.result.ok;
+      if (answer.update.error || failed) {
+        step.textContent = failed ? answer.result.message : answer.update.error;
+        box.querySelector("h2").textContent = "Bijwerken is niet gelukt";
+        return;
+      }
+      if (answer.update.step) step.textContent = answer.update.step;
+    } catch (error) {
+      step.textContent = "Opnieuw starten";   // the app is restarting: keep asking
+    }
+    window.setTimeout(poll, 2000);
+  };
+  window.setTimeout(poll, 1500);
+})();

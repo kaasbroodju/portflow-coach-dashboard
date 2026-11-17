@@ -13,6 +13,7 @@ from .db import get_db
 from .portflow_fetch import S_REQUESTS_FETCHED
 from .portflow_connection import initials
 from .skills import CATEGORY, NAMES as SKILL_NAMES, SKILLS
+from .version import VERSION
 
 bp = Blueprint("pages", __name__)
 
@@ -92,6 +93,9 @@ def shell_context():
         "skill_names": SKILL_NAMES,
         "skill_category": CATEGORY,
         "to_review_count": requests_to_review.open_count(get_db()),   # spec 030, F6
+        "update_available": current_app.extensions["updater"].available(),   # spec 020, U2
+        "can_update": current_app.extensions["updater"].can_update(),        # spec 020, U5
+        "app_version": VERSION,                                              # spec 020, R1
     }
 
 
@@ -538,6 +542,7 @@ def settings():
         confirm_remove=request.args.get("bevestig") == "demodata-verwijderen",
         confirm_disconnect=request.args.get("bevestig") == "verbinding-verbreken",
         canvas_url=connection.canvas_url,
+        update_check=current_app.extensions["updater"].enabled(),   # spec 020, U4
         always_visible=connection.always_visible,
     )
 

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{# Spec 020, R6: the release note of the newest version, with the buttons of the update bar (U2). #}
+{% block content %}
+<section class="card release-note">
+  {% if latest %}
+  <h2>Versie {{ latest.version }}</h2>
+  <p class="muted">Je hebt versie {{ version }}.{% if not newer %} Dit is de nieuwste versie.{% endif %}</p>
+  <div class="release-note-text">{{ notes or "Bij deze versie staat geen toelichting." }}</div>
+  <div class="actions">
+    {% if newer and can_update %}
+    <form method="post" action="{{ url_for('updates.start_update') }}"><button class="button button-primary" type="submit">Nu bijwerken</button></form>
+    {% elif newer %}
+    <p class="muted">Je gebruikt de broncode: werk bij met <code>git pull</code>.</p>
+    {% endif %}
+    <a class="button button-secondary" href="{{ latest.url }}" target="_blank" rel="noopener">Op GitHub bekijken</a>
+  </div>
+  {% else %}
+  <p class="muted">Er is nog niet gecontroleerd op nieuwe versies. Dat gebeurt bij het starten en daarna eens per dag (zie Instellingen).</p>
+  {% endif %}
+</section>
+{% endblock %}

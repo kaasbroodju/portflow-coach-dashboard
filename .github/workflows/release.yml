@@ -1,0 +1,123 @@
+# Release maken (spec 020, R2): een tag vX.Y.Z pushen. Zie docs/releases.md.
+# 1. tests op macOS en Windows; 2. zip met controlesom; 3. installatiescripts proberen op een
+# schone Mac en Windows-machine; 4. de release op GitHub, met de releasenote uit releases/vX.Y.Z.md.
+# Faalt een stap, dan komt er geen release.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -r requirements.txt
+      - name: Versie in de code gelijk aan de tag
+        shell: bash
+        run: |
+          code=$(python -c "from dashboard.version import VERSION; print(VERSION)")
+          test "v$code" = "${GITHUB_REF_NAME}" || { echo "dashboard/version.py zegt $code, de tag is ${GITHUB_REF_NAME}"; exit 1; }
+          test -f "releases/${GITHUB_REF_NAME}.md" || { echo "releases/${GITHUB_REF_NAME}.md (de releasenote) ontbreekt"; exit 1; }
+      - run: python -m unittest
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zip en controlesom
+        run: |
+          mkdir dist
+          git archive --format=zip -o dist/portflow-coach-dashboard.zip HEAD
+          (cd dist && sha256sum portflow-coach-dashboard.zip > portflow-coach-dashboard.zip.sha256)
+          cp install/install-macos.sh install/install-windows.ps1 dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  install-test:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Downloads aanbieden zoals GitHub dat doet
+        shell: bash
+        run: (cd dist && nohup python3 -m http.server 8765 > /dev/null 2>&1 &) ; sleep 2
+      - name: Installeren op macOS
+        if: runner.os == 'macOS'
+        env:
+          PORTFLOW_RELEASE_URL: http://127.0.0.1:8765
+          PORTFLOW_INSTALL_ROOT: ${{ runner.temp }}/installatie
+          PORTFLOW_APPLICATIONS: ${{ runner.temp }}/apps
+          PORTFLOW_NO_START: "1"
+        run: |
+          sh dist/install-macos.sh < /dev/null
+          root="$PORTFLOW_INSTALL_ROOT"
+          test -x "$PORTFLOW_APPLICATIONS/Portflow coach dashboard.app/Contents/MacOS/start"
+          nohup "$root/venv/bin/python" "$root/app/app.py" --no-browser --port 5099 > app.log 2>&1 &
+          sleep 8
+          curl -fsS http://127.0.0.1:5099/versie | grep "\"${GITHUB_REF_NAME#v}\""
+          test -f "$root/data/dashboard.sqlite3"
+          curl -fsS -X POST http://127.0.0.1:5099/afsluiten > /dev/null
+          sh dist/install-macos.sh --verwijderen < /dev/null
+          test ! -d "$root/app" && test -d "$root/data"
+      - name: Installeren op Windows (Windows PowerShell 5, zoals bij gebruikers)
+        if: runner.os == 'Windows'
+        shell: powershell
+        env:
+          PORTFLOW_RELEASE_URL: http://127.0.0.1:8765
+          PORTFLOW_NO_START: "1"
+        run: |
+          $env:PORTFLOW_INSTALL_ROOT = Join-Path $env:RUNNER_TEMP "installatie"
+          $root = $env:PORTFLOW_INSTALL_ROOT
+          & .\dist\install-windows.ps1
+          if (-not (Test-Path "$root\venv\Scripts\pythonw.exe")) { throw "pythonw.exe ontbreekt" }
+          $menu = Join-Path ([Environment]::GetFolderPath("Programs")) "Portflow coach dashboard.lnk"
+          if (-not (Test-Path $menu)) { throw "snelkoppeling in het Startmenu ontbreekt" }
+          Start-Process -FilePath "$root\venv\Scripts\python.exe" -ArgumentList "`"$root\app\app.py`" --no-browser --port 5099" -WorkingDirectory "$root\app"
+          Start-Sleep -Seconds 10
+          $answer = Invoke-RestMethod -Uri "http://127.0.0.1:5099/versie"
+          if ($answer.version -ne $env:GITHUB_REF_NAME.TrimStart("v")) { throw "verkeerde versie: $($answer.version)" }
+          if (-not (Test-Path "$root\data\dashboard.sqlite3")) { throw "database niet in de gegevensmap" }
+          try { Invoke-WebRequest -Uri "http://127.0.0.1:5099/afsluiten" -Method Post -UseBasicParsing | Out-Null } catch { }
+          Start-Sleep -Seconds 3
+          & .\dist\install-windows.ps1 --verwijderen
+          if (Test-Path "$root\app") { throw "app is niet verwijderd" }
+          if (-not (Test-Path "$root\data")) { throw "gegevens zijn verwijderd" }
+
+  release:
+    needs: install-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Release op GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Versie ${GITHUB_REF_NAME#v}" \
+            --notes-file "releases/${GITHUB_REF_NAME}.md"

@@ -125,4 +125,19 @@
   </div>
   {% endif %}
 </section>
+
+{# Spec 020: version (R1) and checking for new versions (U4). #}
+<section class="card" id="versie">
+  <h2>Versie</h2>
+  <p>Versie {{ app_version }}{% if not can_update %} <span class="muted">(vanuit de broncode; bijwerken gaat met git)</span>{% endif %}</p>
+  {% if update_available %}<p><a href="{{ url_for('updates.whats_new') }}">Versie {{ update_available.version }} is beschikbaar</a></p>{% endif %}
+  <form method="post" action="{{ url_for('updates.save_check') }}" class="settings-form" id="update-check-form">
+    <label class="checkbox">
+      <input type="checkbox" name="controleren" value="1" {% if update_check %}checked{% endif %}>
+      Controleren op nieuwe versies
+      <span class="muted">(bij het starten en daarna eens per dag; er gaan geen gegevens mee)</span>
+    </label>
+    <button class="button button-secondary" type="submit">Opslaan</button>
+  </form>
+</section>
 {% endblock %}

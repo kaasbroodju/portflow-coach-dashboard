@@ -4,7 +4,30 @@ Een dashboard voor coaches en gildemeesters van Open-ICT (Hogeschool Utrecht). H
 
 *A custom-built Portflow dashboard that shows Portflow progress for different groups of students, using the unofficial Portflow API.*
 
-## Installeren en starten
+## Installeren
+
+Je hebt **Google Chrome** nodig; Python of andere programma's hoef je niet zelf te installeren.
+
+**macOS:** open *Terminal* (via Spotlight: ⌘-spatie, typ "Terminal"), plak deze regel en druk op Enter:
+
+```bash
+curl -fsSL https://github.com/petersnoek-hu/portflow-coach-dashboard/releases/latest/download/install-macos.sh | sh
+```
+
+**Windows:** open *PowerShell* (Startmenu, typ "PowerShell"), plak deze regel en druk op Enter:
+
+```powershell
+irm https://github.com/petersnoek-hu/portflow-coach-dashboard/releases/latest/download/install-windows.ps1 | iex
+```
+
+Het script zet het dashboard in je eigen gebruikersmap (je hebt geen beheerdersrechten nodig), maakt een snelkoppeling en opent het dashboard. De eerste keer downloadt het ongeveer 100 MB. Daarna open je het dashboard met de snelkoppeling: op macOS **Portflow coach dashboard** in de map Apps in je thuismap (sleep het naar het Dock), op Windows in het Startmenu en op het bureaublad. Stoppen doe je via je naam onderin de zijbalk: **Dashboard afsluiten**.
+
+- **Nieuwe versie:** het dashboard meldt het zelf; klik op **Nu bijwerken**. Je gegevens blijven staan.
+- **Opnieuw installeren of herstellen:** voer dezelfde regel nog een keer uit.
+- **Verwijderen:** op macOS `curl -fsSL https://github.com/petersnoek-hu/portflow-coach-dashboard/releases/latest/download/install-macos.sh | sh -s -- --verwijderen`; op Windows `& ([scriptblock]::Create((irm https://github.com/petersnoek-hu/portflow-coach-dashboard/releases/latest/download/install-windows.ps1))) --verwijderen`. Het script vraagt of je ook je gegevens wilt verwijderen.
+- **Je gegevens** (database, Portflow-verbinding) staan in `~/Library/Application Support/Portflow coach dashboard/data/` (macOS) of `%LOCALAPPDATA%\Portflow coach dashboard\data\` (Windows). Gebruikte je het dashboard al vanuit een gekloonde map, dan biedt het script aan die gegevens over te nemen.
+
+## Ontwikkelen
 
 Nodig: Python 3.14 (bijvoorbeeld via pyenv). Eenmalig, in de projectmap:
 
@@ -33,6 +56,8 @@ Tests:
 ```bash
 python -m unittest
 ```
+
+Een nieuwe versie publiceren: zie [`docs/releases.md`](docs/releases.md), of gebruik `/release` in Claude Code.
 
 ## Werkwijze
 

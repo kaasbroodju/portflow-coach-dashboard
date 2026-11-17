@@ -87,7 +87,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 017 | [Student handmatig toevoegen](017-student-handmatig-toevoegen/spec.md) | `klaar` |
 | 018 | [Beroepsrol als onderdeel van het gilde](018-beroepsrol-in-gilde/spec.md) | `klaar` |
 | 019 | [Eenvoudige start: alle gedeelde studenten](019-eenvoudige-start/spec.md) | `klaar` (eerste ronde alleen met nep-Portflow getest; één keuze ter controle) |
-| 020 | [Installatie, releases en bijwerken](020-installatie/spec.md) | `uitgewerkt` |
+| 020 | [Installatie, releases en bijwerken](020-installatie/spec.md) | `in bouw` |
 | 021 | [Mezelf als coach of gildemeester instellen](021-mezelf-toewijzen/spec.md) | `klaar` |
 | 022 | [Studentenlijst: inline wijzigen en naar beheer](022-studentenlijst-inline/spec.md) | `klaar` |
 | 023 | [Filters onthouden](023-filters-onthouden/spec.md) | `klaar` |

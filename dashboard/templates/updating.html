@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{# Spec 020, U3: the progress of updating; reloads by itself when the new version answers. #}
+{% block content %}
+<section class="card updating" id="updating" data-version="{{ version }}" data-attempt="{{ state.attempt }}">
+  {% if not can_update %}
+  <p>Bijwerken kan alleen in een geïnstalleerd dashboard. Gebruik je de broncode, werk dan bij met <code>git pull</code>.</p>
+  {% elif state.error %}
+  <h2>Bijwerken is niet gelukt</h2>
+  <p>{{ state.error }}</p>
+  <p class="muted">Je werkt verder met versie {{ version }}.</p>
+  {% elif state.busy or started %}
+  <h2>Bijwerken…</h2>
+  <p id="updating-step">{{ state.step or "Bezig" }}</p>
+  <p class="muted">Dit duurt meestal een minuut. Deze pagina herlaadt vanzelf als de nieuwe versie klaar is. Je gegevens blijven staan.</p>
+  {% else %}
+  <p>Er is niets om bij te werken.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -28,6 +28,7 @@ Volg dit bij **elke** functie, ook als de gebruiker alleen "bouw X" zegt:
 | Gegevens: bron, studentvelden, studenten toevoegen, kolommen, gebruiker | `docs/gegevensmodel.md` |
 | Schermen, kleuren, niveaulabels, componenten, toon | `docs/design-system.md` |
 | Techstack, Portflow-gebruik (inloggen, endpoints, verversen), privacy, beslissingen | `docs/architectuur.md` |
+| Releases maken (stappenplan, versienummer, releasenote); in Claude Code: `/release` | `docs/releases.md` |
 | Portflow API, volledige gereverse-engineerde beschrijving | `docs/portflow-API-reverse-engineer.md` |
 | Bestaande console-app (referentiecode, niet de webapp; bij verschil gelden de docs) | `docs/portflow-console-app.py` |
 | Visuele richting (ontwerpen; "Kompas" is een werktitel) | `screenshots/*-CRUD-*.png`, `screenshots/kompas-dashboard-ontwerp.png`; beschreven in `docs/design-system.md` |

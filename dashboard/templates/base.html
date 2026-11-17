@@ -48,9 +48,18 @@
       </ul>
     </nav>
 
-    <div class="sidebar-user" id="sidebar-user">
-      {% include "_sidebar_user.html" %}
-    </div>
+    {# Spec 020, I5: the user menu with "Dashboard afsluiten". #}
+    <details class="sidebar-menu">
+      <summary class="sidebar-user" id="sidebar-user">
+        {% include "_sidebar_user.html" %}
+      </summary>
+      <div class="sidebar-menu-panel">
+        <form method="post" action="{{ url_for('updates.stop') }}">
+          <button class="sidebar-menu-item" type="submit">{{ icon("power") }}<span>Dashboard afsluiten</span></button>
+        </form>
+        <p class="sidebar-version">Versie {{ app_version }}</p>
+      </div>
+    </details>
   </aside>
 
   <div class="main">
@@ -75,6 +84,21 @@
     </header>
 
     <div id="portflow-banner">{% include "_portflow_banner.html" %}</div>
+
+    {% if update_available and active %}{# spec 020, U2 #}
+    <div class="update-banner" role="status">
+      {{ icon("info") }}
+      <span>Versie {{ update_available.version }} is beschikbaar (je hebt {{ app_version }}).</span>
+      <a href="{{ url_for('updates.whats_new') }}">Wat is er nieuw</a>
+      {% if can_update %}
+      <form method="post" action="{{ url_for('updates.start_update') }}"><button class="button button-primary button-compact" type="submit">Nu bijwerken</button></form>
+      {% endif %}
+      <form method="post" action="{{ url_for('updates.later') }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <button class="button button-secondary button-compact" type="submit">Later</button>
+      </form>
+    </div>
+    {% endif %}
 
     {% if demo_active %}
     <div class="demo-banner" role="status">
