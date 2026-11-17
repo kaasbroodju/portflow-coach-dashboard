@@ -80,7 +80,8 @@ jobs:
           curl -fsS http://127.0.0.1:5099/versie | grep "\"${GITHUB_REF_NAME#v}\""
           test -f "$root/data/dashboard.sqlite3"
           curl -fsS -X POST http://127.0.0.1:5099/afsluiten > /dev/null
-          sh dist/install-macos.sh --verwijderen < /dev/null
+          sh dist/install-macos.sh --verwijderen < /dev/null || true
+          tail -n 30 install.log
           test ! -d "$root/app" && test -d "$root/data"
       - name: Installeren op Windows (Windows PowerShell 5, zoals bij gebruikers)
         if: runner.os == 'Windows'
@@ -106,6 +107,7 @@ jobs:
           try { Invoke-WebRequest -Uri "http://127.0.0.1:5099/afsluiten" -Method Post -UseBasicParsing | Out-Null } catch { }
           Start-Sleep -Seconds 3
           & .\dist\install-windows.ps1 --verwijderen
+          Get-Content install.log -Tail 30
           if (Test-Path "$root\app") { throw "app is niet verwijderd" }
           if (-not (Test-Path "$root\data")) { throw "gegevens zijn verwijderd" }
 

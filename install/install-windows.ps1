@@ -84,15 +84,25 @@ Log "Programma en gegevens: $Root; snelkoppelingen: $StartMenu en $Desktop; down
 
 # Een draaiend dashboard netjes stoppen (I5), zodat de bestanden vrij zijn.
 # I11: de processen van het geïnstalleerde dashboard (dus niet een versie uit de broncode).
-function Installed-Processes {
-    $app = "$Root\app\app.py"
+# Alle processen van de installatie: het dashboard, maar ook Playwright en de Chrome die het
+# dashboard voor het inloggen startte (met het profiel uit de installatie). Windows kan een map
+# niet verwijderen of vervangen zolang een proces hem gebruikt. Je eigen Chrome hoort er niet bij.
+function Installation-Processes {
     try {
-        return @(Get-CimInstance Win32_Process -Filter "Name LIKE 'python%'" -ErrorAction Stop |
-                 Where-Object { $_.CommandLine -and $_.CommandLine.Contains($app) })
+        return @(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
+            $_.ProcessId -ne $PID -and (
+                ($_.ExecutablePath -and $_.ExecutablePath.StartsWith($Root, [StringComparison]::OrdinalIgnoreCase)) -or
+                ($_.CommandLine -and $_.CommandLine.IndexOf($Root, [StringComparison]::OrdinalIgnoreCase) -ge 0))
+        })
     } catch { return @() }
 }
-# Het geïnstalleerde dashboard netjes stoppen (I5), zodat de bestanden vrij zijn. Een ander
-# dashboard (bijvoorbeeld de ontwikkelversie uit een git-checkout) blijft draaien.
+# I11: het geïnstalleerde dashboard zelf (dus niet een versie uit de broncode).
+function Installed-Processes {
+    return @(Installation-Processes | Where-Object { $_.CommandLine -and $_.CommandLine.Contains("$Root\app\app.py") })
+}
+# Het geïnstalleerde dashboard netjes stoppen (I5) en daarna alles wat nog bij de installatie
+# hoort, zodat de bestanden vrij zijn. Een ander dashboard (bijvoorbeeld de ontwikkelversie uit
+# een git-checkout) blijft draaien.
 function Stop-Dashboard {
     $running = (Installed-Processes).Count -gt 0
     Check "geinstalleerd dashboard draait" $(if ($running) { "ja" } else { "nee" })
@@ -100,10 +110,13 @@ function Stop-Dashboard {
         Say "  Het dashboard draait nog; het wordt gestopt."
         Try-Log "POST http://127.0.0.1:$Port/afsluiten" { Invoke-WebRequest -Uri "http://127.0.0.1:$Port/afsluiten" -Method Post -TimeoutSec 2 -UseBasicParsing | Out-Null } | Out-Null
         Start-Sleep -Seconds 2
-        foreach ($process in Installed-Processes) {
-            Try-Log "stoppen: proces $($process.ProcessId)" { Stop-Process -Id $process.ProcessId -Force } | Out-Null
-        }
     }
+    $left = Installation-Processes
+    Check "andere processen van de installatie" $(if ($left) { ($left | ForEach-Object { "$($_.Name) ($($_.ProcessId))" }) -join ", " } else { "geen" })
+    foreach ($process in $left) {
+        Try-Log "stoppen: $($process.Name) ($($process.ProcessId))" { Stop-Process -Id $process.ProcessId -Force } | Out-Null
+    }
+    if ($left) { Start-Sleep -Seconds 2 }
 }
 # Draait er op de poort een ander dashboard dan het geïnstalleerde?
 function Other-On-Port {
@@ -120,26 +133,39 @@ function Student-Count {
     } catch { }
     return "onbekend"
 }
+# Verwijderen met het logboek; een tweede poging na even wachten. Geeft $true als het weg is.
 function Remove-Logged($path) {
-    if (Test-Path $path) { Try-Log "verwijderen: $path" { Remove-Item -Recurse -Force $path } | Out-Null }
+    if (-not (Test-Path $path)) { return $true }
+    if (Try-Log "verwijderen: $path" { Remove-Item -Recurse -Force $path }) { return $true }
+    Start-Sleep -Seconds 3
+    Try-Log "verwijderen (tweede poging): $path" { Remove-Item -Recurse -Force $path } | Out-Null
+    return -not (Test-Path $path)
 }
 
 # I7 - verwijderen -------------------------------------------------------------------------------
 if ($args -contains "--verwijderen") {
     Say "Portflow coach dashboard verwijderen"
     Stop-Dashboard
-    foreach ($path in @("$Root\app", "$Root\app-oud", "$Root\app-nieuw", "$Root\venv", $StartMenu, $Desktop)) { Remove-Logged $path }
-    Say "Het programma en de snelkoppelingen zijn verwijderd."
+    $kept = @(@("$Root\app", "$Root\app-oud", "$Root\app-nieuw", "$Root\venv", $StartMenu, $Desktop) |
+              Where-Object { -not (Remove-Logged $_) })
+    if ($kept) {
+        Say "Niet alles kon worden verwijderd; dit staat er nog:"
+        foreach ($path in $kept) { Say "  $path" }
+        Say "Sluit het dashboard en Chrome-vensters ervan, of start de computer opnieuw, en voer dit daarna nog een keer uit."
+    } else {
+        Say "Het programma en de snelkoppelingen zijn verwijderd."
+    }
     if (Test-Path "$Root\data") {
         if (Ask "Ook je gegevens verwijderen (studenten, instellingen, Portflow-verbinding)?") {
-            Remove-Logged $Root
-            Say "Je gegevens zijn verwijderd."
+            if (Remove-Logged $Root) { Say "Je gegevens zijn verwijderd." }
+            else { Say "Je gegevens konden niet (helemaal) worden verwijderd; ze staan in $Root"; $kept += $Root }
         } else {
             Say "Je gegevens blijven staan in: $Root\data"
         }
     }
     Say "Het logboek staat in $Log"
-    Log "EINDE: gelukt"
+    Log $(if ($kept) { "EINDE: mislukt (niet verwijderd: $($kept -join ', '))" } else { "EINDE: gelukt" })
+    if ($kept) { $global:LASTEXITCODE = 1 }
     Log "=================================================================="
     return
 }
@@ -249,7 +275,7 @@ try {
     # Nieuwe code op zijn plek; de vorige versie blijft als app-oud staan.
     Stop-Dashboard
     if (Test-Path "$Root\app") {
-        Remove-Logged "$Root\app-oud"
+        Remove-Logged "$Root\app-oud" | Out-Null
         if (-not (Try-Log "verplaatsen: $Root\app -> $Root\app-oud" { Move-Item "$Root\app" "$Root\app-oud" })) {
             Fail "De vorige versie kon niet worden vervangen. Sluit het dashboard en probeer het opnieuw."
         }

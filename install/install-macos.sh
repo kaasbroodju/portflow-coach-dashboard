@@ -101,6 +101,15 @@ stop_running() {
     else
         check "geïnstalleerd dashboard draait" "nee"
     fi
+    # Ook Playwright en de Chrome die het dashboard voor het inloggen startte (met het profiel uit
+    # de installatie); je eigen Chrome hoort er niet bij.
+    if pgrep -f "$ROOT/" > /dev/null 2>&1; then
+        check "andere processen van de installatie" "$(pgrep -fl "$ROOT/" | cut -c1-120 | tr '\n' ';')"
+        run pkill -f "$ROOT/" || true
+        sleep 1
+    else
+        check "andere processen van de installatie" "geen"
+    fi
 }
 
 # Draait er op de poort een ander dashboard dan het geïnstalleerde?
@@ -126,9 +135,19 @@ remove_launchers() {
 if [ "${1:-}" = "--verwijderen" ]; then
     say "Portflow coach dashboard verwijderen"
     stop_running
-    run rm -rf "$ROOT/app" "$ROOT/app-oud" "$ROOT/app-nieuw" "$ROOT/venv"
+    run rm -rf "$ROOT/app" "$ROOT/app-oud" "$ROOT/app-nieuw" "$ROOT/venv" || true
     remove_launchers
-    say "Het programma en de snelkoppeling zijn verwijderd."
+    KEPT=""
+    for path in "$ROOT/app" "$ROOT/app-oud" "$ROOT/app-nieuw" "$ROOT/venv" "/Applications/$NAME.app" "$HOME/Applications/$NAME.app"; do
+        if [ -e "$path" ]; then KEPT="$KEPT
+  $path"; fi
+    done
+    if [ -n "$KEPT" ]; then
+        say "Niet alles kon worden verwijderd; dit staat er nog:$KEPT"
+        say "Sluit het dashboard en voer dit daarna nog een keer uit."
+    else
+        say "Het programma en de snelkoppeling zijn verwijderd."
+    fi
     if [ -d "$ROOT/data" ] && ask "Ook je gegevens verwijderen (studenten, instellingen, Portflow-verbinding)?"; then
         run rm -rf "$ROOT"
         say "Je gegevens zijn verwijderd."
@@ -136,6 +155,7 @@ if [ "${1:-}" = "--verwijderen" ]; then
         say "Je gegevens blijven staan in: $ROOT/data"
     fi
     say "Het logboek staat in $LOG"
+    if [ -n "$KEPT" ]; then exit 1; fi
     exit 0
 fi
 
