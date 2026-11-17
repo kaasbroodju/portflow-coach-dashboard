@@ -921,3 +921,8 @@ html.js .noscript-hint { display: none; }
 .version-offer p { margin: 0 0 10px; }
 .version-offer form { margin: 0; }
 .version-result { margin: 8px 0 10px; }
+
+/* Spec 020, R6: an install line in the release note. */
+.release-note-text code { font-family: var(--mono); font-size: 13px; }
+.release-note-text pre { margin: 8px 0 10px; padding: 10px 12px; overflow-x: auto; border-radius: var(--radius-small); background: var(--page); border: 1px solid var(--border); }
+.release-note-text pre code { user-select: all; white-space: pre; }

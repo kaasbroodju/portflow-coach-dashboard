@@ -102,6 +102,16 @@ class TestVersions(unittest.TestCase):   # U1
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
         self.assertIn("install/release-installatie.md", workflow)
 
+    def test_notes_with_code_block_in_a_list_item(self):   # R6
+        notes = ("## Let op\n- **Windows:** voer in *PowerShell* deze regel uit:\n\n  ```\n  irm https://x/install.ps1 | iex\n"
+                 "  ```\n\n  Je gegevens blijven staan.\n\n## Nieuw\n- De knop `Nu bijwerken`.")
+        html = str(updates.notes_html(notes))
+        self.assertIn("<em>PowerShell</em>", html)
+        self.assertIn("<pre><code>irm https://x/install.ps1 | iex</code></pre>", html)
+        self.assertNotIn("```", html)
+        self.assertIn("<code>Nu bijwerken</code>", html)
+        self.assertIn("<p>Je gegevens blijven staan.</p>", html)
+
     def test_notes_are_escaped_and_formatted(self):   # R6
         html = str(updates.notes_html("## Nieuw\n- **Evaluaties** per week\n- <script>x</script>\n\nTot ziens."))
         self.assertIn("<h3>Nieuw</h3>", html)

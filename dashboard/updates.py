@@ -68,11 +68,15 @@ def release_from_github(data: dict) -> dict | None:
 
 
 def notes_html(text: str) -> Markup:
-    """R6: the release note (Markdown from GitHub) as simple, escaped HTML: headings, lists, bold."""
+    """R6: the release note (Markdown from GitHub) as simple, escaped HTML: headings, lists, bold,
+    *italic*, `code` and fenced code blocks (for example an install line in a list item)."""
     def inline(line: str) -> str:
-        return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", str(escape(line)))
+        html = str(escape(line))
+        html = re.sub(r"`([^`]+)`", r"<code>\1</code>", html)
+        html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html)
+        return re.sub(r"\*([^*\s][^*]*)\*", r"<em>\1</em>", html)
 
-    parts, items, paragraph = [], [], []
+    parts, items, paragraph, code = [], [], [], None
 
     def flush():
         if items:
@@ -84,7 +88,16 @@ def notes_html(text: str) -> Markup:
 
     for raw in text.replace("\r\n", "\n").split("\n"):
         line = raw.strip()
-        if not line:
+        if line.startswith("```"):
+            if code is None:          # opening fence: the block belongs after what came before
+                flush()
+                code = []
+            else:
+                parts.append("<pre><code>" + str(escape("\n".join(code))) + "</code></pre>")
+                code = None
+        elif code is not None:
+            code.append(line)
+        elif not line:
             flush()
         elif line.startswith("#"):
             flush()
@@ -94,9 +107,14 @@ def notes_html(text: str) -> Markup:
                 flush()
             items.append(inline(line[2:]))
         else:
+            if items and raw[:1] in (" ", "\t"):   # an indented line continues the list item
+                items[-1] += " " + inline(line)
+                continue
             if items:
                 flush()
             paragraph.append(inline(line))
+    if code is not None:
+        parts.append("<pre><code>" + str(escape("\n".join(code))) + "</code></pre>")
     flush()
     return Markup("\n".join(parts))
 
