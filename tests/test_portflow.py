@@ -2,6 +2,7 @@
 
 import base64
 import json
+import os
 import tempfile
 import threading
 import unittest
@@ -100,7 +101,8 @@ class TestToken(ConnectionTestCase):
         self.assertEqual(self.store.read(), "abc.def.ghi")
         self.store.save("new.token.value")
         self.assertEqual(db.get_setting(self.database, TOKEN_KEY), "new.token.value")
-        self.assertEqual(Path(self.database).stat().st_mode & 0o777, 0o600)   # readable for the user only
+        if os.name != "nt":   # Windows has no Unix permissions; the user folder protects the file there
+            self.assertEqual(Path(self.database).stat().st_mode & 0o777, 0o600)   # readable for the user only
         self.store.delete()
         self.assertIsNone(self.store.read())
         self.assertEqual(db.get_setting(self.database, "other"), "1")

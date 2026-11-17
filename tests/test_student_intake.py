@@ -60,6 +60,9 @@ class StudentIntakeTestCase(unittest.TestCase):
         # Never open a real Chrome window from a test: a login attempt fails at once.
         self.connection.capture = self.no_browser
         self.connection.spawn = lambda work: work()
+        # No fetch round after connecting: it would call Portflow and keep the database open
+        # (Windows then cannot remove the temporary folder).
+        self.app.extensions["fetcher"].spawn = lambda work: None
 
     @staticmethod
     def no_browser(*args, **kwargs):
