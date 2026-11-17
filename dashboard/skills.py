@@ -37,6 +37,21 @@ _BY_NAME = {goal_name_key(name): code for code, name in NAMES.items()}
 assert len(_BY_NAME) == len(NAMES)   # the keys of the ten skills stay distinct
 
 
+def _word_end(text: str, i: int) -> bool:
+    """True if a word ends just before position i (an accent still belongs to its letter)."""
+    if i == len(text):
+        return True
+    c = text[i]
+    return not c.isalnum() and not unicodedata.category(c).startswith("M")
+
+
 def skill_for_goal_name(name: str | None) -> str | None:
-    """Portflow goal name -> skill code, or None for any other goal (spec 005, F14)."""
-    return _BY_NAME.get(goal_name_key(name))
+    """Portflow goal name -> skill code, or None for any other goal (spec 005, F14).
+    The start of the name is enough, as whole words: "Boodschap delen (HCAI) - semester 1" is BD."""
+    text = unicodedata.normalize("NFC", name or "")
+    for i in range(1, len(text) + 1):
+        if _word_end(text, i):
+            code = _BY_NAME.get(goal_name_key(text[:i]))
+            if code:
+                return code
+    return None

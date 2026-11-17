@@ -107,8 +107,15 @@ class TestGoalNames(unittest.TestCase):  # F14
         for code, name in NAMES.items():
             self.assertEqual(skill_for_goal_name(name), code)
         for name in ("Onderzoeken - Kritisch denken", "Beroepstaak - Software Realiseren", "Sprint Reflectie",
-                     "Samenwerken met andere functies en afdelingen", "OC", "", None):
+                     "OC", "", None, "Boodschap delenX", "Plannenmaker", "Reflecterend schrijven"):
             self.assertIsNone(skill_for_goal_name(name), name)
+
+    def test_start_of_the_name_is_enough(self):   # F14, HCAI
+        for name, code in (("Boodschap delen (HCAI) - semester 1", "BD"), ("Boodschap Delen(HCAI)", "BD"),
+                           ("Plannen - semester 2", "PL"), ("Overzicht Creëeren (HCAI) – semester 1", "OC"),
+                           ("Pro-actief handelen: HCAI", "PH"), ("Kwalitatief product maken HCAI s1", "KPM"),
+                           ("Samenwerken met andere functies en afdelingen", "SW")):   # chosen by the user
+            self.assertEqual(skill_for_goal_name(name), code, name)
 
 
 class FetchTestCase(unittest.TestCase):
