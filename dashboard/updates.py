@@ -29,6 +29,7 @@ from . import db, paths, reset
 from .version import VERSION
 
 REPOSITORY = "petersnoek-hu/portflow-coach-dashboard"
+INSTALL_MARKER = "<!-- installatie"   # the release page adds the install lines after this (spec 020, I1)
 LATEST_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
 ZIP_NAME = "portflow-coach-dashboard.zip"
 SHA_NAME = ZIP_NAME + ".sha256"
@@ -59,7 +60,7 @@ def release_from_github(data: dict) -> dict | None:
     assets = {a.get("name"): a.get("browser_download_url") for a in data.get("assets") or [] if isinstance(a, dict)}
     return {
         "version": ".".join(map(str, version)),
-        "notes": str(data.get("body") or ""),
+        "notes": str(data.get("body") or "").split(INSTALL_MARKER)[0].strip(),   # R6: without the install lines
         "url": str(data.get("html_url") or f"https://github.com/{REPOSITORY}/releases/latest"),
         "zip_url": assets.get(ZIP_NAME),
         "sha_url": assets.get(SHA_NAME),

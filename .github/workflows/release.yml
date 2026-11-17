@@ -118,6 +118,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # De releasenote, met daaronder de installatieregels (spec 020, I1)
+          cat "releases/${GITHUB_REF_NAME}.md" install/release-installatie.md > "$RUNNER_TEMP/notes.md"
           gh release create "$GITHUB_REF_NAME" dist/* \
             --title "Versie ${GITHUB_REF_NAME#v}" \
-            --notes-file "releases/${GITHUB_REF_NAME}.md"
+            --notes-file "$RUNNER_TEMP/notes.md"

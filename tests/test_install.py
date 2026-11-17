@@ -91,6 +91,15 @@ class TestVersions(unittest.TestCase):   # U1
         self.assertEqual((data["version"], data["zip_url"], data["sha_url"]), ("9.9.9", "https://x/zip", "https://x/sha"))
         self.assertIsNone(updates.release_from_github({"tag_name": "laatste"}))
 
+    def test_install_lines_stay_on_github(self):   # I1, R6
+        block = (ROOT / "install" / "release-installatie.md").read_text(encoding="utf-8")
+        self.assertIn("releases/latest/download/install-macos.sh | sh", block)
+        self.assertIn("releases/latest/download/install-windows.ps1 | iex", block)
+        data = updates.release_from_github(release(notes="## Nieuw\n- Weekgrafiek\n" + block))
+        self.assertEqual(data["notes"], "## Nieuw\n- Weekgrafiek")
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+        self.assertIn("install/release-installatie.md", workflow)
+
     def test_notes_are_escaped_and_formatted(self):   # R6
         html = str(updates.notes_html("## Nieuw\n- **Evaluaties** per week\n- <script>x</script>\n\nTot ziens."))
         self.assertIn("<h3>Nieuw</h3>", html)

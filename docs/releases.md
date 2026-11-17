@@ -9,7 +9,7 @@ Een tag `vX.Y.Z` pushen start de workflow [`.github/workflows/release.yml`](../.
 1. de tests op macOS en Windows; de versie in de code moet gelijk zijn aan de tag, en de releasenote `releases/vX.Y.Z.md` moet bestaan;
 2. een zip van de code met de SHA-256-controlesom;
 3. de installatiescripts proberen op een schone Mac en een schone Windows-machine: installeren, starten, versie controleren, afsluiten, verwijderen;
-4. de release op GitHub met de bijlagen `portflow-coach-dashboard.zip`, `portflow-coach-dashboard.zip.sha256`, `install-macos.sh` en `install-windows.ps1`, en de releasenote als tekst.
+4. de release op GitHub met de bijlagen `portflow-coach-dashboard.zip`, `portflow-coach-dashboard.zip.sha256`, `install-macos.sh` en `install-windows.ps1`, en als tekst de releasenote met daaronder de installatieregels uit [`install/release-installatie.md`](../install/release-installatie.md). De app toont bij "Wat is er nieuw" alleen de releasenote.
 
 Faalt een stap, dan komt er geen release. Herstel de fout, verwijder de tag (`git tag -d vX.Y.Z` en `git push origin :refs/tags/vX.Y.Z`) en begin opnieuw.
 
