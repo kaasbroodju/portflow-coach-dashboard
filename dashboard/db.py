@@ -153,6 +153,17 @@ CREATE TABLE IF NOT EXISTS evaluations (
                                               -- or 'not_scored' (Portflow: review_request_scored false)
     is_demo               INTEGER NOT NULL DEFAULT 0
 );
+
+-- Review requests sent to the user (spec 030), replaced on every fetch round. No note, no due date.
+CREATE TABLE IF NOT EXISTS received_requests (
+    review_request_id  INTEGER PRIMARY KEY,
+    title              TEXT NOT NULL DEFAULT '',
+    student_name       TEXT NOT NULL DEFAULT '',
+    student_portflow_id INTEGER,                  -- requester.id, = students.portflow_user_id
+    portfolio_id       INTEGER,
+    status             TEXT NOT NULL,             -- not_started, in_progress, submitted, scored, denied
+    created_at         TEXT NOT NULL DEFAULT ''   -- ISO timestamp (UTC)
+);
 """
 
 # The students table on its own, to rebuild it without old columns (spec 018, F9).

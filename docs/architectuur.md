@@ -85,9 +85,9 @@ De uitgewerkte eisen en de toestanden van de verbinding staan in [spec 003](../f
 | Eigen naam | `GET /portfolios/{eigen_portfolio_id}` | `user.name` |
 | Vaardigheden van een student | `GET /portfolios/{portfolio_id}/goals` | Doelen; de tien vaardigheden herkennen op naam (zie hieronder) |
 | Evaluaties per vaardigheid | `GET /portfolios/{portfolio_id}/goals/{goal_id}/feedback-items` | Niveau, datum, rol (`self` = zelfevaluatie), beoordelaar, `review_request_id` |
-| Te beoordelen | `GET /portfolios/{eigen_portfolio_id}/progress-review/invitations/received?status=not_submitted` | Openstaande verzoeken aan de gebruiker: titel, toelichting, student, `created_at`, `suggested_due_date`, status |
+| Te beoordelen | `GET /portfolios/{eigen_portfolio_id}/progress-review/invitations/received` (alle statussen) | Verzoeken aan de gebruiker. Bewaard in `received_requests` (titel, student, status, `created_at`), elke ophaalronde vervangen; de toelichting en de gewenste datum worden niet bewaard ([spec 030](../features/030-te-beoordelen/spec.md)) |
 
-- **Vaardigheidsnamen in Portflow** wijken soms in hoofdletters af van LEF ("Kwalitatief Product Maken", "Boodschap Delen"). Vergelijk zonder onderscheid tussen hoofd- en kleine letters.
+- **Vaardigheidsnamen in Portflow** wijken af van LEF: in hoofdletters ("Kwalitatief Product Maken", "Kritisch Oordelen") en soms in spelling ("Overzicht Creëeren", "Proactief Handelen"); een student kan per semester een eigen set doelen hebben. Vergelijk daarom ongevoelig voor hoofdletters, Unicode-vorm, accenten, streepjes, spaties en verdubbelde letters ([spec 005](../features/005-gegevens-ophalen/spec.md), F14).
 - **Niveau:** `evaluation.level` verwijst naar `level_set[].id`; het label `"Startniveau"` wordt `0` ([voortgangsregels.md](voortgangsregels.md#startniveau)).
 - **Onzeker** (zie §8 van het API-document): de naam van de beoordelaar en de datum van een evaluatie hebben geen vaste plek in de respons. De console-app probeert meerdere velden; de webapp neemt die aanpak over.
 - **Paginering:** doorgaan tot een **lege** pagina. Niet stoppen bij een pagina die korter is dan `per_page`: `/shares/shared-with-me` geeft altijd hooguit 20 per pagina, ook bij `per_page=50`.

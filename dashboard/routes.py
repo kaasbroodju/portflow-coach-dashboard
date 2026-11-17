@@ -7,8 +7,10 @@ from urllib.parse import urlencode
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
 from . import (choices, columns as column_data, demo, guilds, overview as overview_data, portflow_link, projects, reset,
-               semesters as semester_data, staff, student_edit, student_intake, summary)
+               requests_to_review, semesters as semester_data, staff, student_edit, student_intake, summary, timeline)
+from . import db
 from .db import get_db
+from .portflow_fetch import S_REQUESTS_FETCHED
 from .portflow_connection import initials
 from .skills import CATEGORY, NAMES as SKILL_NAMES, SKILLS
 
@@ -25,7 +27,7 @@ PAGES = [
      "show_add_student": True},
     {"endpoint": "evaluations", "path": "/evaluaties", "label": "Evaluaties", "icon": "clipboard",
      "title": "Evaluaties",
-     "placeholder": "Hier komen de evaluatieverzoeken die op jouw beoordeling wachten."},
+     "placeholder": None},
     {"endpoint": "squads", "path": "/projecten", "label": "Projecten", "icon": "folder",
      "title": "Projecten",
      "placeholder": None},
@@ -89,6 +91,7 @@ def shell_context():
         "skills": SKILLS,
         "skill_names": SKILL_NAMES,
         "skill_category": CATEGORY,
+        "to_review_count": requests_to_review.open_count(get_db()),   # spec 030, F6
     }
 
 
@@ -98,7 +101,7 @@ def render_page(endpoint: str, **context):
                 "columns": "columns.html", "choice_lists": "choice_lists.html",
                 "students": "students.html",
                 "semesters": "semesters.html",
-                "squads": "projects.html"}.get(endpoint, "page.html")
+                "squads": "projects.html", "evaluations": "evaluations.html"}.get(endpoint, "page.html")
     return render_template(template, page=page, active=endpoint, **context)
 
 
@@ -146,6 +149,8 @@ def _table_context() -> dict:
             "grouping": grouping,
             "default_grouping": default_grouping,
             "filtered": filtered,
+            "compact": overview_data.filters_compact(conn, page),   # spec 028
+            "active_filters": overview_data.active_filter_count(args, grouping, default_grouping),
             "can_hide": args["wie"] in overview_data.HIDING_FILTERS,   # spec 019, F4-F6
             "all_hidden": args["wie"] == "zichtbaar" and bool(all_rows) and all(r["hidden"] for r in all_rows),
             "who_options": overview_data.WHO,
@@ -209,6 +214,15 @@ def save_columns():
     """F3: the visible extra and custom columns are kept."""
     overview_data.save_visible_columns(get_db(), request.form.getlist("kolom"))
     return redirect(_back_to_table())
+
+
+@bp.post("/filters/<page>")
+def fold_filters(page: str):
+    """Spec 028, F1, F5: fold the filters away or show them; the state is kept per page."""
+    if page not in overview_data.COMPACT_PAGES:
+        abort(404)
+    overview_data.save_filters_compact(get_db(), page, request.form.get("stand") == "compact")
+    return _done_or_back()
 
 
 @bp.post("/studenten/lijstkolommen")
@@ -307,7 +321,20 @@ def save_custom_value(student_id: int, column_id: int):
 
 @bp.get("/evaluaties")
 def evaluations():
-    return render_page("evaluations")
+    """Spec 029: the timeline of evaluations for the chosen students."""
+    conn = get_db()
+    who = timeline.save_who(conn, request.args["wie"]) if "wie" in request.args else timeline.saved_who(conn)
+    start, end, period_saved = overview_data.semester_period(conn, date.today())
+    rows = overview_data.apply_filters(overview_data.student_rows(conn, date.today()), {"wie": who},
+                                       current_app.extensions["portflow"].user_name)
+    weeks = timeline.week_counts(rows, start, end)
+    return render_page("evaluations", who=who, who_options=overview_data.WHO, weeks=weeks,
+                       scale=timeline.scale(weeks), period=f"{timeline.long_date(start)} – {timeline.long_date(end)}",
+                       period_saved=period_saved,
+                       blocks=timeline.project_blocks(rows),
+                       requests=requests_to_review.open_requests(conn, date.today()),   # spec 030
+                       fetched=bool(db.get_setting(current_app.config["DATABASE"], S_REQUESTS_FETCHED)),
+                       student_count=len(rows))
 
 
 @bp.get("/projecten")

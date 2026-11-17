@@ -87,7 +87,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 017 | [Student handmatig toevoegen](017-student-handmatig-toevoegen/spec.md) | `klaar` |
 | 018 | [Beroepsrol als onderdeel van het gilde](018-beroepsrol-in-gilde/spec.md) | `klaar` |
 | 019 | [Eenvoudige start: alle gedeelde studenten](019-eenvoudige-start/spec.md) | `klaar` (eerste ronde alleen met nep-Portflow getest; één keuze ter controle) |
-| 020 | [Installatie en releases](020-installatie/spec.md) | `idee` |
+| 020 | [Installatie, releases en bijwerken](020-installatie/spec.md) | `uitgewerkt` |
 | 021 | [Mezelf als coach of gildemeester instellen](021-mezelf-toewijzen/spec.md) | `klaar` |
 | 022 | [Studentenlijst: inline wijzigen en naar beheer](022-studentenlijst-inline/spec.md) | `klaar` |
 | 023 | [Filters onthouden](023-filters-onthouden/spec.md) | `klaar` |
@@ -95,6 +95,9 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 025 | [Invulling bij semester, en (Stage) als project](025-invulling-en-stage/spec.md) | `klaar` |
 | 026 | [Eigen kolommen in Student bewerken](026-eigen-kolommen-bewerken/spec.md) | `klaar` |
 | 027 | [Beheerbalk met aantallen](027-beheerbalk/spec.md) | `klaar` |
+| 028 | [Filters inklappen](028-filters-inklappen/spec.md) | `klaar` |
+| 029 | [Tijdlijn van evaluaties en compacte voortgangstabel](029-tijdlijn-evaluaties/spec.md) | `klaar` |
+| 030 | [Te beoordelen](030-te-beoordelen/spec.md) | `klaar` |
 
 ## Kandidaten
 
@@ -106,6 +109,4 @@ Deze onderdelen volgen uit de ontwerpen en de docs. Ze zijn nog géén spec; ze 
 - **Semesterstatus:** voldoet een student aan het toetsprogramma van zijn semester, en wat ontbreekt nog? (Volgt uit [voortgangsregels](../docs/voortgangsregels.md).)
 - **Kolommen:** het beheerscherm staat nu in [spec 024](024-keuzelijsten/spec.md) (Projecten: [spec 012](012-projecten/spec.md), Gildes: [spec 018](018-beroepsrol-in-gilde/spec.md), Semesters: [spec 009](009-semesters/spec.md))
 - **Signaalkaarten:** evaluaties te beoordelen, studenten zonder recente update, actieve coachstudenten
-- **Te beoordelen:** openstaande evaluatieverzoeken aan de gebruiker, met link naar Portflow
-- **Weekgrafiek:** evaluaties per week, behaald en ingediend
 - **Detailpagina van een student** (later ook met HBO-i-beroepstaken)

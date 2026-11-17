@@ -179,6 +179,16 @@
 (() => {
   "use strict";
 
+  // Timeline of evaluations (spec 029, F2): show the chosen students at once; the button is for no-JS.
+  const who = document.getElementById("timeline-who");
+  if (!who) return;
+  who.querySelectorAll("[data-js-hide]").forEach((el) => { el.hidden = true; });
+  who.addEventListener("change", () => who.submit());
+})();
+
+(() => {
+  "use strict";
+
   // Student overview (spec 001): submit filters on change (F13-F16), search while typing
   // with ⌘K (F17), sort by clicking a column header (F18) and keep the counter right (F19).
 
@@ -198,6 +208,21 @@
         el.disabled = true;
       }
     });
+  });
+
+  // Spec 028: fold the filters away or show them without reloading; the state is kept (F5).
+  const foldForm = document.getElementById("filters-fold");
+  const foldButton = document.querySelector(".filters-toggle");
+  foldButton?.addEventListener("click", (event) => {
+    event.preventDefault();
+    const main = document.querySelector("main.content");
+    const compact = !main.classList.contains("filters-compact");
+    main.classList.toggle("filters-compact", compact);
+    foldButton.setAttribute("aria-expanded", String(!compact));
+    foldButton.value = compact ? "uitgebreid" : "compact";
+    const data = new FormData(foldForm);
+    data.set("stand", compact ? "compact" : "uitgebreid");
+    fetch(foldForm.action, { method: "POST", body: data, headers: { "X-Requested-With": "fetch" } });
   });
 
   const listColumnForm = document.getElementById("list-column-form");   // spec 010, F5

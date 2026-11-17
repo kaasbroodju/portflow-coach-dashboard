@@ -176,3 +176,4 @@ Er is nog geen ontwerp met de afwijkingen (meerdere niveaus per cel, `?`, signaa
 - 2026-11-11 – aangepast door [spec 025](../025-invulling-en-stage/spec.md): een stagestudent zonder project staat bij Groeperen: Project in de groep "(Stage)"; kiezen van semester 3, 4 of 8 vult een lege invulling
 - 2026-11-11 – aangepast door [spec 019](../019-eenvoudige-start/spec.md): het filter op wie (F14) heeft bovenaan de keuze "Alle studenten", die niets filtert
 - 2026-11-11 – op verzoek van de gebruiker: "Niet groeperen" staat als eerste in de keuzelijst Groeperen (F16)
+- 2026-11-17 – aangevuld door [spec 028](../028-filters-inklappen/spec.md): de filters boven de tabel zijn in te klappen; standaard staat alleen het zoekveld met de knop Filters

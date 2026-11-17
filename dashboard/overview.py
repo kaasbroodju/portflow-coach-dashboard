@@ -462,6 +462,27 @@ def save_filters(conn: sqlite3.Connection, page: str, chosen: dict[str, str], de
                      "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (FILTER_PAGES[page], json.dumps(stored)))
 
 
+# Spec 028: the filters can be folded away; the state is kept per page, compact by default (F5).
+COMPACT_PAGES = {"overview": "filters_compact_overview", "students": "filters_compact_students"}
+
+
+def filters_compact(conn: sqlite3.Connection, page: str) -> bool:
+    row = conn.execute("SELECT value FROM settings WHERE key = ?", (COMPACT_PAGES[page],)).fetchone()
+    return not (row and row[0] == "0")
+
+
+def save_filters_compact(conn: sqlite3.Connection, page: str, compact: bool) -> None:
+    with conn:
+        conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
+                     "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (COMPACT_PAGES[page], "1" if compact else "0"))
+
+
+def active_filter_count(args: dict[str, str], grouping: str, default_grouping: str) -> int:
+    """Spec 028, F4: every filter that differs from the standard (as "Filters wissen", spec 023)."""
+    count = sum(1 for k, v in args.items() if k != "wie" and v)
+    return count + (args.get("wie", WHO_DEFAULT) != WHO_DEFAULT) + (grouping != default_grouping)
+
+
 def valid_filters(conn: sqlite3.Connection, chosen: dict[str, str], default_grouping: str) -> dict[str, str]:
     """F5: a choice that no longer exists falls back to its standard."""
     options = filter_options(conn)

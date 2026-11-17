@@ -23,6 +23,9 @@
              href="{{ url_for('pages.' + item.endpoint) }}"
              {% if item.endpoint == active %}aria-current="page"{% endif %}>
             {{ icon(item.icon) }}<span>{{ item.label }}</span>
+            {%- if item.endpoint == "evaluations" and to_review_count %}{# spec 030, F6 #}
+            <span class="nav-count" title="{{ to_review_count }} evaluatieverzoek{{ 'en' if to_review_count != 1 }} wacht{{ 'en' if to_review_count != 1 }} op jouw beoordeling">{{ to_review_count }}</span>
+            {%- endif %}
           </a>
       {%- endmacro %}
       {% set group_items = pages|selectattr("group")|list %}
@@ -81,11 +84,12 @@
     </div>
     {% endif %}
 
-    <main class="content">
+    <main class="content{% if table is defined and table.compact %} filters-compact{% endif %}">{# spec 028 #}
       {# Spec 002, F8: the primary button; pages with a table toolbar put it there instead. #}
       {% set actions = self.page_actions()|trim %}
-      {% if management %}{% include "_management_bar.html" %}{# spec 027 #}
-      {% elif actions %}<div class="page-actions">{{ actions|safe }}</div>{% endif %}
+      {# Spec 027; on a page with the student table the bar sits in its toolbar (spec 028, F1). #}
+      {% if management and table is not defined %}{% include "_management_bar.html" %}
+      {% elif actions and not management %}<div class="page-actions">{{ actions|safe }}</div>{% endif %}
       {% block content %}{% endblock %}
       {% if false %}{% block page_actions %}{% endblock %}{% endif %}
     </main>

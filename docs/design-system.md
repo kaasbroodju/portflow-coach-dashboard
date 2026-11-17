@@ -27,12 +27,12 @@ Waar de ontwerpen en de docs van elkaar afwijken, gelden de docs. Bekende afwijk
   - **Geen signaallabels** bij de naam: de signalen uit [voortgangsregels.md](voortgangsregels.md#signalen) bepalen alleen het filter "Aan te sporen". Naast de naam staat alleen het semester ("Sem 3"), op dezelfde regel; het project staat al in de groepskop. Elke student past op één regel: ook meerdere gildes en namen in de extra kolommen lopen niet door naar een tweede regel.
   - Extra kolommen Coach, Gildemeester en Invulling, aan en uit te zetten; standaard alleen Gildemeester. De pijl naar de detailpagina komt pas met die pagina.
   - De uitgewerkte eisen staan in [spec 001](../features/001-studentenoverzicht/spec.md).
-- **Weekgrafiek** (uit de console-app): een staafgrafiek met per week van de semesterperiode het aantal evaluaties, gestapeld als *behaald* (groen) en *ingediend, nog te beoordelen* (`?`, blauw). Plaats in het ontwerp nog bepalen.
+- **Weekgrafiek** (uit de console-app): een staafgrafiek met per week van de semesterperiode het aantal evaluaties, gestapeld als *behaald* (groen) en *ingediend, nog te beoordelen* (`?`, blauw). Op de pagina Evaluaties, onder een **compacte voortgangstabel** (dezelfde cellen als het studentenoverzicht, kleiner, alleen lezen, per project gescheiden door een dunne lijn; [spec 029](../features/029-tijdlijn-evaluaties/spec.md)).
   - Filter: Alle studenten die ik niet heb verborgen (standaard), Mijn coachstudenten, Mijn gildestudenten, Alle studenten van wie ik het portfolio kan zien, plus filters op semester, invulling, squad en gilde ([spec 019](../features/019-eenvoudige-start/spec.md)).
   - Verbergen: een icoon (oog met streep) aan het eind van de rij, altijd zichtbaar; een verborgen rij is gedimd met een open oog om hem weer te tonen. Het semester kies je in de rij met een klein keuzelijstje ("–", "Sem 1" … "Sem 8").
   - Groeperen: standaard per squad; ook te kiezen per invulling, semester of gilde.
   - **Afwijking:** het ontwerp toont één getal per cel. De cel toont alle behaalde niveaus volgens [voortgangsregels.md](voortgangsregels.md#weergave-per-vaardigheid), bijvoorbeeld `1/2`.
-- **Zijpaneel "Te beoordelen"** met openstaande evaluatieverzoeken aan de gebruiker: student, titel van het verzoek (door de student gekozen, bijvoorbeeld "OC & KO 1ste evaluatie"), inleverdatum en gewenste datum ("Vandaag", "Morgen", datum), plus "Alle evaluaties bekijken →". Een klik opent het verzoek in Portflow; beoordelen gebeurt daar.
+- **Zijpaneel "Te beoordelen"** met openstaande evaluatieverzoeken aan de gebruiker: student, titel van het verzoek (door de student gekozen, bijvoorbeeld "OC & KO 1ste evaluatie"), inleverdatum en gewenste datum ("Vandaag", "Morgen", datum), plus "Alle evaluaties bekijken →". Een klik opent het verzoek in Portflow; beoordelen gebeurt daar. **Afwijking:** een kaart "Te beoordelen" onderaan de pagina Evaluaties in plaats van een zijpaneel, met vaardigheden en wachttijd in plaats van de gewenste datum, zonder link naar Portflow; het menu-item Evaluaties toont het aantal ([spec 030](../features/030-te-beoordelen/spec.md)).
 
 <a id="projecten"></a>
 ### Projecten ([`projecten-CRUD-met-studenten.png`](../screenshots/projecten-CRUD-met-studenten.png))
@@ -141,6 +141,7 @@ Herbruikbare onderdelen uit de ontwerpen:
 - **Bovenbalk** met Portflow-status en avatar
 - **Statusknop + paneel**: knop met gekleurde stip, tekst en subtekst; een klik opent een paneel met details en acties (sluit met Escape of een klik ernaast)
 - **Banner**: smalle balk onder de bovenbalk voor demodata (geel) of een verlopen verbinding (rood), met één actie
+- **Filters inklappen** op Overzicht en Studenten: compact staat alleen het zoekveld met de knop "Filters" (met het aantal actieve filters, bijvoorbeeld "Filters · 2"); uitgeklapt de filters, de legenda, Kolommen en de knoppen ([spec 028](../features/028-filters-inklappen/spec.md))
 - **Kruimelpad** in de bovenbalk ("Beheer › …" of alleen de titel); de primaire knop staat in de werkbalk
 - **Beheerbalk** bovenaan elke Beheer-pagina: hoogstens drie aantallen (vet getal, kort label) in een vaste volgorde, met de primaire knop rechts; een aantal dat aandacht vraagt is oranje als het groter is dan 0. Geen uitlegzin. Niet bij een lege pagina ([spec 027](../features/027-beheerbalk/spec.md))
 - **Beheerkaart**: gekleurd vlak met initialen of code, naam, subregel, avatars, aantal, Bewerken / Verwijderen

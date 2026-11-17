@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dashboard import db
+from dashboard.skills import NAMES, skill_for_goal_name
 from dashboard.portflow_fetch import (
     S_LAST_FETCH_FAILED, Fetcher, parse_feedback_item, resolve_date, resolve_level, updated_text,
 )
@@ -91,6 +92,25 @@ class TestParsing(unittest.TestCase):  # F2
         self.assertIn("Bijgewerkt op", updated_text(datetime(2026, 11, 7, 12, tzinfo=timezone.utc), NOW))
 
 
+class TestGoalNames(unittest.TestCase):  # F14
+    def test_spelling_variants_of_a_skill(self):
+        for name in ("Overzicht creëren", "Overzicht Creëren", "Overzicht Creëeren", "Overzicht Cre\u0065\u0308ren",
+                     "  overzicht   creëren "):
+            self.assertEqual(skill_for_goal_name(name), "OC", repr(name))
+        for name in ("Pro-actief handelen", "Pro-actief Handelen", "Proactief Handelen"):
+            self.assertEqual(skill_for_goal_name(name), "PH", name)
+        for name, code in (("Kritisch Oordelen", "KO"), ("Juiste Kennis Ontwikkelen", "JKO"),
+                           ("Flexibel Opstellen", "FO"), ("Kwalitatief Product Maken", "KPM")):
+            self.assertEqual(skill_for_goal_name(name), code)
+
+    def test_every_skill_and_no_other_goals(self):
+        for code, name in NAMES.items():
+            self.assertEqual(skill_for_goal_name(name), code)
+        for name in ("Onderzoeken - Kritisch denken", "Beroepstaak - Software Realiseren", "Sprint Reflectie",
+                     "Samenwerken met andere functies en afdelingen", "OC", "", None):
+            self.assertIsNone(skill_for_goal_name(name), name)
+
+
 class FetchTestCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -134,6 +154,17 @@ class TestFetchRound(FetchTestCase):
         self.assertTrue(self.fetcher.start())
         self.assertEqual(sorted(c for c in self.api.calls if c[0] == "items"), [("items", 101, 1), ("items", 101, 2)])
         self.assertNotIn(("goals", 102), self.api.calls)
+
+    def test_old_and_new_goals_of_one_skill_both_count_once(self):  # F14
+        student = self.add_student("Sem Bakker", [101], 11)
+        self.api.goals_by_portfolio[101] = (200, [{"id": 1, "name": "Kritisch oordelen"}, {"id": 2, "name": "Kritisch Oordelen"},
+                                                  {"id": 3, "name": "Proactief Handelen"}])
+        self.api.items[(101, 1)] = (200, [item("coach", "b", "2026-06-01")])
+        self.api.items[(101, 2)] = (200, [item("assessor", "c", "2026-11-16", rid=2)])
+        self.api.items[(101, 3)] = (200, [item("coach", "b", "2026-11-10", rid=3)])
+        self.fetcher.start()
+        self.assertEqual(self.sql("SELECT skill, level FROM evaluations WHERE student_id = ? ORDER BY date", (student,)),
+                         [("KO", "1"), ("PH", "1"), ("KO", "2")])
 
     def test_all_assessors_are_stored(self):  # F2
         student = self.add_student("Sem Bakker", [101], 11)

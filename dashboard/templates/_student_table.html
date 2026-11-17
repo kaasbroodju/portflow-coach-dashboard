@@ -2,6 +2,7 @@
    Filters and grouping work without JavaScript (GET form); app.js adds search, sorting and
    submitting on change. #}
 {% from "_icons.html" import icon %}
+{% from "_level_cell.html" import level_cell with context %}
 {% set t = table %}
 <section class="card student-table-card{% for kind in t.colours_off %} colour-off-{{ kind }}{% endfor %}" id="student-table" data-reload-after-fetch>
   {% include "_table_toolbar.html" %}
@@ -110,26 +111,7 @@
         </th>
         <td class="col-profile">{% if row.guild_codes %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
         {% for code in skills %}
-        {% set cell = p.cells[code] %}
-        <td class="col-skill" data-sort-value="{{ cell.count * 100 + cell.highest + 1 }}">
-          <span class="level level-{{ cell.colour }}{% if cell.pending %} has-pending{% endif %}" tabindex="0"
-                aria-label="{{ code }}: {{ cell.text or 'nog geen evaluatie' }}">
-            {%- for e in cell.evaluations %}{% if not loop.first %}/{% endif %}{{ e.level }}{% endfor -%}
-            {%- if cell.pending %}{% if cell.evaluations %}/{% endif %}<b class="pending">?</b>{% endif -%}
-            {%- if not cell.evaluations and not cell.pending %}{{ cell.text }}{% endif -%}
-          </span>
-          {% if cell.evaluations or cell.pending %}
-          <span class="level-details" role="tooltip">
-            <strong>{{ skill_names[code] }}</strong>
-            {% for e in cell.evaluations %}
-            <span>Niveau {{ e.level }} · {{ e.date|nl_date }} · {{ e.assessor }}</span>
-            {% endfor %}
-            {% if cell.pending %}
-            <span class="pending-line">? {{ cell.pending.title or "Evaluatieverzoek" }} · ingediend {{ cell.pending.date|nl_date }}</span>
-            {% endif %}
-          </span>
-          {% endif %}
-        </td>
+        {{ level_cell(code, p.cells[code]) }}
         {% endfor %}
         {% for c in t.custom_columns %}{% include "_custom_cell.html" %}{% endfor %}
         {% for key, label in t.extra_columns %}

@@ -56,6 +56,7 @@ class Evaluation:
     level: str
     date: str
     assessor: str | None
+    submitted: str = ""   # when the student handed it in: the self-evaluation of the same request (spec 029, F3a)
 
 
 @dataclass
@@ -151,9 +152,15 @@ def student_progress(
         return Progress(cells)
 
     ordered = sorted(rows, key=lambda r: (r.get("date") or "", r.get("id") or 0))
+    handed_in: dict[tuple, str] = {}   # (request, skill) -> date of the student's self-evaluation
+    for row in ordered:
+        if row["kind"] == "self" and row.get("review_request_id") is not None and row.get("date"):
+            handed_in.setdefault((row["review_request_id"], row["skill"]), row["date"])
     for row in ordered:
         if _counts(row, excluded, start, end):
-            cells[row["skill"]].evaluations.append(Evaluation(row["level"], row.get("date") or "", row.get("assessor")))
+            day = row.get("date") or ""
+            submitted = handed_in.get((row.get("review_request_id"), row["skill"]), day)
+            cells[row["skill"]].evaluations.append(Evaluation(row["level"], day, row.get("assessor"), submitted))
 
     # Open requests (voortgangsregels.md#openstaand).
     assessed_dates: dict[str, list[str]] = {skill: [] for skill in SKILLS}

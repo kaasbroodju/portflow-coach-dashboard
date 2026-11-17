@@ -70,3 +70,4 @@ Geen eigen ontwerp. De samenvattingsbalk uit de CRUD-ontwerpen in [`screenshots/
 
 - 2026-11-11 – spec aangemaakt naar het voorstel om de Beheer-pagina's gelijk te trekken; door de gebruiker goedgekeurd; status in bouw
 - 2026-11-11 – gebouwd: gedeeld template `_management_bar.html`, tellingen in `dashboard/summary.py`, tests in `tests/test_management_bar.py`; alle tests slagen en in de browser bekeken. Status klaar
+- 2026-11-17 – aangepast door [spec 028](../028-filters-inklappen/spec.md): op Studenten staat de beheerbalk in de werkbalk van de tabel, onder de regel met het zoekveld, en klapt hij mee in

@@ -75,3 +75,4 @@ Geen eigen ontwerp. Keuzelijst zoals `.semester-pick` in het Overzicht; pennetje
 - 2026-11-11 – open vragen beantwoord; status in bouw
 - 2026-11-11 – gebouwd: routes `/studenten/<id>/veld/<veld>` en `/studenten/<id>/gildemeester/<gilde>`, controles in `student_edit.py`, icoontje `pencil`. De kolommen voornaam en volledige naam houden elkaar bij. 8 nieuwe tests; 267 tests slagen. In de browser gecontroleerd met de echte gegevens (invulling en coach gewijzigd en teruggezet). Status klaar
 - 2026-11-11 – aangepast door [spec 024](../024-keuzelijsten/spec.md): Invulling en Rol krijgen een pennetje naar Keuzelijsten; de keuzes komen uit de keuzelijsten
+- 2026-11-17 – aangepast door [spec 028](../028-filters-inklappen/spec.md): in de compacte stand van de filters zijn de pennetjes boven de kolommen verborgen

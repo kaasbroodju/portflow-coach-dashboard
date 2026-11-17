@@ -89,3 +89,4 @@ Geen eigen ontwerp. Volgt de tabel van het studentenoverzicht ([design-system.md
 - 2026-11-11 – aangepast door [spec 025](../025-invulling-en-stage/spec.md): bij Project staat "(Stage)" voor een stagestudent zonder project
 - 2026-11-11 – de paginakop (kopje, titel en uitleg) is vervangen door het kruimelpad in de bovenbalk, zonder uitleg ([spec 002](../002-app-schil/spec.md), F8)
 - 2026-11-11 – aangepast door [spec 027](../027-beheerbalk/spec.md): bovenaan staat de beheerbalk (studenten, verborgen, zonder project) met "+ Student toevoegen"; de knop staat niet meer in de filterbalk
+- 2026-11-17 – aangevuld door [spec 028](../028-filters-inklappen/spec.md): de filters boven de tabel zijn in te klappen; standaard staat alleen het zoekveld met de knop Filters, ook de beheerbalk klapt mee in

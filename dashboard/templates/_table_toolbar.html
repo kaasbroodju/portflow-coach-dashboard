@@ -1,10 +1,26 @@
 {# Filters, grouping and search for the student tables (spec 001 F13-F17, spec 010 F2). #}
+{% from "_icons.html" import icon %}
 {% set t = table %}
   <form method="get" class="table-toolbar" id="table-filters">
     <input type="hidden" name="f" value="1">{# spec 023: the filters are a choice and are remembered #}
-    <input type="search" class="table-search" id="table-search" placeholder="Zoek op naam, project of profiel"
-           aria-label="Zoek op naam, project of profiel" autocomplete="off">
-    <kbd class="kbd" aria-hidden="true">⌘K</kbd>
+    <div class="toolbar-top">{# spec 028, F1: search and the Filters button form the top row, button on the right #}
+    <span class="table-search-wrap">{# the shortcut sits inside the field, so the gap to the next control stays normal #}
+      <input type="search" class="table-search" id="table-search" placeholder="Zoek op naam, project of profiel"
+             aria-label="Zoek op naam, project of profiel" autocomplete="off">
+      <kbd class="kbd" aria-hidden="true">⌘K</kbd>
+    </span>
+    {# Spec 028: fold the filters away (F1), with the number of active filters (F4). #}
+    <button class="button button-secondary filters-toggle" type="submit" form="filters-fold" name="stand"
+            value="{{ 'uitgebreid' if t.compact else 'compact' }}" aria-expanded="{{ 'false' if t.compact else 'true' }}"
+            aria-controls="table-filters">
+      {{ icon("sliders") }}<span>Filters{% if t.active_filters %} · {{ t.active_filters }}{% endif %}</span>
+      <span class="filters-chevron" aria-hidden="true"></span>
+    </button>
+    </div>
+    {% if management %}{# Studenten: the management bar under the top row, so the Filters button never moves (spec 028, F1) #}
+    {% set actions %}<a class="button button-primary" href="{{ url_for('pages.add_students') }}">+ Student toevoegen</a>{% endset %}
+    {% include "_management_bar.html" %}
+    {% endif %}
 
     <label class="select">
       <span class="visually-hidden">Wie</span>
@@ -63,4 +79,7 @@
     <button class="button button-secondary js-hide" type="submit">Toepassen</button>
     {% if t.filtered %}<a class="filters-clear" href="?f=1">Filters wissen</a>{% endif %}{# spec 023, F4 #}
     {% if toolbar_action %}<a class="button button-primary toolbar-action" href="{{ toolbar_action.href }}">{{ toolbar_action.label }}</a>{% endif %}{# spec 002, F8 #}
+  </form>
+  <form method="post" action="{{ url_for('pages.fold_filters', page=active if active in ('overview', 'students') else 'overview') }}" id="filters-fold" hidden>
+    <input type="hidden" name="next" value="{{ request.full_path }}">
   </form>

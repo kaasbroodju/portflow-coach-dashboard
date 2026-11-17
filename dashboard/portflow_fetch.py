@@ -19,6 +19,7 @@ from .skills import skill_for_goal_name
 MAX_WORKERS = 8  # architectuur.md#verversen
 
 S_LAST_FETCH = "fetch_last_finished"
+S_REQUESTS_FETCHED = "requests_last_fetched"   # spec 030, F5
 S_LAST_FETCH_FAILED = "fetch_last_failed"   # JSON list of student names
 S_UNLINKED = "fetch_unlinked"              # JSON list of names not linked to Portflow (spec 015, F4)
 
@@ -238,7 +239,38 @@ class Fetcher:
         for item in items or []:
             if isinstance(item.get("review_request_id"), int) and isinstance(item.get("status"), str):
                 statuses[item["review_request_id"]] = item["status"]
+        if status == 200 and items is not None:
+            self._save_requests(items)   # spec 030: a failed call keeps the previous list
         return statuses
+
+    def _save_requests(self, items: list[dict]) -> None:
+        """Spec 030: the review requests to the user, without the student's note or due date."""
+        rows = []
+        for item in items:
+            rid, status = item.get("review_request_id"), item.get("status")
+            if not isinstance(rid, int) or not isinstance(status, str):
+                continue
+            requester = item.get("requester") if isinstance(item.get("requester"), dict) else {}
+            rows.append({
+                "review_request_id": rid,
+                "title": str(item.get("review_request_title") or ""),
+                "student_name": str(requester.get("name") or ""),
+                "student_portflow_id": requester.get("id") if isinstance(requester.get("id"), int) else None,
+                "portfolio_id": item.get("portfolio_id") if isinstance(item.get("portfolio_id"), int) else None,
+                "status": status,
+                "created_at": str(item.get("created_at") or ""),
+            })
+        conn = db.connect(self.database)
+        try:
+            with conn:
+                conn.execute("DELETE FROM received_requests")
+                conn.executemany(
+                    "INSERT OR REPLACE INTO received_requests (review_request_id, title, student_name, "
+                    "student_portflow_id, portfolio_id, status, created_at) VALUES (:review_request_id, :title, "
+                    ":student_name, :student_portflow_id, :portfolio_id, :status, :created_at)", rows)
+        finally:
+            conn.close()
+        db.set_setting(self.database, S_REQUESTS_FETCHED, self.now().isoformat())
 
     def _fetch_student(self, token: str, student: dict, statuses: dict[int, str], pool) -> tuple[str, list]:
         """Returns ('ok', rows), ('no_access', []) or ('failed', [])."""

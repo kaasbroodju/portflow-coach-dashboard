@@ -19,6 +19,7 @@ KEPT_SETTINGS = (TOKEN_KEY, S_CANVAS_URL, S_ALWAYS_VISIBLE, S_PORTFOLIO_ID, S_US
 
 # F2: what disappears, with a count (table, Dutch label).
 SUMMARY = [("students", "studenten"), ("evaluations", "evaluaties (bewaarde kopie uit Portflow)"),
+           ("received_requests", "evaluatieverzoeken aan jou (bewaarde kopie uit Portflow)"),
            ("squads", "projecten"), ("semesters", "semesters"),
            ("guilds", "gildes"), ("staff", "coaches en gildemeesters"), ("custom_columns", "eigen kolommen"),
            ("settings", "instellingen")]

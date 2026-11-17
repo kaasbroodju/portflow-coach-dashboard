@@ -397,21 +397,42 @@ a { color: inherit; }
 .student-table-card > *:not(.table-scroll) { margin-left: 24px; margin-right: 24px; }
 
 .table-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+/* Spec 028: folding the filters away. Compact: only the search field and the Filters button. */
+.table-toolbar .management-bar { flex: 1 0 100%; margin: 0; padding: 8px 8px 8px 16px; background: var(--page); border: 0; }
+.toolbar-top { display: flex; flex: 1 0 100%; align-items: center; gap: 10px; }
+.filters-toggle { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.filters-toggle .icon { width: 16px; height: 16px; }
+.filters-chevron::before { content: "▾"; font-size: 12px; }
+.filters-compact .filters-chevron::before { content: "▸"; }
+.filters-compact .table-toolbar > :not(.toolbar-top),
+.filters-compact .table-subbar,
+.filters-compact .list-subbar,
+.filters-compact .management-bar,
+.filters-compact .col-manage { display: none !important; }
+.table-search-wrap { position: relative; display: flex; flex: 1 1 260px; }
 .table-search {
-  flex: 1 1 260px;
-  padding: 9px 12px;
+  width: 100%;
+  padding: 9px 52px 9px 12px;   /* room for the ⌘K label inside */
   border: 1px solid var(--border);
   border-radius: var(--radius-small);
   font: inherit;
 }
-.kbd { margin-left: -50px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text-muted); pointer-events: none; }
+.kbd { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--text-muted); pointer-events: none; }
 .select select {
-  padding: 8px 10px;
+  padding: 8px 34px 8px 10px;   /* room on the right for the arrow */
   border: 1px solid var(--border);
   border-radius: var(--radius-small);
-  background: var(--card);
+  /* Own arrow, 14px from the right edge: the browser's own one sits against the border. */
+  appearance: none;
+  background-color: var(--card);
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+                    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 19px) 50%, calc(100% - 14px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
   font: inherit;
   font-size: 14px;
+  color: var(--text);
 }
 .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -792,3 +813,70 @@ html.js .noscript-hint { display: none; }
 .custom-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin: 0; padding: 0; border: 0; }
 .custom-fields legend { margin-bottom: 8px; font-weight: 600; font-size: 14px; }
 .input-suffix { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; }
+
+/* Timeline of evaluations (spec 029): stacked bars per week, achieved below, handed in on top. */
+.timeline-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.timeline-head p { margin: 0; }
+.timeline-who { display: flex; gap: 8px; }
+.timeline-empty { margin: 8px 0 0; color: var(--text-muted); }
+.timeline { display: flex; gap: 8px; }
+.timeline-y { position: relative; width: 28px; height: 240px; flex: none; font-size: 12px; color: var(--text-muted); }
+.timeline-y span { position: absolute; right: 0; transform: translateY(50%); line-height: 1; }
+.timeline-body { flex: 1; min-width: 0; }
+.timeline-plot { position: relative; height: 240px; border-bottom: 1px solid var(--text-muted); }
+.timeline-grid { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--border); }
+.timeline-bars, .timeline-labels { display: grid; grid-template-columns: repeat(var(--weeks), minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
+.timeline-bars { position: absolute; inset: 0; }
+.timeline-week { position: relative; height: 100%; outline: none; border-radius: 4px; }
+.timeline-week[tabindex]:hover, .timeline-week[tabindex]:focus-visible { background: rgba(34, 59, 51, 0.05); }
+.timeline-week:focus-visible { box-shadow: 0 0 0 2px var(--primary); }
+.timeline-bar { position: absolute; bottom: 0; left: 22%; right: 22%; display: flex; flex-direction: column; min-height: 2px; }
+.timeline-bar > span:not(.timeline-total) { flex-basis: 0; min-height: 2px; }
+.timeline-total { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); padding-bottom: 3px; font-size: 12px; font-weight: 600; }
+.timeline-achieved { background: #8da47a; }
+.timeline-pending { background: #6f9fd8; border-radius: 3px 3px 0 0; }
+.timeline-bar > .timeline-achieved:first-of-type:nth-child(2) { border-radius: 3px 3px 0 0; }
+.timeline-tip { display: none; position: absolute; z-index: 5; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  flex-direction: column; gap: 2px; padding: 8px 10px; white-space: nowrap; font-size: 13px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-small); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
+.timeline-week:hover .timeline-tip, .timeline-week:focus .timeline-tip { display: flex; }
+.timeline-week:first-child .timeline-tip, .timeline-week:nth-child(2) .timeline-tip { left: 0; transform: none; }
+.timeline-week:last-child .timeline-tip, .timeline-week:nth-last-child(2) .timeline-tip { left: auto; right: 0; transform: none; }
+.timeline-labels { margin-top: 6px; font-size: 12px; text-align: center; }
+.timeline-labels li { display: flex; flex-direction: column; line-height: 1.3; }
+.timeline-legend { display: flex; gap: 18px; margin: 18px 0 0 36px; font-size: 13px; color: var(--text-muted); }
+.timeline-legend span, .timeline-tip span { display: inline-flex; align-items: center; gap: 6px; }
+.timeline-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+
+/* Compact progress table on Evaluaties (spec 029, F7-F11): read only, small rows, a line per project. */
+.compact-table-wrap { margin: 0 -32px; }
+.compact-table { font-size: 13px; }
+.compact-table th, .compact-table td { padding: 3px 5px; border-top: 0; white-space: nowrap; }
+.compact-table th:first-child, .compact-table td:first-child { padding-left: 32px; }
+.compact-table th:last-child, .compact-table td:last-child { padding-right: 32px; }
+.compact-table thead th { padding-bottom: 6px; }
+.compact-table th.col-student { display: table-cell; min-width: 0; font-weight: 500; }
+.compact-table .compact-block + .compact-block tr:first-child > * { border-top: 1px solid var(--border); padding-top: 5px; }
+.compact-table .compact-block tr:last-child > * { padding-bottom: 5px; }
+.compact-table .level { min-width: 34px; padding: 1px 6px; font-size: 12px; }
+.compact-table .level-grey { min-height: 1.5em; }
+.compact-count { margin: 8px 0 28px; font-size: 13px; }
+.timeline-card h3 { margin: 0 0 16px; font-size: 16px; font-weight: 600; }
+
+/* Te beoordelen (spec 030): one line per open review request, the oldest first. */
+.to-review h2 { margin-bottom: 14px; }
+.to-review h2 .muted { font-weight: 400; }
+.to-review p { margin: 0; }
+.to-review-list { margin: 0 -32px; padding: 0; list-style: none; }
+.to-review-item { display: grid; grid-template-columns: 32px minmax(200px, 1.4fr) minmax(160px, 1fr) 150px 90px;
+  align-items: center; gap: 14px; padding: 9px 32px; border-top: 1px solid var(--border); font-size: 14px; }
+.to-review-main { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
+.to-review-student { font-weight: 600; }
+.to-review-title { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.to-review-skills { display: flex; flex-wrap: wrap; gap: 4px; }
+.to-review-skills .mark-assessment { margin-left: 0; }
+.skill-code { padding: 1px 7px; border-radius: 6px; background: #d6e2f5; color: #2f4f86; font-size: 12px; font-weight: 600; }
+.to-review-date { color: var(--text-muted); font-size: 13px; }
+.to-review-waiting { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.nav-count { margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--accent);
+  color: #fff; font-size: 12px; font-weight: 600; text-align: center; }
