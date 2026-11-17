@@ -67,7 +67,7 @@ def updating():
     updater = _updater()
     return render_template("updating.html", page={"title": "Bijwerken", "label": "Bijwerken"}, active=None,
                            state=updater.state, version=VERSION, started=request.args.get("gestart") == "1",
-                           can_update=updater.can_update())
+                           can_update=updater.can_update(), update_dir=str(updater.update_dir()))
 
 
 @bp.post("/instellingen/versies")

@@ -197,6 +197,16 @@ class TestUpdating(UpdaterCase):   # U3
         self.assertTrue(Path(command[1]).exists() and not Path(command[1]).is_relative_to(self.project))
         self.assertEqual(self.stopped, [True])
 
+    def test_leftovers_are_cleaned_but_backups_stay(self):   # U7
+        root = self.dir / "root"
+        for folder in ("app-nieuw", "app-mislukt", "app-oud", "data-leeg-20261117"):
+            (root / folder).mkdir()
+        self.updater.update_dir().mkdir(parents=True, exist_ok=True)
+        (self.updater.update_dir() / updates.ZIP_NAME).write_bytes(b"oud")
+        self.assertEqual(sorted(self.updater.clean_leftovers()), sorted(["app-nieuw", "app-mislukt", updates.ZIP_NAME]))
+        self.assertTrue((root / "app-oud").exists())
+        self.assertTrue((root / "data-leeg-20261117").exists())
+
     def test_wrong_checksum_keeps_old_version(self):
         self.answers["https://x/sha"] = b"0" * 64
         started, launch = self.start()
@@ -226,6 +236,24 @@ class TestSwap(TempCase):   # U3, second half
         for folder, text in (("app", "oud"), ("app-nieuw", "nieuw")):
             (self.root / folder).mkdir(parents=True)
             (self.root / folder / "app.py").write_text(text)
+        (self.root / "data" / "bijwerken").mkdir(parents=True)
+        # The script logs next to itself; in tests in a temporary folder, without waiting between tries.
+        for name, value in (("HERE", self.root / "data" / "bijwerken"), ("WAIT_BETWEEN_TRIES_S", 0)):
+            patcher = mock.patch.object(update_swap, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def run_main(self, **patches):
+        started = []
+        args = ["--root", str(self.root), "--uv", "uv", "--python", "python", "--attempt", "a1",
+                "--version", "9.9.9", "--port", "5097"]
+        with mock.patch.object(update_swap, "wait_until_stopped"), \
+             mock.patch.object(update_swap, "stop_installation_processes"), \
+             mock.patch.object(update_swap, "start_dashboard", side_effect=lambda *a: started.append(a)):
+            with mock.patch.multiple(update_swap, **patches) if patches else mock.patch.object(update_swap, "TRIES", 10):
+                update_swap.main(args)
+        result = json.loads((self.root / "data" / "bijwerken" / "resultaat.json").read_text())
+        return result, started
 
     def test_success_swaps_folders(self):
         with mock.patch.object(update_swap, "sync_packages", return_value=True):
@@ -237,6 +265,62 @@ class TestSwap(TempCase):   # U3, second half
         with mock.patch.object(update_swap, "sync_packages", return_value=False):
             self.assertIn("pakketten", update_swap.swap(self.root, "uv"))
         self.assertEqual((self.root / "app" / "app.py").read_text(), "oud")
+
+    def test_rename_tries_again(self):   # a virus scanner may hold new files for a moment
+        real = Path.rename
+        calls = []
+
+        def flaky(path, target):
+            calls.append(path.name)
+            if len(calls) < 3:
+                raise PermissionError("in gebruik")
+            return real(path, target)
+
+        with mock.patch.object(Path, "rename", flaky):
+            self.assertTrue(update_swap.rename(self.root / "app-nieuw", self.root / "elders"))
+        self.assertEqual(len(calls), 3)
+        self.assertIn("poging 2", (self.root / "data" / "bijwerken" / "bijwerken.log").read_text())
+
+    def test_main_success_logs_and_starts_new_version(self):
+        (self.root / "data" / "bijwerken" / "portflow-coach-dashboard.zip").write_bytes(b"zip")
+        result, started = self.run_main(sync_packages=mock.Mock(return_value=True))
+        self.assertTrue(result["ok"])
+        self.assertFalse((self.root / "data" / "bijwerken" / "portflow-coach-dashboard.zip").exists())   # U7
+        self.assertEqual(len(started), 1)
+        self.assertEqual((self.root / "app" / "app.py").read_text(), "nieuw")
+        self.assertIn("uitkomst: gelukt", (self.root / "data" / "bijwerken" / "bijwerken.log").read_text())
+
+    def test_new_folder_locked_brings_old_back_and_starts_it(self):
+        real = Path.rename
+
+        def locked(path, target):
+            if path.name == "app-nieuw":
+                raise PermissionError("in gebruik")
+            return real(path, target)
+
+        with mock.patch.object(Path, "rename", locked):
+            result, started = self.run_main(sync_packages=mock.Mock(return_value=True))
+        self.assertFalse(result["ok"])
+        self.assertIn("nieuwe versie kon niet", result["message"])
+        self.assertEqual((self.root / "app" / "app.py").read_text(), "oud")
+        self.assertEqual(len(started), 1)
+
+    def test_unexpected_error_still_restarts_a_dashboard(self):   # the bug seen on Windows
+        def broken(root, uv):
+            (root / "app").rename(root / "app-oud")
+            raise RuntimeError("onverwacht")
+
+        result, started = self.run_main(swap=broken)
+        self.assertFalse(result["ok"])
+        self.assertIn("onverwacht gestopt", result["message"])
+        self.assertEqual((self.root / "app" / "app.py").read_text(), "oud")   # put back
+        self.assertEqual(len(started), 1)
+        self.assertIn("RuntimeError: onverwacht", (self.root / "data" / "bijwerken" / "bijwerken.log").read_text())
+
+    def test_installation_processes_skip_this_one_and_its_parent(self):
+        output = f"{os.getpid()} python update_swap.py\n{os.getppid()} pythonw.exe\n4242 chrome --user-data-dir=x\n"
+        with mock.patch.object(update_swap.subprocess, "run", return_value=mock.Mock(stdout=output)):
+            self.assertEqual(update_swap.installation_processes(self.root), [(4242, "chrome --user-data-dir=x")])
 
     def test_sync_runs_uv_in_the_app_folder(self):
         uv = self.dir / ("uv.bat" if os.name == "nt" else "uv")
@@ -343,6 +427,8 @@ class TestScripts(unittest.TestCase):   # I1, I2, I7, R2, R3
         windows = (ROOT / "install" / "install-windows.ps1").read_text(encoding="utf-8")
         self.assertIn("Installed-Processes", windows)
         for text in (mac, windows):
+            self.assertIn("app-mislukt", text)   # U7
+            self.assertIn("vastgelopen update", text)
             self.assertIn("data-voor-overnemen-", text)
             self.assertIn("SELECT COUNT(*) FROM students", text)
             self.assertIn("draait al een ander dashboard", text)
@@ -396,6 +482,28 @@ class TestScripts(unittest.TestCase):   # I1, I2, I7, R2, R3
             self.assertRegex(log, r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \[")
             self.assertIn("EINDE: mislukt", log)
             self.assertIn("install.log", done.stderr)
+
+    @unittest.skipUnless(shutil.which("sh") and sys.platform == "darwin", "alleen macOS")
+    def test_macos_script_repairs_a_stuck_update(self):   # U7 acceptance
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / "root"
+            (root / "app-oud").mkdir(parents=True)
+            (root / "app-oud" / "app.py").write_text("oud")
+            (root / "app-nieuw").mkdir()
+            (root / "data-leeg-20261117").mkdir()
+            (root / "data" / "bijwerken").mkdir(parents=True)
+            (root / "data" / "bijwerken" / updates.ZIP_NAME).write_bytes(b"oud")
+            env = dict(os.environ, PORTFLOW_INSTALL_ROOT=str(root), PORTFLOW_APPLICATIONS=str(Path(folder) / "apps"),
+                       PORTFLOW_NO_START="1", PORTFLOW_PORT="5096", PORTFLOW_RELEASE_URL="file:///bestaat/niet")
+            subprocess.run(["sh", str(ROOT / "install" / "install-macos.sh")], cwd=folder, env=env,
+                           capture_output=True, stdin=subprocess.DEVNULL, timeout=60)   # stops at the download
+            self.assertEqual((root / "app" / "app.py").read_text(), "oud")
+            self.assertFalse((root / "app-nieuw").exists())
+            self.assertFalse((root / "data" / "bijwerken" / updates.ZIP_NAME).exists())
+            self.assertTrue((root / "data-leeg-20261117").exists())
+            log = (Path(folder) / "install.log").read_text(encoding="utf-8")
+            self.assertIn("vastgelopen update; app-oud wordt teruggezet", log)
+            self.assertIn("resten van eerdere pogingen opgeruimd:  app-nieuw portflow-coach-dashboard.zip", log)
 
     @unittest.skipUnless(shutil.which("sh"), "geen sh")
     def test_macos_script_syntax(self):

@@ -12,6 +12,11 @@
   <h2>Bijwerken…</h2>
   <p id="updating-step">{{ state.step or "Bezig" }}</p>
   <p class="muted">Dit duurt meestal een minuut. Deze pagina herlaadt vanzelf als de nieuwe versie klaar is. Je gegevens blijven staan.</p>
+  {# Shown by app.js when the dashboard stays away for minutes. #}
+  <div class="updating-stuck panel-message" id="updating-stuck" role="alert" hidden>
+    <p><strong>Het dashboard reageert al een paar minuten niet.</strong> Sluit dit tabblad en open het dashboard opnieuw met de snelkoppeling; je gegevens blijven staan.</p>
+    <p>Opent het niet, kijk dan in de map <code>{{ update_dir }}</code>: in <code>bijwerken.log</code> staat wat er gebeurde. Staat er in de map daarboven geen map <code>app</code> maar wel <code>app-oud</code>, hernoem die dan naar <code>app</code>.</p>
+  </div>
   {% else %}
   <p>Er is niets om bij te werken.</p>
   {% endif %}

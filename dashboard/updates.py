@@ -194,6 +194,21 @@ class Updater:
         except (OSError, ValueError):
             return None
 
+    def clean_leftovers(self) -> list[str]:
+        """U7: what earlier, failed attempts left behind. app-oud stays as the one backup; copies of
+        data are never removed. Returns the names that were removed."""
+        root = self.project_dir.parent
+        removed = []
+        for folder in (root / "app-nieuw", root / "app-mislukt"):
+            if folder.exists():
+                shutil.rmtree(folder, ignore_errors=True)
+                removed.append(folder.name)
+        old_zip = self.update_dir() / ZIP_NAME
+        if old_zip.exists():
+            old_zip.unlink(missing_ok=True)
+            removed.append(old_zip.name)
+        return removed
+
     def start_update(self, port: int, shutdown) -> bool:
         latest = self.available() or self.latest()
         if not self.can_update() or not latest or not is_newer(latest.get("version")):
@@ -223,6 +238,7 @@ class Updater:
         reset.backup(self.database)   # without the token, like spec 014
         work = self.update_dir()
         work.mkdir(parents=True, exist_ok=True)
+        self.clean_leftovers()   # U7
 
         self.state["step"] = "Nieuwe versie downloaden"
         try:

@@ -110,6 +110,8 @@ Gevonden bij de installatie van v0.9.0 op een Mac met een ontwikkelomgeving (zie
   - *Acceptatie:* met versie 1.2.0 geïnstalleerd en 1.3.0 op GitHub verschijnt de balk; na "Later" niet meer, tot 1.4.0 verschijnt.
 - [x] **U3 – Nu bijwerken.** De app maakt eerst een reservekopie van de database (zonder token, zoals [spec 014](../014-alles-verwijderen/spec.md)), downloadt de zip, controleert de controlesom, zet de nieuwe code in de programmamap, laat uv de pakketten bijwerken en start zichzelf opnieuw. De pagina toont "Bijwerken…" en herlaadt vanzelf. Lukt het niet, dan blijft de oude versie werken en staat er een melding.
   - *Acceptatie:* na "Nu bijwerken" staat in Instellingen de nieuwe versie, en de studenten, instellingen en Portflow-verbinding zijn er nog.
+  - Het hulpscript dat de mappen wisselt (`update_swap.py`) stopt eerst alle processen van de installatie (zoals de Chrome van het inloggen), probeert hernoemen een paar keer (een virusscanner kan nieuwe bestanden even vasthouden), houdt een logboek bij in `<gegevens>/bijwerken/bijwerken.log` en start **altijd** weer een dashboard: de nieuwe versie, of bij elke fout de oude.
+  - Blijft het dashboard langer dan 3 minuten weg, dan toont de pagina "Bijwerken…" wat de gebruiker kan doen (opnieuw openen met de snelkoppeling, het logboek, `app-oud` terugzetten).
 - [x] **U4 – Uitzetten.** In Instellingen staat **"Controleren op nieuwe versies"** (standaard aan).
 - [x] **U5 – Git-checkout.** Draait de app vanuit een git-checkout, dan toont de balk alleen de melding met "Wat is er nieuw", zonder "Nu bijwerken".
 
@@ -118,6 +120,14 @@ Gevonden bij de installatie van v0.9.0 op een Mac met een ontwikkelomgeving (zie
   - **geen nieuwere versie:** "Je hebt de nieuwste versie (0.9.2).";
   - **controleren lukt niet:** "Controleren is niet gelukt. Controleer je internetverbinding en probeer het opnieuw."
   - *Acceptatie:* met 0.9.2 geïnstalleerd en 0.9.3 op GitHub toont een klik op "Nu bijwerken" de knop "Versie 0.9.3 installeren"; met 0.9.3 op GitHub en 0.9.3 geïnstalleerd staat er "Je hebt de nieuwste versie (0.9.3)."
+
+- [x] **U7 – Resten van eerdere pogingen opruimen.** Bijwerken (U3, U6) en het installatiescript (I6) ruimen eerst op wat eerdere, mislukte pogingen achterlieten, en zetten dat in het logboek:
+  - een half uitgepakte nieuwe versie (`app-nieuw`), een nieuwe versie waarvan de pakketten faalden (`app-mislukt`) en een oude download (`portflow-coach-dashboard.zip` in `<gegevens>/bijwerken`);
+  - ontbreekt `app` maar staat `app-oud` er wel (een vastgelopen update), dan zet het installatiescript `app-oud` eerst terug als `app`;
+  - na een geslaagde update wordt de download verwijderd.
+  
+  `app-oud` blijft als reserve staan (hoogstens één). Kopieën van gegevens (`data-leeg-…`, `data-voor-overnemen-…`) en reservekopieën worden nooit automatisch verwijderd. Verwijderen (I7) haalt ook `app-mislukt` weg.
+  - *Acceptatie:* met alleen `app-oud` en een achtergebleven `app-nieuw` in de installatiemap staat na het installatiescript weer een werkende `app`, en `app-nieuw` is weg.
 
 ### Buiten scope
 
@@ -182,3 +192,6 @@ Geen eigen ontwerp. De updatebalk lijkt op de demobanner ([design-system.md](../
 - 2026-11-17 – release **v0.9.2** gepubliceerd (tweede run geheel geslaagd). In die run vond het Windows-script bij het verwijderen geen andere processen en lukte verwijderen in één keer; de oorzaak van de eerdere mislukking is dus niet zeker (mogelijk een proces dat nog aan het stoppen was). De nieuwe maatregelen en de eerlijke melding blijven staan
 - 2026-11-17 – U6 toegevoegd op verzoek van de gebruiker: knop "Nu bijwerken" in de kaart Versie van Instellingen, die meteen controleert en zo nodig aanbiedt te installeren
 - 2026-11-17 – U6 gebouwd: route `POST /instellingen/versie-controleren` (`update_routes.check_now`), uitkomst in de kaart Versie; tests in `tests/test_install.py`. In de browser gecontroleerd tegen GitHub: "Je hebt de nieuwste versie (0.9.2)." Het aanbod om te installeren alleen met tests (er is nog geen nieuwere release)
+- 2026-11-17 – gemeld door de gebruiker: op Windows bleef bijwerken naar 0.9.2 hangen op "Opnieuw starten"; er werd daarna geen dashboard meer gestart. Waarschijnlijke oorzaak: hernoemen van de programmamap lukte niet, en een fout bij het terugzetten werd niet opgevangen. Hersteld in `update_swap.py` (processen stoppen, opnieuw proberen, logboek, altijd herstarten) en op de pagina Bijwerken (melding na 3 minuten). Op macOS van begin tot eind getest in een testmap; Windows alleen met tests. Let op: bij bijwerken draait het hulpscript van de *geïnstalleerde* versie, dus deze verbetering werkt pas bij het bijwerken vanaf de versie die haar bevat
+- 2026-11-17 – U7 toegevoegd op verzoek van de gebruiker: resten van eerdere, mislukte pogingen automatisch opruimen; een vastgelopen update (alleen `app-oud`) herstelt het installatiescript
+- 2026-11-17 – U7 gebouwd: `Updater.clean_leftovers` vóór het downloaden, het hulpscript verwijdert de download na een geslaagde update, en beide installatiescripts herstellen een vastgelopen update en ruimen resten op (in het logboek). Tests in `tests/test_install.py`, waaronder het macOS-script met een nagebootste vastgelopen installatie; Windows alleen op syntaxis

@@ -135,10 +135,10 @@ remove_launchers() {
 if [ "${1:-}" = "--verwijderen" ]; then
     say "Portflow coach dashboard verwijderen"
     stop_running
-    run rm -rf "$ROOT/app" "$ROOT/app-oud" "$ROOT/app-nieuw" "$ROOT/venv" || true
+    run rm -rf "$ROOT/app" "$ROOT/app-oud" "$ROOT/app-nieuw" "$ROOT/app-mislukt" "$ROOT/venv" || true
     remove_launchers
     KEPT=""
-    for path in "$ROOT/app" "$ROOT/app-oud" "$ROOT/app-nieuw" "$ROOT/venv" "/Applications/$NAME.app" "$HOME/Applications/$NAME.app"; do
+    for path in "$ROOT/app" "$ROOT/app-oud" "$ROOT/app-nieuw" "$ROOT/app-mislukt" "$ROOT/venv" "/Applications/$NAME.app" "$HOME/Applications/$NAME.app"; do
         if [ -e "$path" ]; then KEPT="$KEPT
   $path"; fi
     done
@@ -172,6 +172,18 @@ if [ -z "$CHROME" ]; then
     fail "Google Chrome is niet gevonden. Het dashboard gebruikt Chrome om in te loggen bij Portflow.
   Installeer Chrome via https://www.google.com/chrome/ en voer deze regel daarna opnieuw uit."
 fi
+
+# U7 – resten van eerdere, mislukte pogingen opruimen; een vastgelopen update herstellen.
+# app-oud blijft als reserve staan; kopieën van gegevens worden nooit verwijderd.
+if [ ! -d "$ROOT/app" ] && [ -d "$ROOT/app-oud" ]; then
+    check "app ontbreekt, app-oud staat er wel" "vastgelopen update; app-oud wordt teruggezet"
+    run mv "$ROOT/app-oud" "$ROOT/app" || true
+fi
+CLEANED=""
+for left in "$ROOT/app-nieuw" "$ROOT/app-mislukt" "$ROOT/data/bijwerken/$ZIP"; do
+    if [ -e "$left" ]; then run rm -rf "$left" && CLEANED="$CLEANED ${left##*/}" || true; fi
+done
+check "resten van eerdere pogingen opgeruimd" "${CLEANED:- geen}"
 
 TMP="$(mktemp -d)"
 FRESH=0

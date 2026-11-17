@@ -146,7 +146,7 @@ function Remove-Logged($path) {
 if ($args -contains "--verwijderen") {
     Say "Portflow coach dashboard verwijderen"
     Stop-Dashboard
-    $kept = @(@("$Root\app", "$Root\app-oud", "$Root\app-nieuw", "$Root\venv", $StartMenu, $Desktop) |
+    $kept = @(@("$Root\app", "$Root\app-oud", "$Root\app-nieuw", "$Root\app-mislukt", "$Root\venv", $StartMenu, $Desktop) |
               Where-Object { -not (Remove-Logged $_) })
     if ($kept) {
         Say "Niet alles kon worden verwijderd; dit staat er nog:"
@@ -171,6 +171,17 @@ if ($args -contains "--verwijderen") {
 }
 
 Say "Portflow coach dashboard installeren"
+
+# U7 - resten van eerdere, mislukte pogingen opruimen; een vastgelopen update herstellen.
+# app-oud blijft als reserve staan; kopieen van gegevens worden nooit verwijderd.
+if (-not (Test-Path "$Root\app") -and (Test-Path "$Root\app-oud")) {
+    Check "app ontbreekt, app-oud staat er wel" "vastgelopen update; app-oud wordt teruggezet"
+    Stop-Dashboard
+    Try-Log "verplaatsen: $Root\app-oud -> $Root\app" { Move-Item "$Root\app-oud" "$Root\app" } | Out-Null
+}
+$cleaned = @(@("$Root\app-nieuw", "$Root\app-mislukt", "$Root\data\bijwerken\$Zip") |
+             Where-Object { (Test-Path $_) -and (Remove-Logged $_) } | ForEach-Object { Split-Path $_ -Leaf })
+Check "resten van eerdere pogingen opgeruimd" $(if ($cleaned) { $cleaned -join ", " } else { "geen" })
 
 $Tmp = Join-Path ([IO.Path]::GetTempPath()) ("portflow-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $Tmp | Out-Null

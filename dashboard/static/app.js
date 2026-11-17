@@ -478,9 +478,14 @@
   if (!box || !step) return;
   const oldVersion = box.dataset.version;
   const attempt = box.dataset.attempt;
+  const stuck = document.getElementById("updating-stuck");
+  const STUCK_AFTER_MS = 3 * 60 * 1000;
+  let lastAnswer = Date.now();
   const poll = async () => {
     try {
       const answer = await fetch("/versie", { cache: "no-store" }).then((r) => r.json());
+      lastAnswer = Date.now();
+      if (stuck) stuck.hidden = true;
       if (answer.version !== oldVersion) {
         window.location.href = "/instellingen#versie";
         return;
@@ -494,6 +499,7 @@
       if (answer.update.step) step.textContent = answer.update.step;
     } catch (error) {
       step.textContent = "Opnieuw starten";   // the app is restarting: keep asking
+      if (stuck && Date.now() - lastAnswer > STUCK_AFTER_MS) stuck.hidden = false;   // spec 020, U3
     }
     window.setTimeout(poll, 2000);
   };
