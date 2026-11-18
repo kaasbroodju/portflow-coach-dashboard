@@ -30,11 +30,15 @@ Controleer en meld de uitkomst kort:
 
 Schrijf de releasenote volgens het sjabloon en de schrijfregels in `docs/releases.md`. Denk vanuit de gebruiker: een coach of gildemeester zonder technische kennis. Vertaal elke technische verandering naar wat die gebruiker merkt; laat interne verbeteringen (tests, opruimen, documentatie, specs) weg, tenzij de gebruiker er iets van merkt. Bundel kleine dingen. Kijk bij twijfel in de spec van de functie wat het voor de gebruiker betekent.
 
-Schrijf de tekst naar `releases/vX.Y.Z.md` en laat hem in de chat zien.
+Schrijf de tekst naar `releases/vX.Y.Z.md`. Zet hem daar klaar zodat de beheerder hem zelf kan bekijken en bewerken: open het bestand in de bestandsweergave (in de desktop-app met `mcp__ccd_view__show_pane`, anders als klikbare link [releases/vX.Y.Z.md](releases/vX.Y.Z.md)) en laat de tekst ook in de chat zien.
 
 ## 4. Akkoord op de tekst
 
-Vraag met **AskUserQuestion** of de releasenote goed is (opties zoals "Akkoord", "Aanpassen"). Verwerk aanpassingen in het bestand en vraag opnieuw, tot de beheerder akkoord is.
+Zeg dat de beheerder de tekst in `releases/vX.Y.Z.md` zelf mag aanpassen en een seintje geeft als hij goed is. Vraag dan met **AskUserQuestion** of de releasenote klaar is, met de opties "Akkoord, tekst is goed" en "Pas jij hem aan". Ga verder pas na een uitdrukkelijk akkoord.
+
+- **Lees het bestand na het akkoord altijd opnieuw** van schijf: de beheerder kan het intussen zelf hebben bewerkt. Werk vanaf dan met die tekst; overschrijf zijn wijzigingen niet. Laat kort zien wat er ten opzichte van jouw versie veranderd is (of dat er niets veranderd is).
+- Controleer de bewerkte tekst op studentgegevens en tokens; staat er iets in, meld het en vraag opnieuw.
+- Bij "Pas jij hem aan": verwerk de wensen in het bestand (lees het eerst opnieuw, zodat je zijn eigen bewerkingen niet weggooit) en vraag opnieuw, tot de beheerder akkoord is.
 
 ## 5. Publiceren, alleen na "ja"
 

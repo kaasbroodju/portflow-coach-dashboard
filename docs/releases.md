@@ -23,7 +23,7 @@ Gebruikers installeren altijd de nieuwste release via de vaste adressen `https:/
    - **patch** (1.2.0 → 1.2.1): alleen fouten opgelost, niets nieuws;
    - **minor** (1.2.1 → 1.3.0): iets nieuws of merkbaar verbeterd, en alles werkt zoals de gebruiker gewend is;
    - **major** (1.3.0 → 2.0.0): de gebruiker moet iets anders doen dan hij gewend is, of gegevens veranderen ingrijpend.
-4. **Releasenote schrijven** in `releases/vX.Y.Z.md`, met het sjabloon hieronder.
+4. **Releasenote schrijven** in `releases/vX.Y.Z.md`, met het sjabloon hieronder. Met `/release` zet Claude een voorstel in dat bestand klaar; de beheerder bekijkt en bewerkt het zelf en geeft akkoord. Pas daarna gaat de tekst (zoals hij dan in het bestand staat) mee in de release.
 5. **Versienummer zetten** op drie plekken: `VERSION` in [`dashboard/version.py`](../dashboard/version.py), `version` in [`pyproject.toml`](../pyproject.toml) en het blok `name = "portflow-coach-dashboard"` in [`uv.lock`](../uv.lock) (met uv: `uv lock`; zonder uv: pas die ene regel `version = …` met de hand aan). Een test controleert dat ze gelijk zijn.
 6. **Commit en tag:** `git commit -am "Versie X.Y.Z"` (met `dashboard/version.py`, `pyproject.toml` en `uv.lock`) (met de nieuwe releasenote erbij: `git add releases/vX.Y.Z.md`), `git tag vX.Y.Z`.
 7. **Publiceren:** `git push origin main vX.Y.Z`.
