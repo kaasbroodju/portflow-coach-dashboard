@@ -154,6 +154,28 @@ CREATE TABLE IF NOT EXISTS evaluations (
     is_demo               INTEGER NOT NULL DEFAULT 0
 );
 
+-- Evidence of a student (spec 034), fetched when his page is opened; replaced per student.
+-- skills: the codes OC ... RE it is linked to, comma separated; other = 1 when linked to no skill.
+CREATE TABLE IF NOT EXISTS evidence_items (
+    student_id   INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    evidence_id  INTEGER NOT NULL,
+    name         TEXT NOT NULL DEFAULT '',
+    kind         TEXT NOT NULL DEFAULT '',     -- file, free_text, url
+    created_at   TEXT NOT NULL DEFAULT '',
+    updated_at   TEXT NOT NULL DEFAULT '',
+    collections  TEXT NOT NULL DEFAULT '',     -- collection names, "; " separated
+    skills       TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (student_id, evidence_id)
+);
+
+-- When the evidence of a student was last fetched (spec 034, F1), and the last problem if any.
+CREATE TABLE IF NOT EXISTS evidence_fetches (
+    student_id  INTEGER PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
+    fetched_at  TEXT NOT NULL DEFAULT '',
+    collections INTEGER NOT NULL DEFAULT 0,
+    error       TEXT NOT NULL DEFAULT ''
+);
+
 -- Review requests sent to the user (spec 030), replaced on every fetch round. No note, no due date.
 CREATE TABLE IF NOT EXISTS received_requests (
     review_request_id  INTEGER PRIMARY KEY,

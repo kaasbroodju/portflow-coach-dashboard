@@ -2,7 +2,7 @@
 
 import os
 import subprocess
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from urllib.parse import urlencode
@@ -11,9 +11,9 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 
 from . import (choices, columns as column_data, demo, guilds, overview as overview_data, portflow_link, projects, reset,
                requests_to_review, semesters as semester_data, staff, student_edit, student_intake, summary, timeline)
-from . import db, hide_names, paths
+from . import db, evidence, hide_names, paths
 from .db import get_db
-from .portflow_fetch import S_REQUESTS_FETCHED
+from .portflow_fetch import S_REQUESTS_FETCHED, updated_text
 from .portflow_connection import initials
 from .skills import CATEGORY, NAMES as SKILL_NAMES, SKILLS
 from .version import VERSION
@@ -367,10 +367,37 @@ def student_page(student_id: int):
     weeks = timeline.student_weeks(row, start, end)
     return render_template(
         "student.html", page={"title": row["name"], "label": row["name"]}, active=came_from, row=row,
+        **_evidence_context(conn, student_id, weeks, start, end),   # spec 034
         blocks=[[row]], weeks=weeks, tallest=max((len(w["blocks"]) for w in weeks), default=0),
         period=f"{timeline.long_date(start)} – {timeline.long_date(end)}", period_saved=period_saved,
         requests=timeline.student_open_requests(conn, row, date.today()),
         edit_url=url_for("pages.student_edit_page", student_id=student_id, terug=request.full_path.rstrip("?")))
+
+
+def _evidence_context(conn, student_id: int, weeks: list[dict], start: date, end: date, message: str | None = None) -> dict:
+    """Spec 034: what the evidence timeline needs."""
+    fetched = evidence.last_fetch(conn, student_id)
+    when = None
+    if fetched and fetched["fetched_at"]:
+        when = updated_text(datetime.fromisoformat(fetched["fetched_at"]), datetime.now(timezone.utc))
+    return {"evidence": evidence.timeline(conn, student_id, start, end), "evidence_weeks": weeks,
+            "evidence_fetched": when, "evidence_collections": fetched["collections"] if fetched else None,
+            "evidence_message": message, "student_id": student_id}
+
+
+@bp.post("/studenten/<int:student_id>/bewijsstukken")
+def fetch_evidence(student_id: int):
+    """Spec 034, F1: fetch the evidence of one student (called by the page when it opens)."""
+    conn = get_db()
+    if not conn.execute("SELECT 1 FROM students WHERE id = ?", (student_id,)).fetchone():
+        abort(404)
+    message = evidence.fetch_for_student(conn, student_id, current_app.extensions["portflow"].token)
+    if request.headers.get("X-Requested-With") != "fetch":
+        return redirect(url_for("pages.student_page", student_id=student_id))
+    start, end, _ = overview_data.semester_period(conn, date.today())
+    row = next(r for r in overview_data.student_rows(conn, date.today()) if r["id"] == student_id)
+    weeks = timeline.student_weeks(row, start, end)
+    return render_template("_evidence_timeline.html", **_evidence_context(conn, student_id, weeks, start, end, message))
 
 
 @bp.get("/projecten")

@@ -101,6 +101,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 031 | [Gegevensbestand tonen en kiezen](031-gegevensbestand/spec.md) | `klaar` |
 | 032 | [Overzicht van één student](032-studentpagina/spec.md) | `klaar` |
 | 033 | [Namen verbergen](033-namen-verbergen/spec.md) | `klaar` |
+| 034 | [Tijdlijn van bewijsstukken](034-bewijsstukken-tijdlijn/spec.md) | `klaar` |
 
 ## Kandidaten
 

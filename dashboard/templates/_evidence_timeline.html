@@ -1,0 +1,37 @@
+{# Spec 034: the evidence of one student as dots per skill over the semester period. The page
+   shows what is stored and app.js replaces this block when fresh evidence has been fetched (F1). #}
+{% macro short(d) %}{{ d.day }}/{{ d.month }}{% endmacro %}
+<div class="evidence-block" id="evidence-block" data-fetch="{{ url_for('pages.fetch_evidence', student_id=student_id) }}">
+  <div class="evidence-head">
+    <h3>Bewijsstukken per vaardigheid</h3>
+    <span class="muted evidence-status" id="evidence-status">
+      {%- if evidence_message %}{{ evidence_message }}{% elif evidence_fetched %}{{ evidence_fetched }}{% else %}Nog niet opgehaald{% endif -%}
+    </span>
+  </div>
+  {% if evidence_collections == 0 %}
+  <p class="timeline-empty">De student heeft (nog) geen collecties met je gedeeld.</p>{# F5 #}
+  {% elif not evidence.total %}
+  <p class="timeline-empty">{% if evidence_fetched %}Nog geen bewijsstukken in deze semesterperiode.{% else %}De bewijsstukken worden opgehaald…{% endif %}</p>
+  {% else %}
+  <div class="evidence-chart" style="--weeks: {{ evidence_weeks|length }}">
+    {% for row in evidence.rows %}
+    <div class="evidence-row{% if row.code == 'Overig' %} evidence-other{% endif %}">
+      <span class="evidence-label" title="{{ row.name }}">{{ row.code }}</span>
+      <span class="evidence-line">
+        {% for d in row.dots %}<span class="evidence-dot evidence-{{ d.kind }}{% if d.count > 1 %} has-count{% endif %}"
+              style="left: {{ d.left }}%" title="{{ d.tip }}" tabindex="0" aria-label="{{ d.tip }}">{% if d.count > 1 %}{{ d.count }}{% endif %}</span>{% endfor %}
+      </span>
+    </div>
+    {% endfor %}
+    <ol class="timeline-labels evidence-axis" aria-hidden="true">
+      {% for w in evidence_weeks %}<li><span>W{{ w.number }}</span><span class="muted">{{ short(w.monday) }}</span></li>{% endfor %}
+    </ol>
+  </div>
+  <p class="timeline-legend">
+    <span><i class="timeline-swatch evidence-file"></i>bestand</span>
+    <span><i class="timeline-swatch evidence-free_text"></i>tekst</span>
+    <span><i class="timeline-swatch evidence-url"></i>link</span>
+    <span><i class="timeline-swatch evidence-mixed"></i>meerdere soorten</span>
+  </p>
+  {% endif %}
+</div>

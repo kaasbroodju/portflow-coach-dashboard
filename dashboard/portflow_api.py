@@ -146,3 +146,13 @@ def received_invitations(token: str, own_portfolio_id: str, **retry) -> tuple[in
         "?order_by=created_at&order_direction=desc",
         token, **retry,
     )
+
+
+def collections(token: str, portfolio_id: int, **retry) -> tuple[int, list[dict] | None]:
+    """The collections of a portfolio the user may see (spec 034)."""
+    return get_all_pages(f"/portfolios/{portfolio_id}/collections", token, **retry)
+
+
+def collection_evidence(token: str, portfolio_id: int, collection_id: int, **retry) -> tuple[int, list[dict] | None]:
+    """The evidence in one collection, with its goals (spec 034)."""
+    return get_all_pages(f"/portfolios/{portfolio_id}/collections/{collection_id}/evidence", token, **retry)

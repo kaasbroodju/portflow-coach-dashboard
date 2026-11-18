@@ -950,3 +950,24 @@ html.js .noscript-hint { display: none; }
 .menu-switch.is-on::after { left: 14px; }
 .hide-names-banner { display: flex; align-items: center; gap: 10px; padding: 8px 48px; background: #ede9f6; color: #5a4a8a; }
 .hide-names-banner form { margin: 0 0 0 auto; }
+
+/* Spec 034: evidence as dots per skill over the semester period. */
+.evidence-block { margin-top: 30px; }
+.evidence-head { display: flex; align-items: baseline; gap: 12px; }
+.evidence-head h3 { margin: 0 0 12px; }
+.evidence-status { font-size: 13px; }
+.evidence-chart { display: grid; grid-template-columns: 52px 1fr; }
+.evidence-row { display: contents; }
+.evidence-label { font-size: 12px; font-weight: 600; color: var(--text-muted); line-height: 22px; }
+.evidence-line { position: relative; height: 22px; border-bottom: 1px dashed var(--border);
+  background-image: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / var(--weeks) - 1px), var(--border) calc(100% / var(--weeks) - 1px), var(--border) calc(100% / var(--weeks))); }
+.evidence-other .evidence-label { font-weight: 400; }
+.evidence-dot { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%);
+  border: 1px solid rgba(0, 0, 0, 0.25); cursor: default; }
+.evidence-dot.has-count { width: 18px; height: 18px; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; color: #fff; }
+.evidence-file { background: #5b76a8; }
+.evidence-free_text { background: #e2a33b; }
+.evidence-url { background: #5e8c74; }
+.evidence-mixed { background: #8c7aa8; }
+.evidence-axis { grid-column: 2; }
+.timeline-swatch.evidence-file, .timeline-swatch.evidence-free_text, .timeline-swatch.evidence-url, .timeline-swatch.evidence-mixed { border-radius: 50%; }

@@ -528,6 +528,40 @@ letterlijk overeenkomt met een van de teruggegeven `status`-waarden; vermoedelij
 matcht dit op `not_started` + `in_progress` samen (niet 100% bevestigd, enkel afgeleid
 uit het gebruik in de scripts voor "openstaande evaluaties").
 
+### 4.8 `GET /portfolios/{portfolio_id}/collections` — collecties (gevonden 2026-11-18)
+
+Gepagineerd (`page`, `per_page`, tot een lege pagina). Geeft de collecties van het portfolio die
+de ingelogde gebruiker mag zien. Velden per collectie (waargenomen): `id`, `name`, `subtitle`,
+`description`, `color`, `is_private`, `portfolio_id`, `position`, `section_id`, `goals_count`,
+`evidence_count`, `preferred_view`, `total_evidence_duration`, `banner_position_data`,
+`last_import` (`id`, `imported_at`, `template_name`). `GET /portfolios/{id}/collections/{collection_id}`
+geeft dezelfde velden voor één collectie (plus `banner_image`).
+
+Bij `GET /shares/shared-with-me` heeft elke deling een `share_type` en een lijst `collections`
+(bij het delen van losse collecties) en een veld `evidence`.
+
+### 4.9 `GET /portfolios/{portfolio_id}/collections/{collection_id}/evidence` — bewijsstukken in een collectie (gevonden 2026-11-18)
+
+Gepagineerd. Per item: `id`, `position` en `evidence` met:
+
+| Veld | Type | Omschrijving |
+|---|---|---|
+| `evidence.id` | int | id van het bewijsstuk (zelfde id als in §4.7 en in mentions, §6) |
+| `evidence.name` | string | naam die de student gaf |
+| `evidence.latest_version_type` | string | waargenomen: `file`, `free_text`, `url` |
+| `evidence.created_at` | string | ISO-timestamp van toevoegen |
+| `evidence.latest_version_created_at` | string | ISO-timestamp van de laatste versie |
+| `evidence.versions_count` | int | aantal versies |
+| `evidence.date`, `location`, `duration` | null in de steekproef | |
+| `evidence.has_co_created_versions` | bool | |
+| `evidence.card_image_url` | string\|null | |
+| `evidence.goals` | list | gekoppelde doelen: `{id, name, nickname, status}`; koppel aan vaardigheden met dezelfde naamregels als §9.1 |
+| `evidence.sub_goals` | list | |
+
+Een bewijsstuk kan in meer collecties staan. `GET /portfolios/{id}/evidence` (alles in één lijst)
+gaf **403**; per collectie ophalen is dus nodig. Gebruikt door het dashboard voor de tijdlijn van
+bewijsstukken ([spec 034](../features/034-bewijsstukken-tijdlijn/spec.md)).
+
 ---
 
 ### 4.7 `GET /portfolios/{portfolio_id}/evidence/{evidence_id}` — bewijsstuk downloaden

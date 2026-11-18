@@ -505,3 +505,17 @@
   };
   window.setTimeout(poll, 1500);
 })();
+
+(() => {
+  "use strict";
+
+  // Spec 034, F1: fetch the evidence of this student when the page opens, then replace the block.
+  const block = document.getElementById("evidence-block");
+  if (!block) return;
+  const status = document.getElementById("evidence-status");
+  if (status) status.textContent = "Bewijsstukken ophalen…";
+  fetch(block.dataset.fetch, { method: "POST", headers: { "X-Requested-With": "fetch" } })
+    .then((response) => (response.ok ? response.text() : Promise.reject(response.status)))
+    .then((html) => { block.outerHTML = html; })
+    .catch(() => { if (status) status.textContent = "Ophalen is niet gelukt; probeer het later opnieuw."; });
+})();
