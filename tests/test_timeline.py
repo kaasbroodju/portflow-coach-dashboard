@@ -189,7 +189,7 @@ class TestCompactTable(TimelineCase):   # F7-F11
 
     def test_ordered_by_project_then_name_without_project_last(self):   # F10
         table = self.table()
-        names = re.findall(r'<th scope="row" class="col-student">\s*([^<]+?)\s*<', table)
+        names = re.findall(r'<th scope="row" class="col-student">\s*<a class="student-link"[^>]*>([^<]+)</a>', table)
         self.assertEqual(names, ["Anna Appel", "Bram Visser", "Lotte Bakker", "Sem de Wit"])
         self.assertEqual(table.count('<tbody class="compact-block">'), 3)
         self.assertNotIn("group-header", table)

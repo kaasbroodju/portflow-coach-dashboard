@@ -926,3 +926,19 @@ html.js .noscript-hint { display: none; }
 .release-note-text code { font-family: var(--mono); font-size: 13px; }
 .release-note-text pre { margin: 8px 0 10px; padding: 10px 12px; overflow-x: auto; border-radius: var(--radius-small); background: var(--page); border: 1px solid var(--border); }
 .release-note-text pre code { user-select: all; white-space: pre; }
+
+/* Spec 032: the page of one student. A bar per week, built from a block per evaluation. */
+.skill-timeline { margin-left: 0; }
+.skill-weeks { display: grid; grid-template-columns: repeat(var(--weeks), minmax(0, 1fr)); gap: 0; margin: 0; padding: 22px 0 0;
+  list-style: none; border-bottom: 1px solid var(--text-muted); min-height: calc(var(--rows) * 20px + 22px); }
+.skill-week { position: relative; display: flex; flex-direction: column-reverse; justify-content: flex-start; gap: 2px; padding: 0 3px 2px; }
+.skill-total { text-align: center; font-size: 12px; font-weight: 600; line-height: 16px; }
+.skill-block { display: block; height: 18px; border-radius: 3px; font-size: 10px; font-weight: 600; line-height: 18px;
+  text-align: center; white-space: nowrap; overflow: hidden; cursor: default; color: #1d2723; }
+.skill-product { background: #c3cbdc; }
+.skill-social { background: #cdd6bf; }
+.skill-personal { background: #e3c7b3; }
+.skill-pending { background: #6f9fd8; color: #fff; }
+.timeline-swatch.skill-product, .timeline-swatch.skill-social, .timeline-swatch.skill-personal, .timeline-swatch.skill-pending { height: 12px; }
+.timeline-card .compact-table-wrap + h3 { margin-top: 26px; }
+.student-open .to-review-item { grid-template-columns: minmax(200px, 1.4fr) minmax(160px, 1fr) 150px 90px; }

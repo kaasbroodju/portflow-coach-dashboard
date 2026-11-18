@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{# Spec 032: the page of one student: the compact progress table, a timeline with a block per
+   evaluation, and the open evaluations. #}
+{% macro short(d) %}{{ d.day }}/{{ d.month }}{% endmacro %}
+{% block content %}
+{% if not row %}
+<section class="card"><p>Deze student bestaat niet (meer). <a href="{{ url_for('pages.overview') }}">Naar Overzicht</a></p></section>
+{% else %}
+<section class="card timeline-card" aria-labelledby="student-progress-title">
+  <div class="timeline-head">
+    <div>
+      <h2 id="student-progress-title">Voortgang</h2>
+      <p class="muted">{{ period }}{% if not period_saved %} (het lopende semester){% endif %}</p>
+    </div>
+    <a class="button button-secondary" href="{{ edit_url }}">{{ icon("pencil") }}<span>Bewerken</span></a>
+  </div>
+  {% include "_compact_table.html" %}
+
+  {# F3: a bar per week, built from a block per evaluation. #}
+  <h3>Evaluaties per week</h3>
+  {% if not tallest %}
+  <p class="timeline-empty">Nog geen evaluaties in deze semesterperiode.</p>
+  {% else %}
+  <div class="skill-timeline" style="--weeks: {{ weeks|length }}; --rows: {{ tallest }}">
+    <ol class="skill-weeks">
+      {% for w in weeks %}
+      <li class="skill-week" aria-label="W{{ w.number }}, {{ short(w.monday) }} – {{ short(w.sunday) }}: {{ w.achieved|length }} behaald, {{ w.pending|length }} ingediend">
+        {# column-reverse: the first block is at the bottom, the total on top #}
+        {% for b in w.blocks %}<span class="skill-block skill-{{ b.category }}" title="{{ b.tip }}">{{ b.label }}</span>{% endfor %}
+        {% if w.blocks %}<span class="skill-total">{{ w.blocks|length }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    <ol class="timeline-labels" aria-hidden="true">
+      {% for w in weeks %}<li><span>W{{ w.number }}</span><span class="muted">{{ short(w.monday) }}</span></li>{% endfor %}
+    </ol>
+  </div>
+  <p class="timeline-legend">
+    <span><i class="timeline-swatch skill-product"></i>behaald, productvaardigheid</span>
+    <span><i class="timeline-swatch skill-social"></i>behaald, sociale vaardigheid</span>
+    <span><i class="timeline-swatch skill-personal"></i>behaald, persoonsvormende vaardigheid</span>
+    <span><i class="timeline-swatch skill-pending"></i>ingediend (?)</span>
+  </p>
+  {% endif %}
+</section>
+
+{# F4: every open evaluation of the student; "aan jou" for the ones sent to the user (spec 030). #}
+<section class="card to-review student-open" aria-labelledby="student-open-title">
+  <h2 id="student-open-title">Openstaande evaluaties{% if requests %} <span class="muted">· {{ requests|length }}</span>{% endif %}</h2>
+  {% if requests %}
+  <ul class="to-review-list">
+    {% for r in requests %}
+    <li class="to-review-item">
+      <span class="to-review-main">
+        <span class="to-review-student">{{ r.title }}{% if r.to_me %} <span class="role-label">aan jou</span>{% endif %}</span>
+      </span>
+      <span class="to-review-skills">
+        {% if r.full_assessment %}<span class="mark-assessment">Assessment ingeleverd</span>
+        {% else %}{% for code in r.skills %}<span class="skill-code" title="{{ skill_names[code] }}">{{ code }}</span>{% endfor %}{% endif %}
+      </span>
+      <span class="to-review-date">{% if r.submitted_text %}ingediend {{ r.submitted_text }}{% endif %}</span>
+      <span class="to-review-waiting">{{ r.waiting }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Er staan geen evaluaties open.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

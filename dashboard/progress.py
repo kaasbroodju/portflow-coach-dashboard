@@ -63,6 +63,7 @@ class Evaluation:
 class Pending:
     title: str | None
     date: str
+    request_id: int | None = None   # spec 032, F4: to group the open skills per request
 
 
 @dataclass
@@ -115,6 +116,7 @@ class Cell:
 class Progress:
     cells: dict[str, Cell]
     full_assessment: bool = False
+    full_requests: list[Pending] = field(default_factory=list)   # spec 032, F4: the open full assessments
     signals: list[tuple[str, str]] = field(default_factory=list)   # (colour, label)
 
 
@@ -186,9 +188,17 @@ def student_progress(
         items = [row for row in items if row.get("review_request_id") not in full_requests]
         if items:
             newest = items[-1]
-            cells[skill].pending = Pending(newest.get("review_request_title"), newest.get("date") or "")
+            cells[skill].pending = Pending(newest.get("review_request_title"), newest.get("date") or "",
+                                           newest.get("review_request_id"))
 
-    return Progress(cells, full_assessment=bool(full_requests), signals=signals(cells, semester))
+    full = {}
+    for items in candidates.values():
+        for row in items:
+            if row.get("review_request_id") in full_requests:
+                full.setdefault(row["review_request_id"], Pending(row.get("review_request_title"), row.get("date") or "",
+                                                                  row["review_request_id"]))
+    return Progress(cells, full_assessment=bool(full_requests), full_requests=list(full.values()),
+                    signals=signals(cells, semester))
 
 
 # Signals (voortgangsregels.md#signalen) --------------------------------------------------------

@@ -1,0 +1,40 @@
+{# The compact progress table (spec 029, F7-F11), on Evaluaties and on the page of one student
+   (spec 032, F2). Needs `blocks` (lists of rows per project). #}
+{% from "_level_cell.html" import level_cell with context %}
+  <div class="table-scroll compact-table-wrap">
+  <table class="student-table compact-table">
+    <thead>
+      <tr>
+        <th scope="col" class="col-student">Student</th>
+        {% for code in skills %}<th scope="col" class="col-skill cat-{{ skill_category[code] }}" title="{{ skill_names[code] }}">{{ code }}</th>{% endfor %}
+        <th scope="col">Gilde</th>
+        <th scope="col">Project</th>
+        <th scope="col" title="Semester">Sem</th>
+        <th scope="col">Rol</th>
+        <th scope="col">Coach</th>
+        <th scope="col">Gildemeester</th>
+      </tr>
+    </thead>
+    {% for block in blocks %}
+    <tbody class="compact-block">
+      {% for row in block %}
+      {% set p = row.progress %}
+      <tr class="student-row{% if not row.has_access %} is-no-access{% endif %}">
+        <th scope="row" class="col-student">
+          <a class="student-link" href="{{ url_for('pages.student_page', student_id=row.id, van=active) }}">{{ row.name }}</a>{# spec 032, F1 #}
+          {% if row.squad_role %}<span class="role-label">{{ row.squad_role }}</span>{% endif %}
+          {% if p.full_assessment %}<span class="mark-assessment">Assessment ingeleverd</span>{% endif %}
+        </th>
+        {% for code in skills %}{{ level_cell(code, p.cells[code]) }}{% endfor %}
+        <td>{% if row.guild_codes %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
+        <td>{{ row.squad or ("(Stage)" if row.stage_without_project else "–") }}</td>
+        <td>{{ row.semester or "–" }}</td>
+        <td>{% if row.squad_role %}<span title="{{ row.squad_role_description or '' }}">{{ row.squad_role }}</span>{% else %}–{% endif %}</td>
+        <td>{{ row.coach or "–" }}</td>
+        <td>{{ row.guild_master or "–" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    {% endfor %}
+  </table>
+  </div>

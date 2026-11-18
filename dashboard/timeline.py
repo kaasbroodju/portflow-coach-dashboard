@@ -10,6 +10,8 @@ import sqlite3
 from datetime import date, timedelta
 
 from .overview import WHO, WHO_DEFAULT
+from .requests_to_review import OPEN_STATUSES, waiting_text
+from .skills import CATEGORY, NAMES, SKILLS
 
 S_WHO = "evaluations_who"   # F2: the choice of Evaluaties, apart from Overzicht
 MONTHS = ["januari", "februari", "maart", "april", "mei", "juni", "juli",
@@ -92,3 +94,73 @@ def project_blocks(rows: list[dict]) -> list[list[dict]]:
         key = (0, row["squad_sort"].casefold(), row["squad_id"]) if row["squad_id"] else (1, "", 0)
         blocks.setdefault(key, []).append(row)
     return [sorted(blocks[key], key=lambda r: r["name"].casefold()) for key in sorted(blocks)]
+
+
+# One student (spec 032) ------------------------------------------------------------------------------
+
+def _nl_date(day: date | None) -> str:
+    return f"{day.day}-{day.month}-{day.year}" if day else "datum onbekend"
+
+
+def student_weeks(row: dict, start: date, end: date) -> list[dict]:
+    """F3: the weeks of the period with a block per evaluation: achieved first (in skill order),
+    then handed in and not yet assessed. The same rules as week_counts (week of handing in)."""
+    first = start - timedelta(days=start.weekday())
+    weeks = [{"number": i + 1, "monday": first + timedelta(weeks=i), "achieved": [], "pending": []}
+             for i in range((end - first).days // 7 + 1)]
+
+    def week_of(value: str):
+        day = _day(value)
+        return weeks[(day - first).days // 7] if day is not None and start <= day <= end else None
+
+    cells = row["progress"].cells
+    for code in SKILLS:
+        for evaluation in cells[code].evaluations:
+            week = week_of(evaluation.submitted or evaluation.date)
+            if week is not None:
+                handed_in, assessed = _day(evaluation.submitted), _day(evaluation.date)
+                tip = f"{NAMES[code]}: niveau {evaluation.level}, ingediend {_nl_date(handed_in)}"
+                if assessed and assessed != handed_in:
+                    tip += f", beoordeeld {_nl_date(assessed)}"
+                if evaluation.assessor:
+                    tip += f" door {evaluation.assessor}"
+                week["achieved"].append({"code": code, "label": f"{code} {evaluation.level}",
+                                         "category": CATEGORY[code], "tip": tip})
+        pending = cells[code].pending
+        if pending:
+            week = week_of(pending.date)
+            if week is not None:
+                week["pending"].append({"code": code, "label": f"{code} ?", "category": "pending",
+                                        "tip": f"{NAMES[code]}: ingediend {_nl_date(_day(pending.date))}, nog niet beoordeeld"
+                                               + (f" ({pending.title})" if pending.title else "")})
+    for week in weeks:
+        week["sunday"] = week["monday"] + timedelta(days=6)
+        week["blocks"] = week["achieved"] + week["pending"]
+    return weeks
+
+
+def student_open_requests(conn: sqlite3.Connection, row: dict, today: date) -> list[dict]:
+    """F4: the open requests of the student, one per request, oldest first; "aan jou" for the ones
+    sent to the user (spec 030)."""
+    to_me = {r[0] for r in conn.execute(
+        "SELECT review_request_id FROM received_requests WHERE status IN (?, ?)", OPEN_STATUSES)}
+    grouped: dict = {}
+    progress = row["progress"]
+    for code in SKILLS:
+        pending = progress.cells[code].pending
+        if pending:
+            key = pending.request_id if pending.request_id is not None else (pending.title, pending.date)
+            item = grouped.setdefault(key, {"request_id": pending.request_id, "title": pending.title,
+                                            "date": pending.date, "skills": [], "full_assessment": False})
+            item["skills"].append(code)
+    for full in progress.full_requests:
+        grouped[full.request_id] = {"request_id": full.request_id, "title": full.title, "date": full.date,
+                                    "skills": [], "full_assessment": True}
+    result = []
+    for item in grouped.values():
+        day = _day(item["date"])
+        result.append(dict(item, title=item["title"] or "Evaluatieverzoek", submitted=day,
+                           submitted_text=_nl_date(day) if day else "",
+                           waiting=waiting_text((today - day).days) if day else "",
+                           to_me=item["request_id"] in to_me))
+    return sorted(result, key=lambda r: (r["date"] or "~", r["title"]))

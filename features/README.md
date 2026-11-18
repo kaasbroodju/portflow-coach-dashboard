@@ -99,6 +99,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 029 | [Tijdlijn van evaluaties en compacte voortgangstabel](029-tijdlijn-evaluaties/spec.md) | `klaar` |
 | 030 | [Te beoordelen](030-te-beoordelen/spec.md) | `klaar` |
 | 031 | [Gegevensbestand tonen en kiezen](031-gegevensbestand/spec.md) | `klaar` |
+| 032 | [Overzicht van één student](032-studentpagina/spec.md) | `klaar` |
 
 ## Kandidaten
 
@@ -110,4 +111,3 @@ Deze onderdelen volgen uit de ontwerpen en de docs. Ze zijn nog géén spec; ze 
 - **Semesterstatus:** voldoet een student aan het toetsprogramma van zijn semester, en wat ontbreekt nog? (Volgt uit [voortgangsregels](../docs/voortgangsregels.md).)
 - **Kolommen:** het beheerscherm staat nu in [spec 024](024-keuzelijsten/spec.md) (Projecten: [spec 012](012-projecten/spec.md), Gildes: [spec 018](018-beroepsrol-in-gilde/spec.md), Semesters: [spec 009](009-semesters/spec.md))
 - **Signaalkaarten:** evaluaties te beoordelen, studenten zonder recente update, actieve coachstudenten
-- **Detailpagina van een student** (later ook met HBO-i-beroepstaken)

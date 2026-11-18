@@ -344,6 +344,26 @@ def evaluations():
                        student_count=len(rows))
 
 
+@bp.get("/studenten/<int:student_id>")
+def student_page(student_id: int):
+    """Spec 032: the progress, a detailed timeline and the open evaluations of one student."""
+    conn = get_db()
+    came_from = request.args.get("van") if request.args.get("van") in ("overview", "evaluations") else "overview"
+    rows = [r for r in overview_data.student_rows(conn, date.today()) if r["id"] == student_id]
+    if not rows:   # F6
+        return render_template("student.html", page={"title": "Student niet gevonden", "label": "Student"},
+                               active=came_from, row=None), 404
+    row = rows[0]
+    start, end, period_saved = overview_data.semester_period(conn, date.today())
+    weeks = timeline.student_weeks(row, start, end)
+    return render_template(
+        "student.html", page={"title": row["name"], "label": row["name"]}, active=came_from, row=row,
+        blocks=[[row]], weeks=weeks, tallest=max((len(w["blocks"]) for w in weeks), default=0),
+        period=f"{timeline.long_date(start)} – {timeline.long_date(end)}", period_saved=period_saved,
+        requests=timeline.student_open_requests(conn, row, date.today()),
+        edit_url=url_for("pages.student_edit_page", student_id=student_id, terug=request.full_path.rstrip("?")))
+
+
 @bp.get("/projecten")
 def squads():
     """Spec 012, F1-F4 and the confirmation of F9."""
