@@ -102,6 +102,8 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 032 | [Overzicht van één student](032-studentpagina/spec.md) | `klaar` |
 | 033 | [Namen verbergen](033-namen-verbergen/spec.md) | `klaar` |
 | 034 | [Tijdlijn van bewijsstukken](034-bewijsstukken-tijdlijn/spec.md) | `klaar` |
+| 035 | [Feedbackvragen en reacties](035-feedbackvragen/spec.md) | `klaar` |
+| 036 | [Bewijsstuk lezen](036-bewijsstuk-lezen/spec.md) | `klaar` |
 
 ## Kandidaten
 

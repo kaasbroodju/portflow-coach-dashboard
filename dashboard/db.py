@@ -168,6 +168,21 @@ CREATE TABLE IF NOT EXISTS evidence_items (
     PRIMARY KEY (student_id, evidence_id)
 );
 
+-- Comments on evidence (spec 035): feedback requests (and plain comments) and, with parent_id,
+-- the replies to them. Replaced per student with the evidence.
+CREATE TABLE IF NOT EXISTS evidence_comments (
+    comment_id   INTEGER PRIMARY KEY,
+    student_id   INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    evidence_id  INTEGER NOT NULL,
+    parent_id    INTEGER,                      -- NULL for a request or comment, set for a reply
+    kind         TEXT NOT NULL DEFAULT '',     -- feedback_request, comment
+    text         TEXT NOT NULL DEFAULT '',
+    created_at   TEXT NOT NULL DEFAULT '',
+    author_id    INTEGER,
+    author_name  TEXT NOT NULL DEFAULT '',
+    author_role  TEXT NOT NULL DEFAULT ''      -- as Portflow gives it (student, coach, ...)
+);
+
 -- When the evidence of a student was last fetched (spec 034, F1), and the last problem if any.
 CREATE TABLE IF NOT EXISTS evidence_fetches (
     student_id  INTEGER PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,

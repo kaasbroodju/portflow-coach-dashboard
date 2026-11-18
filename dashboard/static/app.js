@@ -512,3 +512,30 @@
     .then((html) => { block.outerHTML = html; })
     .catch(() => { if (status) status.textContent = "Ophalen is niet gelukt; probeer het later opnieuw."; });
 })();
+
+(() => {
+  "use strict";
+
+  // Spec 035, F4: a click on a feedback request or reply opens the side panel with the conversation.
+  const panel = document.getElementById("feedback-panel");
+  if (!panel) return;
+  const open = (target, link, failed) => {
+    const body = target.querySelector(".side-panel-body");
+    body.textContent = "Laden…";
+    target.hidden = false;
+    fetch(link.href, { headers: { "X-Requested-With": "fetch" } })
+      .then((response) => (response.ok ? response.text() : Promise.reject(response.status)))
+      .then((html) => { body.innerHTML = html; })
+      .catch(() => { body.textContent = failed; });
+  };
+  document.addEventListener("click", (event) => {
+    const mark = event.target.closest("[data-feedback]");
+    if (mark) {
+      event.preventDefault();
+      open(panel, mark, "De feedback kon niet worden geladen.");
+      return;
+    }
+    if (event.target.closest("[data-close-panel]")) panel.hidden = true;
+  });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape") panel.hidden = true; });
+})();

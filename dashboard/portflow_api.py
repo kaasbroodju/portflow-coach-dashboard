@@ -156,3 +156,39 @@ def collections(token: str, portfolio_id: int, **retry) -> tuple[int, list[dict]
 def collection_evidence(token: str, portfolio_id: int, collection_id: int, **retry) -> tuple[int, list[dict] | None]:
     """The evidence in one collection, with its goals (spec 034)."""
     return get_all_pages(f"/portfolios/{portfolio_id}/collections/{collection_id}/evidence", token, **retry)
+
+
+def _pages_until_repeat(path: str, token: str, **retry) -> tuple[int, list[dict] | None]:
+    """Like get_all_pages, but also stops when a page repeats the previous one: the comment
+    endpoints of Portflow ignore `page` (seen 2026-11-18), which would otherwise never end."""
+    separator = "&" if "?" in path else "?"
+    page, items, previous = 1, [], None
+    while page <= 20:
+        status, data = _get_json_with_retry(f"{path}{separator}page={page}&per_page=50", token,
+                                            retry.get("retries", RETRIES), retry.get("retry_delay_s", RETRY_DELAY_S))
+        if status != 200:
+            return status, None
+        batch = [item for item in data if isinstance(item, dict)] if isinstance(data, list) else []
+        ids = [item.get("id") for item in batch]
+        if not batch or ids == previous:
+            return 200, items
+        items.extend(batch)
+        previous = ids
+        page += 1
+    return 200, items
+
+
+def evidence_comments(token: str, portfolio_id: int, evidence_id: int, **retry) -> tuple[int, list[dict] | None]:
+    """Comments on one piece of evidence, among them feedback requests (spec 035)."""
+    return _pages_until_repeat(f"/portfolios/{portfolio_id}/evidence/{evidence_id}/comments", token, **retry)
+
+
+def comment_children(token: str, portfolio_id: int, comment_id: int, **retry) -> tuple[int, list[dict] | None]:
+    """The replies to one comment (spec 035); this endpoint is not paginated."""
+    return _pages_until_repeat(f"/portfolios/{portfolio_id}/comments/{comment_id}/children", token, **retry)
+
+
+def evidence_detail(token: str, portfolio_id: int, evidence_id: int) -> tuple[int, object]:
+    """The details of one piece of evidence with its latest version: the text of a free text, or
+    the name and type of a file (spec 036). JSON, not the file itself."""
+    return get_json(f"/portfolios/{portfolio_id}/evidence/{evidence_id}", token)

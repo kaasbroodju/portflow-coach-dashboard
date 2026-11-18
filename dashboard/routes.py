@@ -11,7 +11,7 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 
 from . import (choices, columns as column_data, demo, guilds, overview as overview_data, portflow_link, projects, reset,
                requests_to_review, semesters as semester_data, staff, student_edit, student_intake, summary, timeline)
-from . import db, evidence, hide_names, paths
+from . import db, evidence, feedback, hide_names, paths
 from .db import get_db
 from .portflow_fetch import S_REQUESTS_FETCHED, updated_text
 from .portflow_connection import initials
@@ -375,6 +375,8 @@ def _evidence_context(conn, student_id: int, weeks: list[dict], start: date, end
     if fetched and fetched["fetched_at"]:
         when = updated_text(datetime.fromisoformat(fetched["fetched_at"]), datetime.now(timezone.utc))
     return {"evidence": evidence.timeline(conn, student_id, start, end), "evidence_weeks": weeks,
+            "feedback_stats": feedback.summary(conn, student_id, start, end),     # spec 035
+            "feedback_rows": feedback.rows(conn, student_id, start, end),
             "evidence_fetched": when, "evidence_collections": fetched["collections"] if fetched else None,
             "evidence_message": message, "student_id": student_id}
 
@@ -385,13 +387,36 @@ def fetch_evidence(student_id: int):
     conn = get_db()
     if not conn.execute("SELECT 1 FROM students WHERE id = ?", (student_id,)).fetchone():
         abort(404)
-    message = evidence.fetch_for_student(conn, student_id, current_app.extensions["portflow"].token)
+    start, end, _ = overview_data.semester_period(conn, date.today())
+    message = evidence.fetch_for_student(conn, student_id, current_app.extensions["portflow"].token, period=(start, end))
     if request.headers.get("X-Requested-With") != "fetch":
         return redirect(url_for("pages.student_page", student_id=student_id))
-    start, end, _ = overview_data.semester_period(conn, date.today())
     row = next(r for r in overview_data.student_rows(conn, date.today()) if r["id"] == student_id)
     weeks = timeline.student_weeks(row, start, end)
     return render_template("_evidence_timeline.html", **_evidence_context(conn, student_id, weeks, start, end, message))
+
+
+@bp.get("/studenten/<int:student_id>/feedback")
+def feedback_panel(student_id: int):
+    """Spec 035, F4: the feedback requests with their replies, for the side panel (or as a page)."""
+    conn = get_db()
+    row = conn.execute("SELECT name FROM students WHERE id = ?", (student_id,)).fetchone()
+    if row is None:
+        abort(404)
+    ids = [int(i) for i in request.args.get("vragen", "").split(",") if i.strip().isdigit()]
+    start, end, _ = overview_data.semester_period(conn, date.today())
+    threads = feedback.threads(conn, student_id, ids, start, end)
+    token = current_app.extensions["portflow"].token
+    for thread in threads:   # spec 036: the text of a text evidence comes first in the conversation
+        if thread["raw_kind"] == "free_text":
+            details, thread["evidence_error"] = evidence.detail(conn, student_id, thread["evidence_id"], token)
+            thread["evidence_text"] = details["text"] if details else ""
+            thread["evidence_images"] = details["images"] if details else 0
+    context = {"threads": threads, "student_id": student_id}
+    if request.headers.get("X-Requested-With") == "fetch":
+        return render_template("_feedback_panel.html", **context)
+    return render_template("feedback_page.html", page={"title": "Feedback", "label": f"Feedback · {row['name']}"},
+                           active="overview", **context)
 
 
 @bp.get("/projecten")

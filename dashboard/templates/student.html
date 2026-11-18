@@ -69,5 +69,13 @@
   <p class="muted">Er staan geen evaluaties open.</p>
   {% endif %}
 </section>
+{# Spec 035, F4: the side panel for feedback requests and replies. #}
+<aside class="side-panel" id="feedback-panel" hidden aria-labelledby="feedback-panel-title">
+  <div class="side-panel-head">
+    <h2 id="feedback-panel-title">Feedback</h2>
+    <button class="icon-button" type="button" data-close-panel aria-label="Sluiten">×</button>
+  </div>
+  <div class="side-panel-body" id="feedback-panel-body"></div>
+</aside>
 {% endif %}
 {% endblock %}

@@ -32,7 +32,8 @@ def set_on(app: Flask, on: bool) -> None:
 
 def numbers(conn: sqlite3.Connection) -> dict[str, str]:
     """F2: name -> "Student N". Followed students in the order they were added; then the names of
-    students who sent the user a request but are not followed (spec 030). The user keeps his own
+    students who sent the user a request but are not followed (spec 030), then the authors of
+    feedback requests and replies (spec 035). The user keeps his own
     name; coaches and guild masters keep theirs when they send a request, but a followed student
     is always hidden, also when he is on the staff list too (for example as an assessor)."""
     me = {name_key(r[0]) for r in conn.execute("SELECT value FROM settings WHERE key = 'portflow_user_name'") if r[0]}
@@ -46,6 +47,9 @@ def numbers(conn: sqlite3.Connection) -> dict[str, str]:
     for (name,) in conn.execute("SELECT name FROM students ORDER BY id"):
         add(name, me)
     for (name,) in conn.execute("SELECT student_name FROM received_requests ORDER BY review_request_id"):
+        add(name, me | staff)
+    # Spec 035, F5: whoever asked or answered a feedback request (often a student who is not followed).
+    for (name,) in conn.execute("SELECT author_name FROM evidence_comments ORDER BY comment_id"):
         add(name, me | staff)
     return names
 

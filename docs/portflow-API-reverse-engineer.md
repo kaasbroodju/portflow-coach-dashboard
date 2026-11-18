@@ -562,9 +562,45 @@ Een bewijsstuk kan in meer collecties staan. `GET /portfolios/{id}/evidence` (al
 gaf **403**; per collectie ophalen is dus nodig. Gebruikt door het dashboard voor de tijdlijn van
 bewijsstukken ([spec 034](../features/034-bewijsstukken-tijdlijn/spec.md)).
 
+### 4.10 `GET /portfolios/{portfolio_id}/evidence/{evidence_id}/comments` — opmerkingen en feedbackvragen (gevonden 2026-11-18)
+
+De opmerkingen op het hoogste niveau bij een bewijsstuk. Velden (waargenomen): `id`, `parent_id`
+(null), `portfolio_id`, `comment_type` (`feedback_request` = feedbackvraag van de student, `comment`
+= gewone opmerking), `text` (HTML), `created_at`, `updated_at`, `created_by_role` (`student`,
+`coach`, …), `created_by` (`id`, `name`, `user_type`, `current_role`, …), `child_count` (aantal
+reacties), `comment_references_count`, `hidden`, `has_validation`, `has_lms_rubrics`,
+`evidence_version` (`evidence_id`, `version_number`), `commentable_type`, `commentable_id`,
+`is_latest_child`, `attachments`. Of dit endpoint echt pagineert, is niet bevestigd; behandel het
+zoals §4.11.
+
+### 4.11 `GET /portfolios/{portfolio_id}/comments/{comment_id}/children` — reacties op een opmerking (gevonden 2026-11-18)
+
+De reacties onder een opmerking of feedbackvraag, met dezelfde velden plus onder andere
+`feedback_request_response_id` en `goal_responses_count`. **Let op: niet gepagineerd.** `page=2`
+geeft dezelfde reacties als `page=1`; "doorbladeren tot een lege pagina" loopt dus eindeloos. Het
+dashboard stopt als een pagina gelijk is aan de vorige (`portflow_api._pages_until_repeat`).
+`GET /portfolios/{portfolio_id}/comments/{comment_id}` geeft één opmerking.
+
+Gebruikt door het dashboard voor de feedbackvragen op de studentpagina
+([spec 035](../features/035-feedbackvragen/spec.md)).
+
 ---
 
-### 4.7 `GET /portfolios/{portfolio_id}/evidence/{evidence_id}` — bewijsstuk downloaden
+### 4.7 `GET /portfolios/{portfolio_id}/evidence/{evidence_id}` — bewijsstuk (details)
+
+> **Waargenomen op 2026-11-18:** dit endpoint geeft **JSON** met de details van het bewijsstuk,
+> **geen** bestand. Velden: `id`, `portfolio_id`, `name`, `description`, `feedback_status`,
+> `created_at`, `updated_at`, `versions_count`, `goals_count`, `collections_count`, `date`,
+> `location`, `duration`, `latest_version_created_at`, `latest_version_type`, `last_version_number`,
+> `has_co_created_versions`, `latest_version` (`id`, `version_number`, `version_type`, `description`,
+> `created_at`, `co_created`, `source`, `files`). In `latest_version.files[]`:
+> - bij tekst `free_text`: `free_text` (de tekst als HTML), `images` (lijst), `has_pending_embedded_files`;
+> - bij een bestand `file`: `file_name`, `type` (MIME-type), `download_state`, `signed_id` (een
+>   ondertekende verwijzing); **geen downloadlink**. Hoe een bestand nu te downloaden is, is onbekend;
+>   `…/versions/{id}`, `…/content` en `…/download` geven 404.
+>
+> Gebruikt door het dashboard om een bewijsstuk te lezen ([spec 036](../features/036-bewijsstuk-lezen/spec.md)).
+> De beschrijving hieronder (binaire download) komt uit de oudere scripts en klopt niet meer.
 
 Download van één bewijsstuk/bestand ("evidence") als binaire stream. `portfolio_id` en
 `evidence_id` komen **niet** uit een apart "lijst evidence op"-endpoint, maar worden

@@ -33,6 +33,12 @@ class FakeApi:
     def collection_evidence(self, token, portfolio_id, collection_id):
         return self.evidence.get((portfolio_id, collection_id), (200, []))
 
+    def evidence_comments(self, token, portfolio_id, evidence_id):   # spec 035
+        return 200, []
+
+    def comment_children(self, token, portfolio_id, comment_id):
+        return 200, []
+
 
 class EvidenceCase(unittest.TestCase):
     def setUp(self):

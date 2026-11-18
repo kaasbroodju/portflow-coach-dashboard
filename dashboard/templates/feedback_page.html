@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{# Spec 035, F4: the same as the side panel, as a page (without JavaScript). #}
+{% block content %}
+<section class="card">
+  <p><a href="{{ url_for('pages.student_page', student_id=student_id) }}">← Terug naar de student</a></p>
+  {% include "_feedback_panel.html" %}
+</section>
+{% endblock %}

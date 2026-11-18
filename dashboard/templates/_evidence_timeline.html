@@ -8,6 +8,16 @@
       {%- if evidence_message %}{{ evidence_message }}{% elif evidence_fetched %}{{ evidence_fetched }}{% else %}Nog niet opgehaald{% endif -%}
     </span>
   </div>
+  {# Spec 035, F2: key figures of the feedback requests asked in the period. #}
+  {% if feedback_stats.requests %}
+  <p class="feedback-stats"><strong>{{ feedback_stats.requests }}</strong> feedbackvra{{ "ag" if feedback_stats.requests == 1 else "gen" }}
+    · <strong>{{ feedback_stats.answered }}</strong> beantwoord
+    · <strong>{{ feedback_stats.replies }}</strong> reactie{{ "s" if feedback_stats.replies != 1 }}
+    · van <strong>{{ feedback_stats.people }}</strong> {{ "persoon" if feedback_stats.people == 1 else "mensen" }}
+    {% if feedback_stats.first_reply_days is not none %}· eerste reactie gemiddeld na <strong>{{ feedback_stats.first_reply_days|string|replace(".", ",")|replace(",0", "") }}</strong> dag{{ "en" if feedback_stats.first_reply_days != 1 }}{% endif %}</p>
+  {% elif evidence_fetched %}
+  <p class="muted feedback-stats">Nog geen feedbackvragen in deze semesterperiode.</p>
+  {% endif %}
   {% if evidence_collections == 0 %}
   <p class="timeline-empty">De student heeft (nog) geen collecties met je gedeeld.</p>{# F5 #}
   {% elif not evidence.total %}
@@ -23,6 +33,17 @@
       </span>
     </div>
     {% endfor %}
+    {# Spec 035, F3: the feedback requests and the replies; a click opens the side panel (F4). #}
+    {% for row in feedback_rows %}
+    <div class="evidence-row feedback-row{% if loop.first %} feedback-first{% endif %}">
+      <span class="evidence-label">{{ row.code }}</span>
+      <span class="evidence-line">
+        {% for m in row.marks %}<a class="feedback-mark feedback-{{ row.shape }} feedback-{{ m.kind }}{% if m.count > 1 %} has-count{% endif %}"
+           style="left: {{ m.left }}%" title="{{ m.tip }}" aria-label="{{ m.tip }}"
+           href="{{ url_for('pages.feedback_panel', student_id=student_id, vragen=m.ids) }}" data-feedback>{% if m.count > 1 %}<span>{{ m.count }}</span>{% endif %}</a>{% endfor %}
+      </span>
+    </div>
+    {% endfor %}
     <ol class="timeline-labels evidence-axis" aria-hidden="true">
       {% for w in evidence_weeks %}<li><span>W{{ w.number }}</span><span class="muted">{{ short(w.monday) }}</span></li>{% endfor %}
     </ol>
@@ -32,6 +53,14 @@
     <span><i class="timeline-swatch evidence-free_text"></i>tekst</span>
     <span><i class="timeline-swatch evidence-url"></i>link</span>
     <span><i class="timeline-swatch evidence-mixed"></i>meerdere soorten</span>
+  </p>
+  <p class="timeline-legend">
+    <span><i class="feedback-swatch feedback-request feedback-answered"></i>feedbackvraag, beantwoord</span>
+    <span><i class="feedback-swatch feedback-request feedback-open"></i>nog geen reactie</span>
+    <span><i class="feedback-swatch feedback-reply feedback-medestudent"></i>reactie van een medestudent</span>
+    <span><i class="feedback-swatch feedback-reply feedback-coach"></i>coach</span>
+    <span><i class="feedback-swatch feedback-reply feedback-gildemeester"></i>gildemeester</span>
+    <span><i class="feedback-swatch feedback-reply feedback-overig"></i>overig</span>
   </p>
   {% endif %}
 </div>
