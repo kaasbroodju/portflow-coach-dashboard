@@ -1,0 +1,10 @@
+{# Spec 037, F3: the evidence of a dot with its feedback requests and replies. #}
+{% from "_conversation.html" import evidence_head, feedback_request with context %}
+{% for e in items %}
+<article class="feedback-thread">
+  {{ evidence_head(e) }}
+  {% for t in e.threads %}{{ feedback_request(t) }}{% else %}<p class="muted feedback-none">Geen feedbackvragen bij dit bewijsstuk.</p>{% endfor %}
+</article>
+{% else %}
+<p class="muted">Dit bewijsstuk is niet (meer) gevonden.</p>
+{% endfor %}

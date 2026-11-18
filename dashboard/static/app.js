@@ -516,11 +516,13 @@
 (() => {
   "use strict";
 
-  // Spec 035, F4: a click on a feedback request or reply opens the side panel with the conversation.
+  // Spec 035, F4: a click on a feedback request or reply opens the side panel with the conversation;
+  // spec 037: also an evaluation block, a level cell or an evidence dot (data-panel-title).
   const panel = document.getElementById("feedback-panel");
   if (!panel) return;
   const open = (target, link, failed) => {
     const body = target.querySelector(".side-panel-body");
+    target.querySelector("h2").textContent = link.dataset.panelTitle || "Feedback";
     body.textContent = "Laden…";
     target.hidden = false;
     fetch(link.href, { headers: { "X-Requested-With": "fetch" } })
@@ -532,7 +534,7 @@
     const mark = event.target.closest("[data-feedback]");
     if (mark) {
       event.preventDefault();
-      open(panel, mark, "De feedback kon niet worden geladen.");
+      open(panel, mark, "Dit kon niet worden geladen.");
       return;
     }
     if (event.target.closest("[data-close-panel]")) panel.hidden = true;

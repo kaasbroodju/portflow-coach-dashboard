@@ -10,6 +10,7 @@ import sqlite3
 from datetime import date, timedelta
 
 from .overview import WHO, WHO_DEFAULT
+from .progress import panel_args
 from .requests_to_review import OPEN_STATUSES, waiting_text
 from .skills import CATEGORY, NAMES, SKILLS
 
@@ -125,14 +126,16 @@ def student_weeks(row: dict, start: date, end: date) -> list[dict]:
                 if evaluation.assessor:
                     tip += f" door {evaluation.assessor}"
                 week["achieved"].append({"code": code, "label": f"{code} {evaluation.level}",
-                                         "category": CATEGORY[code], "tip": tip})
+                                         "category": CATEGORY[code], "tip": tip,
+                                         "panel": panel_args([evaluation])})   # spec 037, F3
         pending = cells[code].pending
         if pending:
             week = week_of(pending.date)
             if week is not None:
                 week["pending"].append({"code": code, "label": f"{code} ?", "category": "pending",
                                         "tip": f"{NAMES[code]}: ingediend {_nl_date(_day(pending.date))}, nog niet beoordeeld"
-                                               + (f" ({pending.title})" if pending.title else "")})
+                                               + (f" ({pending.title})" if pending.title else ""),
+                                        "panel": panel_args([], pending)})
     for week in weeks:
         week["sunday"] = week["monday"] + timedelta(days=6)
         week["blocks"] = week["achieved"] + week["pending"]

@@ -28,8 +28,9 @@
     <div class="evidence-row{% if row.code == 'Overig' %} evidence-other{% endif %}">
       <span class="evidence-label" title="{{ row.name }}">{{ row.code }}</span>
       <span class="evidence-line">
-        {% for d in row.dots %}<span class="evidence-dot evidence-{{ d.kind }}{% if d.count > 1 %} has-count{% endif %}"
-              style="left: {{ d.left }}%" title="{{ d.tip }}" tabindex="0" aria-label="{{ d.tip }}">{% if d.count > 1 %}{{ d.count }}{% endif %}</span>{% endfor %}
+        {% for d in row.dots %}<a class="evidence-dot evidence-{{ d.kind }}{% if d.count > 1 %} has-count{% endif %}"
+              style="left: {{ d.left }}%" title="{{ d.tip }}" aria-label="{{ d.tip }}" data-feedback data-panel-title="Bewijsstuk"
+              href="{{ url_for('pages.evidence_panel', student_id=student_id, ids=d.ids) }}">{% if d.count > 1 %}{{ d.count }}{% endif %}</a>{% endfor %}{# spec 037, F3 #}
       </span>
     </div>
     {% endfor %}

@@ -122,6 +122,26 @@ def threads(conn: sqlite3.Connection, student_id: int, request_ids: list[int], s
     return result
 
 
+def evidence_items(conn: sqlite3.Connection, student_id: int, evidence_ids: list[int], start: date, end: date) -> list[dict]:
+    """Spec 037, F3: the evidence of a dot, each with the feedback requests on it (asked in the period)."""
+    on: dict[int, list[int]] = {}
+    for request in _requests(conn, student_id, start, end):
+        on.setdefault(request["evidence_id"], []).append(request["comment_id"])
+    result = []
+    for evidence_id in dict.fromkeys(evidence_ids):
+        item = conn.execute("SELECT * FROM evidence_items WHERE student_id = ? AND evidence_id = ?",
+                            (student_id, evidence_id)).fetchone()
+        if item is None:
+            continue
+        result.append({
+            "evidence_id": evidence_id, "evidence": item["name"] or "Bewijsstuk", "raw_kind": item["kind"] or "",
+            "kind": KINDS.get(item["kind"], item["kind"] or ""),
+            "skills": [s for s in (item["skills"] or "").split(",") if s],
+            "threads": threads(conn, student_id, on.get(evidence_id, []), start, end),
+        })
+    return result
+
+
 def _show(comment: dict) -> dict:
     day = comment["day"]
     return {"author": comment["author_name"] or "Onbekend", "role": ROLES[comment["role"]],

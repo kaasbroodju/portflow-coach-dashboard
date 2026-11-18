@@ -79,7 +79,7 @@ def parse_feedback_item(item: dict, skill: str, request_statuses: dict[int, str]
     """One feedback item -> one row for the evaluations table (F2), or None if not relevant.
 
     Only evaluations on the skill itself count (`criterion_evaluation`); sub-criteria
-    (professional tasks) are skipped. Comments and evidence are not kept.
+    (professional tasks) are skipped. The comment is kept since spec 037 (F1); evidence is not.
     """
     if item.get("type") != "criterion_evaluation":
         return None
@@ -100,6 +100,7 @@ def parse_feedback_item(item: dict, skill: str, request_statuses: dict[int, str]
         "review_request_id": request_id if isinstance(request_id, int) else None,
         "review_request_title": evaluation.get("review_request_title"),
         "review_request_status": status,
+        "text": evaluation.get("comment") if isinstance(evaluation.get("comment"), str) else None,
     }
 
 
@@ -319,10 +320,10 @@ class Fetcher:
                     conn.execute("DELETE FROM evaluations WHERE student_id = ? AND is_demo = 0", (student_id,))
                     conn.executemany(
                         """INSERT INTO evaluations (student_id, skill, kind, level, date, assessor,
-                               review_request_id, review_request_title, review_request_status)
+                               review_request_id, review_request_title, review_request_status, text)
                            VALUES (:student_id, :skill, :kind, :level, :date, :assessor,
-                                   :review_request_id, :review_request_title, :review_request_status)""",
-                        [dict(row, student_id=student_id) for row in rows],
+                                   :review_request_id, :review_request_title, :review_request_status, :text)""",
+                        [dict({"text": None}, **row, student_id=student_id) for row in rows],
                     )
                     conn.execute("UPDATE students SET has_access = 1, fetched_at = ? WHERE id = ?",
                                  (self.now().isoformat(), student_id))

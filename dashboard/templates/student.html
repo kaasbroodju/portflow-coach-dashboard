@@ -26,7 +26,8 @@
       {% for w in weeks %}
       <li class="skill-week" aria-label="W{{ w.number }}, {{ short(w.monday) }} – {{ short(w.sunday) }}: {{ w.achieved|length }} behaald, {{ w.pending|length }} ingediend">
         {# column-reverse: the first block is at the bottom, the total on top #}
-        {% for b in w.blocks %}<span class="skill-block skill-{{ b.category }}" title="{{ b.tip }}">{{ b.label }}</span>{% endfor %}
+        {% for b in w.blocks %}{% if b.panel %}<a class="skill-block skill-{{ b.category }}" title="{{ b.tip }}" data-feedback data-panel-title="Evaluatie"
+           href="{{ url_for('pages.evaluation_panel', student_id=row.id, **b.panel) }}">{{ b.label }}</a>{% else %}<span class="skill-block skill-{{ b.category }}" title="{{ b.tip }}">{{ b.label }}</span>{% endif %}{% endfor %}
         {% if w.blocks %}<span class="skill-total">{{ w.blocks|length }}</span>{% endif %}
       </li>
       {% endfor %}
@@ -69,13 +70,5 @@
   <p class="muted">Er staan geen evaluaties open.</p>
   {% endif %}
 </section>
-{# Spec 035, F4: the side panel for feedback requests and replies. #}
-<aside class="side-panel" id="feedback-panel" hidden aria-labelledby="feedback-panel-title">
-  <div class="side-panel-head">
-    <h2 id="feedback-panel-title">Feedback</h2>
-    <button class="icon-button" type="button" data-close-panel aria-label="Sluiten">×</button>
-  </div>
-  <div class="side-panel-body" id="feedback-panel-body"></div>
-</aside>
 {% endif %}
 {% endblock %}

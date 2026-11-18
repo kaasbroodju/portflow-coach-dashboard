@@ -408,6 +408,10 @@ geprobeerde keys op zowel `item` als `item.evaluation`: `comment`, `comments`, `
 `content`, `text`, `message`, `description`, `toelichting`, `feedback`, `reflection`,
 `self_evaluation`, `self_evaluation_text`. Deze tekst kan **HTML bevatten**, inclusief
 ingebedde "mentions" naar bewijsstukken (zie [§6](#6-bewijsstukkenevidence-ophalen-inline-mentions--download)).
+*Live nagekeken 2026-11-18 (alleen lezend, alleen de vorm):* de tekst staat in `item.evaluation.comment`
+(HTML), zowel bij zelfevaluaties als bij beoordelingen. `item.role` is `self`, `coach`, `supervisor` of
+`teacher`; de beoordelaar staat in `item.evaluation.reviewer` (`name`, `id`, `user_type`, `current_role`),
+de datum in `item.evaluation.submitted_at`.
 
 **Beoordelaarsnaam (niet één vaste key):** geprobeerd worden achtereenvolgens
 `item.user.name`, `item.author.name`, `item.creator.name`, `item.reviewer.name`,

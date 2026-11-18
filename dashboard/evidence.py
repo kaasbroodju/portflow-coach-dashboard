@@ -173,8 +173,9 @@ def timeline(conn: sqlite3.Connection, student_id: int, start: date, end: date) 
             tip += f", collectie {item['collections']}"
         tip += ", " + (", ".join(skills) if skills != [OTHER] else "geen vaardigheid")
         for code in skills:
-            dot = rows[code].setdefault(day, {"day": day, "kinds": set(), "tips": []})
+            dot = rows[code].setdefault(day, {"day": day, "kinds": set(), "tips": [], "ids": []})
             dot["kinds"].add(item["kind"])
+            dot["ids"].append(item["evidence_id"])
             dot["tips"].append(tip)
     result = []
     for code, dots in rows.items():
@@ -182,7 +183,7 @@ def timeline(conn: sqlite3.Connection, student_id: int, start: date, end: date) 
             "code": code, "name": NAMES.get(code, "Niet aan een vaardigheid gekoppeld"),
             "dots": [{"left": round(100 * ((d["day"] - first).days + 0.5) / span, 2), "count": len(d["tips"]),
                       "kind": next(iter(d["kinds"])) if len(d["kinds"]) == 1 else "mixed",
-                      "tip": "\n".join(d["tips"])} for d in dots.values()],
+                      "tip": "\n".join(d["tips"]), "ids": ",".join(map(str, d["ids"]))} for d in dots.values()],
         })
     return {"rows": result, "total": total}
 

@@ -1,0 +1,55 @@
+{# Building blocks of the side panel (specs 035, 036, 037). #}
+{% macro evidence_head(t) %}
+  <p class="feedback-evidence"><strong>{{ t.evidence }}</strong>{% if t.kind %} <span class="muted">({{ t.kind }})</span>{% endif %}
+    {% for code in t.skills %}<span class="skill-code" title="{{ skill_names[code] }}">{{ code }}</span>{% endfor %}</p>
+  {% if t.raw_kind == "free_text" %}{# spec 036, F1: the text of the evidence comes first #}
+  <div class="feedback-message feedback-msg-evidence">
+    <p class="feedback-meta">Bewijsstuk (tekst)</p>
+    {% if t.evidence_text %}<div class="evidence-text">{{ t.evidence_text|safe }}</div>
+    {% elif t.evidence_error %}<p class="muted">{{ t.evidence_error }}</p>
+    {% else %}<p class="muted">(geen tekst)</p>{% endif %}
+    {% if t.evidence_images %}<p class="muted">Deze tekst bevat {{ t.evidence_images }} afbeelding{{ "en" if t.evidence_images != 1 }}; die zijn alleen in Portflow te zien.</p>{% endif %}
+  </div>
+  {% endif %}
+{% endmacro %}
+
+{% macro feedback_request(t) %}
+  <div class="feedback-message feedback-msg-request">
+    <p class="feedback-meta"><strong>{{ t.request.author }}</strong> · {{ t.request.role }} · {{ t.request.date }} · feedbackvraag</p>
+    <p class="feedback-text">{{ t.request.text or "(geen tekst)" }}</p>
+  </div>
+  {% for r in t.replies %}
+  <div class="feedback-message feedback-msg-reply">
+    <p class="feedback-meta"><strong>{{ r.author }}</strong> · {{ r.role }} · {{ r.date }}</p>
+    <p class="feedback-text">{{ r.text or "(geen tekst)" }}</p>
+  </div>
+  {% else %}
+  <p class="muted feedback-none">Nog geen reacties.</p>
+  {% endfor %}
+{% endmacro %}
+
+{# Spec 037, F2: one evaluation request; per skill the self-evaluation, then the assessments. #}
+{% macro evaluation_request(r) %}
+<article class="feedback-thread evaluation-thread">
+  <p class="feedback-evidence"><strong>{{ r.title }}</strong>{% if r.date %} <span class="muted">· ingediend {{ r.date }}</span>{% endif %}</p>
+  {% for s in r.skills %}
+  <section class="evaluation-skill">
+    <h3 class="evaluation-skill-title"><span class="skill-code">{{ s.code }}</span> {{ s.name }}</h3>
+    {% for e in s.self %}
+    <div class="feedback-message feedback-msg-request">
+      <p class="feedback-meta"><strong>{{ e.author }}</strong> · zelfevaluatie{% if e.level %} · niveau {{ e.level }}{% endif %}{% if e.date %} · {{ e.date }}{% endif %}</p>
+      {% if e.text %}<div class="evidence-text">{{ e.text|safe }}</div>{% else %}<p class="muted feedback-text">(geen tekst)</p>{% endif %}
+    </div>
+    {% endfor %}
+    {% for e in s.assessed %}
+    <div class="feedback-message feedback-msg-reply">
+      <p class="feedback-meta"><strong>{{ e.author }}</strong> · {{ e.role }}{% if e.level %} · niveau {{ e.level }}{% endif %}{% if e.date %} · {{ e.date }}{% endif %}</p>
+      {% if e.text %}<div class="evidence-text">{{ e.text|safe }}</div>{% else %}<p class="muted feedback-text">(geen tekst)</p>{% endif %}
+    </div>
+    {% else %}
+    <p class="muted feedback-none">Nog niet beoordeeld.</p>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</article>
+{% endmacro %}

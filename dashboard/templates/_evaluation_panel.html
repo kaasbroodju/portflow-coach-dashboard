@@ -1,0 +1,6 @@
+{# Spec 037, F2: the whole evaluation request(s), newest first. #}
+{% from "_conversation.html" import evaluation_request with context %}
+{% for r in requests %}{{ evaluation_request(r) }}
+{% else %}
+<p class="muted">Deze evaluatie is niet (meer) gevonden.</p>
+{% endfor %}

@@ -137,6 +137,7 @@
       {% block content %}{% endblock %}
       {% if false %}{% block page_actions %}{% endblock %}{% endif %}
     </main>
+    {% include "_side_panel.html" %}
   </div>
 </div>
 <script src="{{ url_for('static', filename='app.js') }}" defer></script>

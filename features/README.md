@@ -104,6 +104,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 034 | [Tijdlijn van bewijsstukken](034-bewijsstukken-tijdlijn/spec.md) | `klaar` |
 | 035 | [Feedbackvragen en reacties](035-feedbackvragen/spec.md) | `klaar` |
 | 036 | [Bewijsstuk lezen](036-bewijsstuk-lezen/spec.md) | `klaar` |
+| 037 | [Evaluaties lezen in een zijpaneel](037-evaluaties-lezen/spec.md) | `klaar` |
 
 ## Kandidaten
 

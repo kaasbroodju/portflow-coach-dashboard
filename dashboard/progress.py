@@ -57,6 +57,8 @@ class Evaluation:
     date: str
     assessor: str | None
     submitted: str = ""   # when the student handed it in: the self-evaluation of the same request (spec 029, F3a)
+    request_id: int | None = None   # spec 037: to open the whole request in the side panel
+    row_id: int | None = None       # spec 037: for an evaluation without a request
 
 
 @dataclass
@@ -64,6 +66,24 @@ class Pending:
     title: str | None
     date: str
     request_id: int | None = None   # spec 032, F4: to group the open skills per request
+
+
+def panel_args(evaluations: list[Evaluation], pending: Pending | None = None) -> dict | None:
+    """Spec 037: 'verzoeken' (request ids) and 'losse' (evaluation ids without a request)."""
+    requests, loose = [], []
+    for e in evaluations:
+        if e.request_id is not None:
+            requests.append(e.request_id)
+        elif e.row_id is not None:
+            loose.append(e.row_id)
+    if pending and pending.request_id is not None:
+        requests.append(pending.request_id)
+    args = {}
+    if requests:
+        args["verzoeken"] = ",".join(str(i) for i in dict.fromkeys(requests))
+    if loose:
+        args["losse"] = ",".join(str(i) for i in dict.fromkeys(loose))
+    return args or None
 
 
 @dataclass
@@ -105,6 +125,12 @@ class Cell:
         if self.count == 1:
             return "n1"
         return "grey" if self.early_semester else "n0"
+
+    @property
+    def panel(self) -> dict | None:
+        """Spec 037, F3: the arguments of the side panel for this cell: the requests of its evaluations
+        (and of the open one), and loose evaluations without a request. None for an empty cell."""
+        return panel_args(self.evaluations, self.pending)
 
     @property
     def sort_key(self) -> tuple[int, int]:
@@ -162,7 +188,8 @@ def student_progress(
         if _counts(row, excluded, start, end):
             day = row.get("date") or ""
             submitted = handed_in.get((row.get("review_request_id"), row["skill"]), day)
-            cells[row["skill"]].evaluations.append(Evaluation(row["level"], day, row.get("assessor"), submitted))
+            cells[row["skill"]].evaluations.append(Evaluation(
+                row["level"], day, row.get("assessor"), submitted, row.get("review_request_id"), row.get("id")))
 
     # Open requests (voortgangsregels.md#openstaand).
     assessed_dates: dict[str, list[str]] = {skill: [] for skill in SKILLS}

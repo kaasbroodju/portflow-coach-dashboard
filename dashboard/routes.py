@@ -12,6 +12,7 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 from . import (choices, columns as column_data, demo, guilds, overview as overview_data, portflow_link, projects, reset,
                requests_to_review, semesters as semester_data, staff, student_edit, student_intake, summary, timeline)
 from . import db, evidence, feedback, hide_names, paths
+from . import evaluation_panel as evaluation_panel_data
 from .db import get_db
 from .portflow_fetch import S_REQUESTS_FETCHED, updated_text
 from .portflow_connection import initials
@@ -406,17 +407,51 @@ def feedback_panel(student_id: int):
     ids = [int(i) for i in request.args.get("vragen", "").split(",") if i.strip().isdigit()]
     start, end, _ = overview_data.semester_period(conn, date.today())
     threads = feedback.threads(conn, student_id, ids, start, end)
+    _add_evidence_text(conn, student_id, threads)
+    return _panel(student_id, "_feedback_panel.html", "Feedback", threads=threads)
+
+
+def _add_evidence_text(conn, student_id: int, items: list[dict]) -> None:
+    """Spec 036: the text of a text evidence comes first in the conversation (live from Portflow)."""
     token = current_app.extensions["portflow"].token
-    for thread in threads:   # spec 036: the text of a text evidence comes first in the conversation
-        if thread["raw_kind"] == "free_text":
-            details, thread["evidence_error"] = evidence.detail(conn, student_id, thread["evidence_id"], token)
-            thread["evidence_text"] = details["text"] if details else ""
-            thread["evidence_images"] = details["images"] if details else 0
-    context = {"threads": threads, "student_id": student_id}
+    for item in items:
+        if item["raw_kind"] == "free_text":
+            details, item["evidence_error"] = evidence.detail(conn, student_id, item["evidence_id"], token)
+            item["evidence_text"] = details["text"] if details else ""
+            item["evidence_images"] = details["images"] if details else 0
+
+
+def _panel(student_id: int, template: str, title: str, **context):
+    """The side panel (as a fragment) or, without JavaScript, the same as a page."""
     if request.headers.get("X-Requested-With") == "fetch":
-        return render_template("_feedback_panel.html", **context)
-    return render_template("feedback_page.html", page={"title": "Feedback", "label": f"Feedback · {row['name']}"},
-                           active="overview", **context)
+        return render_template(template, student_id=student_id, **context)
+    name = get_db().execute("SELECT name FROM students WHERE id = ?", (student_id,)).fetchone()["name"]
+    return render_template("feedback_page.html", page={"title": title, "label": f"{title} · {name}"},
+                           active="overview", panel_template=template, student_id=student_id, **context)
+
+
+@bp.get("/studenten/<int:student_id>/evaluaties")
+def evaluation_panel(student_id: int):
+    """Spec 037, F2: the whole evaluation request(s) of a block or a level cell."""
+    conn = get_db()
+    if not conn.execute("SELECT 1 FROM students WHERE id = ?", (student_id,)).fetchone():
+        abort(404)
+    request_ids, loose = evaluation_panel_data.parse_args(request.args)
+    return _panel(student_id, "_evaluation_panel.html", "Evaluaties",
+                  requests=evaluation_panel_data.conversations(conn, student_id, request_ids, loose))
+
+
+@bp.get("/studenten/<int:student_id>/bewijsstuk")
+def evidence_panel(student_id: int):
+    """Spec 037, F3: the evidence of a dot with its feedback requests and replies."""
+    conn = get_db()
+    if not conn.execute("SELECT 1 FROM students WHERE id = ?", (student_id,)).fetchone():
+        abort(404)
+    ids = [int(i) for i in request.args.get("ids", "").split(",") if i.strip().isdigit()]
+    start, end, _ = overview_data.semester_period(conn, date.today())
+    items = feedback.evidence_items(conn, student_id, ids, start, end)
+    _add_evidence_text(conn, student_id, items)
+    return _panel(student_id, "_evidence_panel.html", "Bewijsstuk", items=items)
 
 
 @bp.get("/projecten")

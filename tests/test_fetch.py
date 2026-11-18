@@ -22,7 +22,7 @@ def item(role, level, day, reviewer="Joost Hendriks", rid=1, scored=True):
         "type": "criterion_evaluation", "role": role, "date": f"{day}T10:00:00.000Z",
         "evaluation": {"level": level, "level_set": LEVELS, "review_request_id": rid,
                        "review_request_title": "OC 1ste evaluatie", "review_request_scored": scored,
-                       "comment": "<p>niet bewaren</p>", "reviewer": {"name": reviewer}},
+                       "comment": "<p>Goed gepland</p>", "reviewer": {"name": reviewer}},
     }
 
 
@@ -66,7 +66,7 @@ class TestParsing(unittest.TestCase):  # F2
         row = parse_feedback_item(item("teacher", "a", "2026-10-01"), "OC", {})
         self.assertEqual((row["kind"], row["level"], row["date"], row["assessor"]),
                          ("assessed", "0", "2026-10-01", "Joost Hendriks"))
-        self.assertNotIn("comment", row)
+        self.assertEqual(row["text"], "<p>Goed gepland</p>")   # spec 037, F1
 
     def test_self_evaluation_has_no_assessor(self):
         row = parse_feedback_item(item("self", "b", "2026-10-01", reviewer="Student"), "OC", {})

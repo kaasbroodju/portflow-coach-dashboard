@@ -103,7 +103,7 @@
         </th>
         <td class="col-profile">{% if row.guild_codes %}<span title="{{ row.guild_names }}">{{ row.guild_codes }}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
         {% for code in skills %}
-        {{ level_cell(code, p.cells[code]) }}
+        {{ level_cell(code, p.cells[code], row.id) }}
         {% endfor %}
         {% for c in t.custom_columns %}{% include "_custom_cell.html" %}{% endfor %}
         {% for key, label in t.extra_columns %}

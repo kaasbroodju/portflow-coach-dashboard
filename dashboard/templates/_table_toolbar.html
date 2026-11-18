@@ -1,6 +1,16 @@
 {# Filters, grouping and search for the student tables (spec 001 F13-F17, spec 010 F2). #}
 {% from "_icons.html" import icon %}
 {% set t = table %}
+{% macro who_select() %}
+    <label class="select">
+      <span class="visually-hidden">Wie</span>
+      <select name="wie">
+        {% for value, label in t.who_options %}<option value="{{ value }}" {% if t.args.wie == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+{% endmacro %}
+{# Spec 028, F7: on Overzicht the choice of students stays visible in the top row, also when compact. #}
+{% set who_on_top = active == "overview" %}
   <form method="get" class="table-toolbar" id="table-filters">
     <input type="hidden" name="f" value="1">{# spec 023: the filters are a choice and are remembered #}
     <div class="toolbar-top">{# spec 028, F1: search and the Filters button form the top row, button on the right #}
@@ -9,6 +19,7 @@
              aria-label="Zoek op naam, project of profiel" autocomplete="off">
       <kbd class="kbd" aria-hidden="true">⌘K</kbd>
     </span>
+    {% if who_on_top %}{{ who_select() }}{% endif %}
     {# Spec 028: fold the filters away (F1), with the number of active filters (F4). #}
     <button class="button button-secondary filters-toggle" type="submit" form="filters-fold" name="stand"
             value="{{ 'uitgebreid' if t.compact else 'compact' }}" aria-expanded="{{ 'false' if t.compact else 'true' }}"
@@ -22,12 +33,7 @@
     {% include "_management_bar.html" %}
     {% endif %}
 
-    <label class="select">
-      <span class="visually-hidden">Wie</span>
-      <select name="wie">
-        {% for value, label in t.who_options %}<option value="{{ value }}" {% if t.args.wie == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
-      </select>
-    </label>
+    {% if not who_on_top %}{{ who_select() }}{% endif %}
     <label class="select">
       <span class="visually-hidden">Semester</span>
       <select name="semester">

@@ -93,9 +93,9 @@ class TestPage(StudentPageCase):
         self.assertEqual(weeks[3]["blocks"][0]["category"], "product")
         self.assertIn("ingediend 22-9-2026, beoordeeld 1-10-2026 door Joost Visser", weeks[3]["blocks"][0]["tip"])
         html = self.html()
-        self.assertIn('<span class="skill-block skill-product" title="Overzicht creëren: niveau 1', html)
-        self.assertIn('<span class="skill-block skill-pending"', html)
-        self.assertIn(">BD ?</span>", html)
+        self.assertIn('<a class="skill-block skill-product" title="Overzicht creëren: niveau 1', html)
+        self.assertIn('<a class="skill-block skill-pending"', html)
+        self.assertIn(">BD ?</a>", html)
 
     def test_achieved_below_pending_in_skill_order(self):   # F3
         for skill in ("RE", "PL", "OC"):

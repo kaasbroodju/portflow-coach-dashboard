@@ -151,6 +151,7 @@ CREATE TABLE IF NOT EXISTS evaluations (
     review_request_title  TEXT,
     review_request_status TEXT,               -- not_started, in_progress, submitted, scored, denied,
                                               -- or 'not_scored' (Portflow: review_request_scored false)
+    text                  TEXT,               -- the comment (HTML) of the student or assessor, spec 037
     is_demo               INTEGER NOT NULL DEFAULT 0
 );
 
@@ -238,6 +239,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE students ADD COLUMN notes TEXT")
     if "is_hidden" not in columns:
         conn.execute("ALTER TABLE students ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0")   # spec 019, F4
+    evaluation_columns = {row["name"] for row in conn.execute("PRAGMA table_info(evaluations)")}
+    if "text" not in evaluation_columns:
+        conn.execute("ALTER TABLE evaluations ADD COLUMN text TEXT")   # spec 037, F1
     from .choices import ensure_lists, migrate_student_texts   # spec 024
     ensure_lists(conn)
     if "track" in columns:

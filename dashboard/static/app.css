@@ -409,6 +409,8 @@ a { color: inherit; }
 .filters-compact .list-subbar,
 .filters-compact .management-bar,
 .filters-compact .col-manage { display: none !important; }
+/* Compact: the sub bar (with its margin) is hidden, so keep some room above the coloured header line. */
+.filters-compact .table-toolbar { margin-bottom: 12px; }
 .table-search-wrap { position: relative; display: flex; flex: 1 1 260px; }
 .table-search {
   width: 100%;
@@ -464,9 +466,15 @@ a { color: inherit; }
 
 .col-skill { text-align: center !important; }
 thead .col-skill { border-top: 3px solid transparent !important; }
-thead .cat-product { border-top-color: #909db9 !important; }
-thead .cat-social { border-top-color: #a6b392 !important; }
-thead .cat-personal { border-top-color: #cba084 !important; }
+/* The coloured line per category is drawn in the (transparent) top border, so that the first column of
+   a new category can leave a small gap between the three colours. */
+thead .cat-product, thead .cat-social, thead .cat-personal {
+  background: linear-gradient(var(--cat), var(--cat)) left top / 100% 3px no-repeat border-box;
+}
+thead .cat-product { --cat: #909db9; }
+thead .cat-social { --cat: #a6b392; }
+thead .cat-personal { --cat: #cba084; }
+thead .cat-product + .cat-social, thead .cat-social + .cat-personal { background-position: right top; background-size: calc(100% - 6px) 3px; }
 
 .group-header th { padding-top: 14px; background: #fafbf8; font-size: 14px; font-weight: 600; }
 .group-header th > * { vertical-align: middle; }
@@ -1013,3 +1021,11 @@ html.js .noscript-hint { display: none; }
 /* Spec 001, F6: the details of a cell are placed relative to the window (app.js), so a table that
    scrolls sideways does not clip them or get a scroll bar of its own. */
 .level-details.is-floating { position: fixed; transform: none; z-index: 40; }
+
+/* Spec 037: evaluations open in the side panel from a level cell, a block or an evidence dot. */
+a.level, a.skill-block, a.evidence-dot { text-decoration: none; cursor: pointer; }
+a.level:hover, a.skill-block:hover { filter: brightness(0.94); outline: 1px solid rgba(0, 0, 0, 0.18); }
+a.evidence-dot:hover { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25); }
+.evaluation-skill { margin-top: 12px; }
+.evaluation-skill-title { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 14px; }
+.evaluation-thread .evidence-text p { margin: 0 0 6px; }

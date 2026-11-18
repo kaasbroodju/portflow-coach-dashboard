@@ -78,5 +78,24 @@ class FiltersFoldTest(unittest.TestCase):
         self.assertEqual(self.button(self.html("/?f=1")), "Filters")
 
 
+class TestWhoOnTop(unittest.TestCase):   # F7
+    def test_who_in_the_top_row_on_overview_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "t.sqlite3")
+            client = create_app(path).test_client()
+            conn = sqlite3.connect(path)
+            with conn:
+                conn.execute("INSERT INTO students (id, name, semester) VALUES (1, 'Lotte Bakker', 3)")
+            conn.close()
+            top = lambda html: html[html.index('class="toolbar-top"'):html.index("</div>", html.index('class="toolbar-top"'))]
+            overview = client.get("/").get_data(as_text=True)
+            row = top(overview)
+            self.assertLess(row.index('id="table-search"'), row.index('name="wie"'))
+            self.assertLess(row.index('name="wie"'), row.index("filters-toggle"))
+            self.assertEqual(overview.count('name="wie"'), 1)
+            students = client.get("/studenten").get_data(as_text=True)
+            self.assertNotIn('name="wie"', top(students))
+
+
 if __name__ == "__main__":
     unittest.main()
