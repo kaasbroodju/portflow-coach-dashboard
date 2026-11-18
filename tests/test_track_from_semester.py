@@ -43,18 +43,18 @@ class Case(unittest.TestCase):
 class TestTrackFromSemester(Case):
     def test_rule(self):   # F1
         fetch = {"X-Requested-With": "fetch"}
-        self.assertEqual(self.client.post("/studenten/1/semester", data={"semester": "3"}, headers=fetch).status_code, 205)
+        self.assertEqual(self.client.post("/studenten/1/veld/semester", data={"waarde": "3"}, headers=fetch).status_code, 205)
         self.assertEqual(self.track(1), "Open projecten")
-        self.client.post("/studenten/1/semester", data={"semester": "8"})
+        self.client.post("/studenten/1/veld/semester", data={"waarde": "8"})
         self.assertEqual(self.track(1), "Open projecten")   # a filled invulling never changes
-        self.client.post("/studenten/2/semester", data={"semester": "5"})
+        self.client.post("/studenten/2/veld/semester", data={"waarde": "5"})
         self.assertIsNone(self.track(2))
         self.client.post("/studenten/2/veld/semester", data={"waarde": "8"})   # the Studentenlijst
         self.assertEqual(self.track(2), "Afstuderen")
 
     def test_existing_invulling_stays(self):   # F1
         self.sql("UPDATE students SET track_id = ? WHERE id = 1", (self.item("Stage"),))
-        response = self.client.post("/studenten/1/semester", data={"semester": "4"}, headers={"X-Requested-With": "fetch"})
+        response = self.client.post("/studenten/1/veld/semester", data={"waarde": "4"}, headers={"X-Requested-With": "fetch"})
         self.assertEqual(response.status_code, 204)
         self.assertEqual(self.track(1), "Stage")
 
@@ -69,7 +69,7 @@ class TestTrackFromSemester(Case):
 
     def test_missing_item_is_added(self):   # F3
         self.client.post(f"/keuzelijsten/items/{self.item('Afstuderen')}/verwijderen")
-        self.client.post("/studenten/1/semester", data={"semester": "8"})
+        self.client.post("/studenten/1/veld/semester", data={"waarde": "8"})
         self.assertEqual(self.track(1), "Afstuderen")
         self.assertEqual(self.sql("SELECT COUNT(*) FROM choice_items WHERE code = 'Afstuderen'")[0][0], 1)
 

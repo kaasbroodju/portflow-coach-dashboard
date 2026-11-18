@@ -756,7 +756,7 @@ html.js .noscript-hint { display: none; }
 .icon-button .icon { width: 18px; height: 18px; }
 .hide-form { display: inline; }
 .make-me-form { display: inline; }
-/* Spec 022: lists in the student list, in the style of .semester-pick; the pencil above a column. */
+/* Spec 022: lists in the student list; the pencil above a column. */
 .inline-pick { display: inline; }
 .filters-clear { align-self: center; font-size: 13px; color: var(--text-muted); white-space: nowrap; }
 .filters-clear:hover { color: var(--text); }
@@ -776,12 +776,6 @@ html.js .noscript-hint { display: none; }
 .student-row.is-hidden-student .hide-form[data-hide-action="hide"] { display: none; }
 .student-row.is-hidden-student .hide-form[data-hide-action="show"] { display: inline; }
 .student-row.is-hidden-student > :not(.col-hide) { opacity: .45; }
-.semester-pick { display: inline; }
-.semester-pick select {
-  padding: 0 2px; border: 0; border-radius: 4px; background: transparent; color: inherit;
-  font: inherit; font-size: 12px; cursor: pointer;
-}
-.semester-pick select:hover, .semester-pick select:focus-visible { background: var(--page); }
 .tag-excluded { background: #f3e3dc; color: #8e5a49; }
 
 /* Kolommen en Keuzelijsten (spec 024): a simple table per list. */

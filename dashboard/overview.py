@@ -175,19 +175,6 @@ def set_hidden(conn: sqlite3.Connection, student_id: int, hidden: bool) -> bool:
         return conn.execute("UPDATE students SET is_hidden = ? WHERE id = ?", (int(hidden), student_id)).rowcount > 0
 
 
-def save_semester(conn: sqlite3.Connection, student_id: int, raw: str) -> str | None:
-    """Spec 019, F7: the semester from the list in the table; empty clears. Returns an error or None."""
-    value = raw.strip()
-    if value and (not value.isdigit() or not 1 <= int(value) <= 8):
-        return "Kies een semester van 1 tot en met 8."
-    with conn:
-        found = conn.execute("UPDATE students SET semester = ? WHERE id = ?",
-                             (int(value) if value else None, student_id)).rowcount
-        if found:
-            choices.fill_track(conn, student_id)   # spec 025, F1
-    return None if found else "Deze student bestaat niet (meer)."
-
-
 def default_grouping(conn: sqlite3.Connection) -> str:
     """Spec 019, F8: as long as no student has a project, semester or guild, do not group."""
     assigned = conn.execute("SELECT 1 FROM students WHERE squad_id IS NOT NULL OR semester IS NOT NULL "

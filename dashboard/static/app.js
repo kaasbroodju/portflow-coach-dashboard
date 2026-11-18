@@ -253,13 +253,6 @@
     return response;
   }
 
-  // F7: the semester list saves right away; the row stays where it is until the page reloads.
-  card.querySelectorAll(".semester-pick select").forEach((select) => {
-    select.addEventListener("change", () => {
-      post(select.form).catch((error) => { alert(error.message); location.reload(); });
-    });
-  });
-
   // F4, F5: hide a student, or show again. With "Alle studenten die ik niet heb verborgen"
   // the row disappears; with "Alle studenten van wie ik het portfolio kan zien" it is dimmed.
   const who = document.querySelector("#table-filters select[name=wie]");

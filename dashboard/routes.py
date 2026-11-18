@@ -283,12 +283,6 @@ def show_student(student_id: int):
     return _done_or_back()
 
 
-@bp.post("/studenten/<int:student_id>/semester")
-def save_student_semester(student_id: int):
-    """Spec 019, F7: the semester list in the table saves right away."""
-    return _semester_saved(student_id, lambda: overview_data.save_semester(get_db(), student_id, request.form.get("semester", "")))
-
-
 @bp.post("/studenten/<int:student_id>/veld/<field>")
 def save_student_field(student_id: int, field: str):
     """Spec 022, F1, F4: one list in the student list saves right away."""

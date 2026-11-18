@@ -226,19 +226,11 @@ class TestHiding(SimpleStartCase):
 
 
 class TestSemesterInTable(SimpleStartCase):
-    def test_choose_semester(self):   # F7
+    def test_semester_is_text_on_overzicht(self):   # F7, changed 2026-11-18: no list any more
         student = self.add("Anna de Boer")
-        self.assertIn('<option value="" selected>–</option>', self.html())
-        response = self.client.post(f"/studenten/{student}/semester", data={"semester": "5"},   # 5: no invulling (spec 025)
-                                    headers={"X-Requested-With": "fetch"})
-        self.assertEqual(response.status_code, 204)
-        self.assertIn('<option value="5" selected>Sem 5</option>', self.html())
-        response = self.client.post(f"/studenten/{student}/semester", data={"semester": "9"},
-                                    headers={"X-Requested-With": "fetch"})
-        self.assertEqual(response.status_code, 400)
-        self.client.post(f"/studenten/{student}/semester", data={"semester": ""})
-        with self.db() as conn:
-            self.assertIsNone(conn.execute("SELECT semester FROM students").fetchone()[0])
+        self.assertNotIn("semester-pick", self.html())
+        self.client.post(f"/studenten/{student}/veld/semester", data={"waarde": "5"})   # at Beheer › Studenten
+        self.assertRegex(self.html(), r'<span class="student-sub">\s*Sem 5')
 
 
 class TestEmptyColumns(SimpleStartCase):
