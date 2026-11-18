@@ -100,6 +100,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 030 | [Te beoordelen](030-te-beoordelen/spec.md) | `klaar` |
 | 031 | [Gegevensbestand tonen en kiezen](031-gegevensbestand/spec.md) | `klaar` |
 | 032 | [Overzicht van één student](032-studentpagina/spec.md) | `klaar` |
+| 033 | [Namen verbergen](033-namen-verbergen/spec.md) | `klaar` |
 
 ## Kandidaten
 

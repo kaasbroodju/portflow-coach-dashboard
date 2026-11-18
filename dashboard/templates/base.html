@@ -54,6 +54,14 @@
         {% include "_sidebar_user.html" %}
       </summary>
       <div class="sidebar-menu-panel">
+        {# Spec 033: hide the names of students, for demonstrations and screenshots. #}
+        <form method="post" action="{{ url_for('pages.toggle_names') }}">
+          <input type="hidden" name="aan" value="{{ '0' if hide_names else '1' }}">
+          <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+          <button class="sidebar-menu-item" type="submit" role="switch" aria-checked="{{ 'true' if hide_names else 'false' }}">
+            {{ icon("eye-off") }}<span>Namen verbergen</span><span class="menu-switch{% if hide_names %} is-on{% endif %}" aria-hidden="true"></span>
+          </button>
+        </form>
         <form method="post" action="{{ url_for('updates.stop') }}">
           <button class="sidebar-menu-item" type="submit">{{ icon("power") }}<span>Dashboard afsluiten</span></button>
         </form>
@@ -84,6 +92,18 @@
     </header>
 
     <div id="portflow-banner">{% include "_portflow_banner.html" %}</div>
+
+    {% if hide_names %}{# spec 033, F5 #}
+    <div class="hide-names-banner" role="status">
+      {{ icon("eye-off") }}
+      <span>Namen zijn verborgen: studenten heten "Student 1", "Student 2", …</span>
+      <form method="post" action="{{ url_for('pages.toggle_names') }}">
+        <input type="hidden" name="aan" value="0">
+        <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+        <button class="button button-secondary button-compact" type="submit">Namen tonen</button>
+      </form>
+    </div>
+    {% endif %}
 
     {% if update_available and active %}{# spec 020, U2 #}
     <div class="update-banner" role="status">

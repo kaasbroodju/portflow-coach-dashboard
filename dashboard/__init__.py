@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 from flask import Flask, abort, request
 
-from . import db, excel_routes, paths, portflow_routes, routes, update_routes, updates
+from . import db, excel_routes, hide_names, paths, portflow_routes, routes, update_routes, updates
 from .portflow_connection import PortflowConnection
 from .portflow_fetch import Fetcher
 from .portflow_token import TokenStore
@@ -46,6 +46,7 @@ def create_app(
     app.register_blueprint(portflow_routes.bp)
     app.register_blueprint(excel_routes.bp)  # spec 013
     app.register_blueprint(update_routes.bp)  # spec 020
+    hide_names.init_app(app, db.get_db)       # spec 033
     app.extensions["updater"] = updates.Updater(app.config["DATABASE"])
 
     if start_background:

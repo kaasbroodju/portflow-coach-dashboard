@@ -11,7 +11,7 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 
 from . import (choices, columns as column_data, demo, guilds, overview as overview_data, portflow_link, projects, reset,
                requests_to_review, semesters as semester_data, staff, student_edit, student_intake, summary, timeline)
-from . import db, paths
+from . import db, hide_names, paths
 from .db import get_db
 from .portflow_fetch import S_REQUESTS_FETCHED
 from .portflow_connection import initials
@@ -99,6 +99,7 @@ def shell_context():
         "update_available": current_app.extensions["updater"].available(),   # spec 020, U2
         "can_update": current_app.extensions["updater"].can_update(),        # spec 020, U5
         "app_version": VERSION,                                              # spec 020, R1
+        "hide_names": hide_names.is_on(),                                    # spec 033
     }
 
 
@@ -342,6 +343,14 @@ def evaluations():
                        requests=requests_to_review.open_requests(conn, date.today()),   # spec 030
                        fetched=bool(db.get_setting(current_app.config["DATABASE"], S_REQUESTS_FETCHED)),
                        student_count=len(rows))
+
+
+@bp.post("/namen-verbergen")
+def toggle_names():
+    """Spec 033, F1: switch hiding the names of students on or off (until a restart, F6)."""
+    hide_names.set_on(current_app._get_current_object(), request.form.get("aan") == "1")
+    target = request.form.get("next") or ""
+    return redirect(target if target.startswith("/") and not target.startswith("//") else url_for("pages.overview"))
 
 
 @bp.get("/studenten/<int:student_id>")
@@ -1113,6 +1122,7 @@ def student_edit_page(student_id: int):
     error = None
     if request.method == "POST":
         form = _student_form_from_request()
+        form["name"] = hide_names.real_name(conn, student_id, form["name"])   # spec 033, F7
         values, error = student_edit.validate(conn, form)
         link_choice = request.form.get("portflow", "")
         candidate = None
