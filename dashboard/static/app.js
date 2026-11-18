@@ -539,3 +539,49 @@
   });
   document.addEventListener("keydown", (event) => { if (event.key === "Escape") panel.hidden = true; });
 })();
+
+(() => {
+  "use strict";
+
+  // Spec 001, F6: place the details of a level cell relative to the window, below the cell when
+  // there is room and above it otherwise. Inside a table that scrolls sideways an absolutely
+  // positioned tooltip is clipped and gives the table a scroll bar (seen on the bottom rows).
+  const GAP = 4;
+  const place = (cell) => {
+    const tip = cell.querySelector(".level-details");
+    if (!tip) return;
+    tip.classList.add("is-floating");
+    const box = cell.querySelector(".level")?.getBoundingClientRect() || cell.getBoundingClientRect();
+    const width = tip.offsetWidth;
+    const height = tip.offsetHeight;
+    const below = box.bottom + GAP + height <= window.innerHeight;
+    const top = below ? box.bottom + GAP : Math.max(GAP, box.top - GAP - height);
+    const left = Math.min(Math.max(GAP, box.left + box.width / 2 - width / 2), window.innerWidth - width - GAP);
+    tip.style.top = `${top}px`;
+    tip.style.left = `${left}px`;
+  };
+  const reset = (cell) => {
+    const tip = cell?.querySelector(".level-details.is-floating");
+    if (!tip) return;
+    tip.classList.remove("is-floating");
+    tip.style.top = "";
+    tip.style.left = "";
+  };
+  document.addEventListener("mouseover", (event) => {
+    const cell = event.target.closest(".col-skill");
+    if (cell && !cell.contains(event.relatedTarget)) requestAnimationFrame(() => place(cell));
+  });
+  document.addEventListener("mouseout", (event) => {
+    const cell = event.target.closest(".col-skill");
+    if (cell && !cell.contains(event.relatedTarget)) reset(cell);
+  });
+  document.addEventListener("focusin", (event) => {
+    const cell = event.target.closest(".col-skill");
+    if (cell) requestAnimationFrame(() => place(cell));
+  });
+  document.addEventListener("focusout", (event) => reset(event.target.closest(".col-skill")));
+  // While the page or the table scrolls, keep a visible tooltip next to its cell.
+  document.addEventListener("scroll", () => {
+    document.querySelectorAll(".level-details.is-floating").forEach((tip) => place(tip.closest(".col-skill")));
+  }, true);
+})();

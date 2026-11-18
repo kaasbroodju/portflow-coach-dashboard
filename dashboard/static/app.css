@@ -1009,3 +1009,7 @@ html.js .noscript-hint { display: none; }
 .evidence-text p { margin: 0 0 10px; }
 .evidence-text h4 { margin: 14px 0 6px; font-size: 15px; }
 .evidence-text ul, .evidence-text ol { margin: 0 0 10px; padding-left: 22px; }
+
+/* Spec 001, F6: the details of a cell are placed relative to the window (app.js), so a table that
+   scrolls sideways does not clip them or get a scroll bar of its own. */
+.level-details.is-floating { position: fixed; transform: none; z-index: 40; }

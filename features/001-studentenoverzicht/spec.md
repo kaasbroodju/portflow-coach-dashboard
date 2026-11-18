@@ -177,3 +177,4 @@ Er is nog geen ontwerp met de afwijkingen (meerdere niveaus per cel, `?`, signaa
 - 2026-11-11 – aangepast door [spec 019](../019-eenvoudige-start/spec.md): het filter op wie (F14) heeft bovenaan de keuze "Alle studenten", die niets filtert
 - 2026-11-11 – op verzoek van de gebruiker: "Niet groeperen" staat als eerste in de keuzelijst Groeperen (F16)
 - 2026-11-17 – aangevuld door [spec 028](../028-filters-inklappen/spec.md): de filters boven de tabel zijn in te klappen; standaard staat alleen het zoekveld met de knop Filters
+- 2026-11-18 – gemeld door de gebruiker: de details bij hover over een cel werden op de onderste rijen afgekapt en gaven de tabel een scrollbalk. De details worden nu ten opzichte van het venster geplaatst (onder de cel, of erboven als er geen ruimte is), op alle tabellen met deze cellen (Overzicht, Evaluaties, de studentpagina)
