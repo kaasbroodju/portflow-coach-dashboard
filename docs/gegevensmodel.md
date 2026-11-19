@@ -52,7 +52,8 @@ Daarmee bepaalt de app de filters:
 
 - **Alle studenten die ik niet heb verborgen** (standaard): alle studenten in het dashboard, behalve de [verborgen](begrippen.md) studenten ([spec 019](../features/019-eenvoudige-start/spec.md), F6).
 - **Mijn coachstudenten:** studenten bij wie het veld *coach* gelijk is aan de naam van de gebruiker, of ze nu verborgen zijn of niet.
-- **Mijn gildestudenten:** studenten bij wie het veld *gildemeester* bij één van hun gildes gelijk is aan de naam van de gebruiker ([spec 016](../features/016-gildes-van-een-student/spec.md)), of ze nu verborgen zijn of niet. (De eigen gildes van de gebruiker komen met de spec *Eerste start*.)
+- **Studenten van wie ik gildemeester ben** (voorheen "Mijn gildestudenten"): studenten bij wie het veld *gildemeester* bij één van hun gildes gelijk is aan de naam van de gebruiker ([spec 016](../features/016-gildes-van-een-student/spec.md)), of ze nu verborgen zijn of niet.
+- **Alle studenten in mijn … gilde** (één keuze per gilde): alle studenten met dat gilde, of ze nu verborgen zijn of niet. De gildes van de gebruiker zijn de gildes bij zijn eigen naam in de lijst Gildemeesters ([spec 019](../features/019-eenvoudige-start/spec.md), F6).
 - **Alle studenten van wie ik het portfolio kan zien:** alle studenten in het dashboard, ook de verborgen (gedimd). Voorheen "Alle gevolgde studenten".
 
 Nieuwe studenten krijgen **niet** automatisch de naam van de gebruiker als coach of gildemeester. **Uitzondering:** bij "Uit Portflow kiezen" staat het vinkje "Ik ben hun coach" standaard aan ([spec 004](../features/004-studenten-toevoegen/spec.md), F11). Voor de andere manieren bepaalt hun eigen spec dit.

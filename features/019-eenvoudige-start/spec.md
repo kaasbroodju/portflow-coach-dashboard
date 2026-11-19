@@ -53,10 +53,13 @@ Er komen **geen twee standen**. Het is één app die zonder instellingen al brui
   | **Alle studenten** (toegevoegd 2026-11-11, bovenaan) | Alle gevolgde studenten, zonder filter: ook de verborgen studenten, als gewone rijen |
   | **Alle studenten die ik niet heb verborgen** (nieuw, standaard) | Alle studenten behalve de verborgen. Hierop werkt de knop Verbergen (F4) |
   | Mijn coachstudenten | Alleen studenten bij wie het veld *coach* gelijk is aan de naam van de gebruiker, of ze nu verborgen zijn of niet |
-  | Mijn gildestudenten | Alleen studenten bij wie het veld *gildemeester* (bij een van hun gildes) gelijk is aan de naam van de gebruiker, of ze nu verborgen zijn of niet |
+  | **Studenten van wie ik gildemeester ben** (voorheen "Mijn gildestudenten"; nieuwe naam 2026-11-19) | Alleen studenten bij wie het veld *gildemeester* (bij een van hun gildes) gelijk is aan de naam van de gebruiker, of ze nu verborgen zijn of niet |
+  | **Alle studenten in mijn *gilde*** (toegevoegd 2026-11-19), één regel per gilde van de gebruiker, bijvoorbeeld "Alle studenten in mijn Front-end gilde" | Alle studenten met dat gilde, wie hun gildemeester ook is, of ze nu verborgen zijn of niet. De gildes van de gebruiker zijn de gildes bij zijn eigen naam in de lijst Gildemeesters ([spec 006](../006-gildemeesters/spec.md)). Is de gebruiker bij geen gilde gildemeester, dan staat deze keuze er niet |
   | **Alle studenten van wie ik het portfolio kan zien** | Nieuwe naam voor "Alle gevolgde studenten". Ook de verborgen studenten, gedimd (F5) |
 
-  - Verbergen speelt alleen bij "Alle studenten die ik niet heb verborgen" en "Alle studenten van wie ik het portfolio kan zien". Bij Alle studenten, Mijn coachstudenten en Mijn gildestudenten zijn alle rijen gewone rijen: niet gedimd, zonder de knoppen Verbergen (F4) en Weer tonen (F5).
+  - Verbergen speelt alleen bij "Alle studenten die ik niet heb verborgen" en "Alle studenten van wie ik het portfolio kan zien". Bij Alle studenten, Mijn coachstudenten, Studenten van wie ik gildemeester ben en Alle studenten in mijn … gilde zijn alle rijen gewone rijen: niet gedimd, zonder de knoppen Verbergen (F4) en Weer tonen (F5).
+  - De keuzes per gilde staan direct onder "Studenten van wie ik gildemeester ben", in de volgorde van de gildes. Is een onthouden keuze voor een gilde er niet meer (de gebruiker is daar geen gildemeester meer), dan geldt de standaard.
+  - *Acceptatie (gilde):* is de gebruiker gildemeester bij UI/UX en Front-end, dan staan er twee regels: "Alle studenten in mijn UI/UX gilde" en "Alle studenten in mijn Front-end gilde"; de tweede toont alle studenten met het gilde FE.
   - *Acceptatie:* met 10 studenten, waarvan 2 verborgen, toont "Alle studenten die ik niet heb verborgen" "8 van 10 studenten" en "Alle studenten van wie ik het portfolio kan zien" "10 van 10 studenten". "Alle studenten" toont ook "10 van 10 studenten", zonder gedimde rijen en zonder de knoppen Verbergen en Weer tonen.
 
 ### Beoordelaars
@@ -174,3 +177,4 @@ Gedrag dat niet uit een afbeelding blijkt:
 - 2026-11-11 – op verzoek van de gebruiker: het filter op wie heeft bovenaan een vijfde keuze "Alle studenten", die niets filtert; verborgen studenten zijn daar gewone rijen (F6). Gebouwd en getest.
 - 2026-11-18 – F7 vervallen op verzoek van de gebruiker: geen keuzelijst voor het semester meer op Overzicht, alleen de tekst "Sem N"; wijzigen gaat bij Beheer › Studenten
 - 2026-11-19 – F14 gewijzigd op verzoek van de gebruiker: Verversen haalt weer alle niet-verborgen studenten op, maar de zichtbare eerst (Overzicht: de lijst; Evaluaties: de tabel; studentpagina: die student)
+- 2026-11-19 – F6 op verzoek van de gebruiker: "Mijn gildestudenten" heet "Studenten van wie ik gildemeester ben"; per eigen gilde een nieuwe keuze "Alle studenten in mijn … gilde" (ook op Evaluaties)

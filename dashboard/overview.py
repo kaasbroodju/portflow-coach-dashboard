@@ -34,7 +34,8 @@ DEFAULT_VISIBLE = ["guild_master"]      # F3
 # Spec 019, F6: "zichtbaar" is the default; hiding (F4, F5) only plays a part in "zichtbaar" and "alle".
 # "iedereen" filters nothing: hidden students are ordinary rows there.
 WHO = [("iedereen", "Alle studenten"), ("zichtbaar", "Alle studenten die ik niet heb verborgen"), ("coach", "Mijn coachstudenten"),
-       ("gilde", "Mijn gildestudenten"), ("alle", "Alle studenten van wie ik het portfolio kan zien")]
+       ("gilde", "Studenten van wie ik gildemeester ben"), ("alle", "Alle studenten van wie ik het portfolio kan zien")]
+GUILD_PREFIX = "gilde-"   # spec 019, F6: "gilde-<id>", all students in one of the user's guilds
 WHO_DEFAULT = "zichtbaar"
 HIDING_FILTERS = {"zichtbaar", "alle"}
 GROUPINGS = [("none", "Niet groeperen"), ("squad", "Project"), ("track", "Invulling"), ("semester", "Semester"),
@@ -318,6 +319,31 @@ def counted_evaluations_by_assessor(conn: sqlite3.Connection, today: date | None
 
 # Filters (F13-F15) -------------------------------------------------------------------------
 
+def _own_guilds(conn: sqlite3.Connection, user_name: str | None) -> list[sqlite3.Row]:
+    """Spec 019, F6: the guilds at the user's own name in the list of guild masters."""
+    me = normalize_name(user_name)
+    if not me:
+        return []
+    staff_ids = [r["id"] for r in conn.execute("SELECT id, name FROM staff WHERE is_guild_master = 1")
+                 if normalize_name(r["name"]) == me]
+    if not staff_ids:
+        return []
+    marks = ",".join("?" * len(staff_ids))
+    return conn.execute(f"SELECT DISTINCT g.id, g.code, g.name FROM guilds g JOIN staff_guilds sg ON sg.guild_id = g.id "
+                        f"WHERE sg.staff_id IN ({marks}) ORDER BY g.code", staff_ids).fetchall()
+
+
+def who_options(conn: sqlite3.Connection, user_name: str | None) -> list[tuple[str, str]]:
+    """The choices of the filter on who (spec 019, F6), with a line per guild of the user after
+    "Studenten van wie ik gildemeester ben"."""
+    result = []
+    for value, label in WHO:
+        result.append((value, label))
+        if value == "gilde":
+            result += [(f"{GUILD_PREFIX}{g['id']}", f"Alle studenten in mijn {g['name']}") for g in _own_guilds(conn, user_name)]
+    return result
+
+
 def apply_filters(rows: list[dict], args: dict, user_name: str | None) -> list[dict]:
     who = args.get("wie") or WHO_DEFAULT
     me = normalize_name(user_name)
@@ -329,6 +355,8 @@ def apply_filters(rows: list[dict], args: dict, user_name: str | None) -> list[d
             continue
         # Spec 016, F6: the user is guild master at one of the student's guilds.
         if who == "gilde" and (not me or me not in {normalize_name(n) for n in row["guild_masters"]}):
+            continue
+        if who.startswith(GUILD_PREFIX) and who[len(GUILD_PREFIX):] not in {str(g["guild_id"]) for g in row["guilds"]}:
             continue
         if args.get("semester") and str(row["semester"] or "") != args["semester"]:
             continue
@@ -470,11 +498,12 @@ def active_filter_count(args: dict[str, str], grouping: str, default_grouping: s
     return count + (args.get("wie", WHO_DEFAULT) != WHO_DEFAULT) + (grouping != default_grouping)
 
 
-def valid_filters(conn: sqlite3.Connection, chosen: dict[str, str], default_grouping: str) -> dict[str, str]:
+def valid_filters(conn: sqlite3.Connection, chosen: dict[str, str], default_grouping: str,
+                  user_name: str | None = None) -> dict[str, str]:
     """F5: a choice that no longer exists falls back to its standard."""
     options = filter_options(conn)
     allowed = {
-        "wie": dict(WHO), "groep": dict(grouping_options(conn)), "aansporen": {"1"},
+        "wie": dict(who_options(conn, user_name)), "groep": dict(grouping_options(conn)), "aansporen": {"1"},
         "semester": {str(s) for s in options["semesters"]}, "invulling": {t for t, _ in options["tracks"]},
         "project": {str(s["id"]) for s in options["squads"]}, "gilde": {str(g["id"]) for g in options["guilds"]},
     }

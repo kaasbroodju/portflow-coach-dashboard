@@ -9,7 +9,7 @@ import math
 import sqlite3
 from datetime import date, timedelta
 
-from .overview import WHO, WHO_DEFAULT
+from .overview import WHO_DEFAULT, who_options
 from .progress import panel_args
 from .requests_to_review import OPEN_STATUSES, waiting_text
 from .skills import CATEGORY, NAMES, SKILLS
@@ -72,13 +72,13 @@ def scale(weeks: list[dict]) -> dict:
 
 # The choice "wie" (F2), remembered apart from Overzicht -----------------------------------------
 
-def saved_who(conn: sqlite3.Connection) -> str:
+def saved_who(conn: sqlite3.Connection, user_name: str | None = None) -> str:
     row = conn.execute("SELECT value FROM settings WHERE key = ?", (S_WHO,)).fetchone()
-    return row[0] if row and row[0] in dict(WHO) else WHO_DEFAULT
+    return row[0] if row and row[0] in dict(who_options(conn, user_name)) else WHO_DEFAULT
 
 
-def save_who(conn: sqlite3.Connection, who: str) -> str:
-    who = who if who in dict(WHO) else WHO_DEFAULT
+def save_who(conn: sqlite3.Connection, who: str, user_name: str | None = None) -> str:
+    who = who if who in dict(who_options(conn, user_name)) else WHO_DEFAULT
     with conn:
         conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) "
                      "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (S_WHO, who))

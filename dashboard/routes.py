@@ -135,7 +135,7 @@ def _table_context() -> dict:
         overview_data.save_filters(conn, page, chosen, default_grouping)
     else:
         chosen = overview_data.saved_filters(conn, page)
-    args = overview_data.valid_filters(conn, chosen, default_grouping)
+    args = overview_data.valid_filters(conn, chosen, default_grouping, user)
     grouping = args.pop("groep")
     filtered = any(v for k, v in args.items() if k != "wie") \
         or args["wie"] != overview_data.WHO_DEFAULT or grouping != default_grouping   # F4
@@ -162,7 +162,7 @@ def _table_context() -> dict:
             "active_filters": overview_data.active_filter_count(args, grouping, default_grouping),
             "can_hide": args["wie"] in overview_data.HIDING_FILTERS,   # spec 019, F4-F6
             "all_hidden": args["wie"] == "zichtbaar" and bool(all_rows) and all(r["hidden"] for r in all_rows),
-            "who_options": overview_data.WHO,
+            "who_options": overview_data.who_options(conn, current_app.extensions["portflow"].user_name),
             "grouping_options": overview_data.grouping_options(conn),
             "options": overview_data.filter_options(conn),
             "extra_columns": [(key, label) for key, label in overview_data.EXTRA_COLUMNS if key in visible],
@@ -326,12 +326,13 @@ def save_custom_value(student_id: int, column_id: int):
 def evaluations():
     """Spec 029: the timeline of evaluations for the chosen students."""
     conn = get_db()
-    who = timeline.save_who(conn, request.args["wie"]) if "wie" in request.args else timeline.saved_who(conn)
+    me = current_app.extensions["portflow"].user_name
+    who = timeline.save_who(conn, request.args["wie"], me) if "wie" in request.args else timeline.saved_who(conn, me)
     start, end, period_saved = overview_data.semester_period(conn, date.today())
     rows = overview_data.apply_filters(overview_data.student_rows(conn, date.today()), {"wie": who},
                                        current_app.extensions["portflow"].user_name)
     weeks = timeline.week_counts(rows, start, end)
-    return render_page("evaluations", who=who, who_options=overview_data.WHO, weeks=weeks,
+    return render_page("evaluations", who=who, who_options=overview_data.who_options(conn, me), weeks=weeks,
                        scale=timeline.scale(weeks), period=f"{timeline.long_date(start)} – {timeline.long_date(end)}",
                        period_saved=period_saved,
                        blocks=timeline.project_blocks(rows),
