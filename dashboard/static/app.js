@@ -253,7 +253,7 @@
   }
 
   // F4, F5: hide a student, or show again. With "Alle studenten die ik niet heb verborgen"
-  // the row disappears; with "Alle studenten van wie ik het portfolio kan zien" it is dimmed.
+  // the row disappears; with every other choice of who it is dimmed.
   const who = document.querySelector("#table-filters select[name=wie]");
   card.querySelectorAll(".hide-form").forEach((form) => {
     form.addEventListener("submit", (event) => {

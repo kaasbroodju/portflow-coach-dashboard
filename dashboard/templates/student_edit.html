@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {# Student bewerken (spec 011). #}
 {% block content %}
-{% if confirm %}
+{% if confirm %}{# Spec 011, F6: hiding, so that Verversen does not bring the student back #}
 <div class="confirm" role="alertdialog" aria-labelledby="remove-title">
-  <p id="remove-title"><strong>{{ student.name }} niet meer volgen?</strong>
-    De student, zijn bewaarde evaluaties en de waarden in eigen kolommen verdwijnen uit het dashboard. In Portflow verandert niets.</p>
+  <p id="remove-title"><strong>{{ student.name }} verbergen?</strong>
+    De student verdwijnt uit Overzicht en Evaluaties en Verversen haalt zijn evaluaties niet meer op. Zijn gegevens blijven bewaard; je haalt hem terug via Beheer › Studenten met "Studenten die ik heb verborgen".</p>
   <div class="actions">
     <a class="button button-secondary" href="{{ url_for('pages.student_edit_page', student_id=student.id, terug=back) }}">Annuleren</a>
-    <form method="post" action="{{ url_for('pages.student_delete', student_id=student.id) }}">
+    <form method="post" action="{{ url_for('pages.student_hide_confirmed', student_id=student.id) }}">
       <input type="hidden" name="terug" value="{{ back }}">
-      <button class="button button-danger" type="submit">Niet meer volgen</button>
+      <button class="button button-danger" type="submit">Verbergen</button>
     </form>
   </div>
 </div>
@@ -142,9 +142,16 @@
   <div class="actions form-wide">
     <a class="button button-secondary" href="{{ back }}">Annuleren</a>
     <button class="button button-primary" type="submit">Opslaan</button>
-    {% if student %}
-    <a class="button button-secondary push-right" href="{{ url_for('pages.student_edit_page', student_id=student.id, terug=back, bevestig='verwijderen') }}">Student niet meer volgen</a>
+    {% if student and student.is_hidden %}
+    <button class="button button-secondary push-right" type="submit" form="show-student">Weer tonen</button>
+    {% elif student %}
+    <a class="button button-secondary push-right" href="{{ url_for('pages.student_edit_page', student_id=student.id, terug=back, bevestig='verbergen') }}">Student verbergen</a>
     {% endif %}
   </div>
 </form>
+{% if student and student.is_hidden %}
+<form method="post" id="show-student" action="{{ url_for('pages.student_hide_confirmed', student_id=student.id) }}" hidden>
+  <input type="hidden" name="terug" value="{{ back }}"><input type="hidden" name="tonen" value="1">
+</form>
+{% endif %}
 {% endblock %}

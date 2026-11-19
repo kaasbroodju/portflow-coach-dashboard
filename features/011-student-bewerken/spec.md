@@ -43,8 +43,8 @@ Als **coach** of **gildemeester** wil ik vanuit de lijst met studenten één stu
   - *Acceptatie:* semester 3 en primaire rol FE invullen bij een student uit "Nog in te delen" → terug in de lijst staat hij onder zijn project (of "Zonder project") en niet meer onder "Nog in te delen".
 - [x] **F5 – Controle.** De naam is verplicht; een startdatum moet een geldige datum zijn; gekozen semesters, projecten, rollen, coaches en gildemeesters moeten bestaan. Bij een fout blijft het formulier ingevuld en staat de uitleg erbij.
   - *Acceptatie:* een lege naam wordt geweigerd met "Vul een naam in." en de andere ingevulde velden blijven staan.
-- [x] **F6 – Niet meer volgen.** De knop **"Student niet meer volgen"** vraagt eerst om bevestiging ("Sem Bakker niet meer volgen? De student, zijn bewaarde evaluaties en de waarden in eigen kolommen verdwijnen uit het dashboard. In Portflow verandert niets."). Na bevestiging is de student weg en gaat de gebruiker terug naar Studenten met de melding "Sem Bakker wordt niet meer gevolgd."
-  - *Acceptatie:* na bevestigen is de student met zijn evaluaties uit de database verdwenen; bij Annuleren blijft alles staan.
+- [x] **F6 – Student verbergen.** *Gewijzigd 2026-11-19 op verzoek van de gebruiker: eerst verwijderde deze knop de student ("Student niet meer volgen"), waarna Verversen hem terugzette als hij zijn portfolio nog deelde.* De knop **"Student verbergen"** vraagt eerst om bevestiging ("Sem Bakker verbergen? De student verdwijnt uit Overzicht en Evaluaties en Verversen haalt zijn evaluaties niet meer op. Zijn gegevens blijven bewaard; je haalt hem terug via Beheer › Studenten met 'Studenten die ik heb verborgen'."). Na bevestiging is de student [verborgen](../../docs/begrippen.md) ([spec 019](../019-eenvoudige-start/spec.md), F4) en gaat de gebruiker terug naar Studenten met de melding "Sem Bakker is verborgen." Is de student al verborgen, dan staat er in plaats van die knop **"Weer tonen"**, met de melding "Sem Bakker is weer zichtbaar."
+  - *Acceptatie:* na bevestigen staat de student met zijn evaluaties nog in de database, met verborgen aan; na Verversen is hij nog steeds verborgen. Bij Annuleren verandert er niets.
 
 ### Buiten scope
 
@@ -93,3 +93,4 @@ Geen eigen ontwerp. Het formulier volgt de formulieren van de beheerpagina's ([s
 - 2026-11-11 – aangepast door [spec 024](../024-keuzelijsten/spec.md): Invulling en Teamrol zijn keuzes uit de keuzelijsten
 - 2026-11-11 – aangepast door [spec 025](../025-invulling-en-stage/spec.md): een lege invulling volgt uit semester 3, 4 of 8
 - 2026-11-11 – aangepast door [spec 026](../026-eigen-kolommen-bewerken/spec.md): het formulier heeft een blok Eigen kolommen boven Notities
+- 2026-11-19 – F6 gewijzigd op verzoek van de gebruiker: "Student niet meer volgen" wordt "Student verbergen" (verbergen in plaats van verwijderen, zodat Verversen de student niet terugzet); bij een verborgen student "Weer tonen"

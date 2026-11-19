@@ -135,7 +135,7 @@ def _table_context() -> dict:
         overview_data.save_filters(conn, page, chosen, default_grouping)
     else:
         chosen = overview_data.saved_filters(conn, page)
-    args = overview_data.valid_filters(conn, chosen, default_grouping, user)
+    args = overview_data.valid_filters(conn, chosen, default_grouping, user, page)
     grouping = args.pop("groep")
     filtered = any(v for k, v in args.items() if k != "wie") \
         or args["wie"] != overview_data.WHO_DEFAULT or grouping != default_grouping   # F4
@@ -160,9 +160,9 @@ def _table_context() -> dict:
             "filtered": filtered,
             "compact": overview_data.filters_compact(conn, page),   # spec 028
             "active_filters": overview_data.active_filter_count(args, grouping, default_grouping),
-            "can_hide": args["wie"] in overview_data.HIDING_FILTERS,   # spec 019, F4-F6
+            "can_hide": True,   # spec 019, F4-F6: the eye icon with every choice of who (2026-11-19)
             "all_hidden": args["wie"] == "zichtbaar" and bool(all_rows) and all(r["hidden"] for r in all_rows),
-            "who_options": overview_data.who_options(conn, current_app.extensions["portflow"].user_name),
+            "who_options": overview_data.who_options(conn, user, page),
             "grouping_options": overview_data.grouping_options(conn),
             "options": overview_data.filter_options(conn),
             "extra_columns": [(key, label) for key, label in overview_data.EXTRA_COLUMNS if key in visible],
@@ -1229,7 +1229,7 @@ def student_edit_page(student_id: int):
                            error=error, options=student_edit.options(conn),
                            link_info=student_edit.portflow_link(conn, student), back=_list_path(),
                            link_choices=_link_choices(conn, student_id),
-                           confirm=request.args.get("bevestig") == "verwijderen")
+                           confirm=request.args.get("bevestig") == "verbergen")
 
 
 def _link_choices(conn, student_id: int) -> list[dict] | None:
@@ -1246,15 +1246,16 @@ def _link_choices(conn, student_id: int) -> list[dict] | None:
     return portflow_link.choices(conn, candidates, student_id) if candidates is not None else None
 
 
-@bp.post("/studenten/<int:student_id>/verwijderen")
-def student_delete(student_id: int):
-    """F6: no longer follow this student."""
+@bp.post("/studenten/<int:student_id>/verbergen-bevestigd")
+def student_hide_confirmed(student_id: int):
+    """Spec 011, F6: hide the student (Verversen leaves him alone), or show him again."""
     conn = get_db()
     student = student_edit.find(conn, student_id)
     if student is None:
         abort(404)
-    student_edit.delete(conn, student_id)
-    return redirect(_with_message(_list_path(), f"{student['name']} wordt niet meer gevolgd."))
+    show = request.form.get("tonen") == "1"
+    overview_data.set_hidden(conn, student_id, not show)
+    return redirect(_with_message(_list_path(), f"{student['name']} is weer zichtbaar." if show else f"{student['name']} is verborgen."))
 
 
 # Projecten (spec 012) -------------------------------------------------------------------------

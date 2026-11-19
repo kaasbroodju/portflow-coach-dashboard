@@ -41,7 +41,7 @@ Er komen **geen twee standen**. Het is één app die zonder instellingen al brui
 
 - [x] **F4 – Verbergen per rij.** Elke rij op Overzicht krijgt een icoonknop **"Verbergen"**: een oog met een streep erdoor, met tooltip "Verbergen in dit overzicht". Er staat geen tekst op de knop; het icoon is altijd zichtbaar, aan het eind van de rij. Na een klik verdwijnt de rij uit "Alle studenten die ik niet heb verborgen" (F6). De student wordt **niet verwijderd**: zijn gegevens en indeling blijven bestaan. Het icoon komt in `_icons.html` ([design-system.md](../../docs/design-system.md)).
   - *Acceptatie:* na een klik op het icoon bij een student is de rij weg uit "Alle studenten die ik niet heb verborgen", de teller telt één minder, en bij "Alle studenten van wie ik het portfolio kan zien" staat de student er nog.
-- [x] **F5 – Weer tonen.** Bij "Alle studenten van wie ik het portfolio kan zien" (F6) is een verborgen rij gedimd en staat er een icoonknop **"Weer tonen"** (een open oog, tooltip "Weer tonen in dit overzicht"). Een klik maakt de student weer zichtbaar.
+- [x] **F5 – Weer tonen.** Bij elke keuze van wie behalve "Alle studenten die ik niet heb verborgen" (F6; tot 2026-11-19 alleen bij "Alle studenten van wie ik het portfolio kan zien") is een verborgen rij gedimd en staat er een icoonknop **"Weer tonen"** (een open oog, tooltip "Weer tonen in dit overzicht"). Een klik maakt de student weer zichtbaar.
   - *Acceptatie:* een verborgen student die weer getoond wordt, staat direct weer in "Alle studenten die ik niet heb verborgen".
 
 ### Filter op wie
@@ -50,17 +50,18 @@ Er komen **geen twee standen**. Het is één app die zonder instellingen al brui
 
   | Keuze | Toont |
   |---|---|
-  | **Alle studenten** (toegevoegd 2026-11-11, bovenaan) | Alle gevolgde studenten, zonder filter: ook de verborgen studenten, als gewone rijen |
+  | **Alle studenten** (toegevoegd 2026-11-11, bovenaan) | Alle gevolgde studenten, zonder filter: ook de verborgen studenten (sinds 2026-11-19 gedimd, met "Weer tonen") |
   | **Alle studenten die ik niet heb verborgen** (nieuw, standaard) | Alle studenten behalve de verborgen. Hierop werkt de knop Verbergen (F4) |
   | Mijn coachstudenten | Alleen studenten bij wie het veld *coach* gelijk is aan de naam van de gebruiker, of ze nu verborgen zijn of niet |
   | **Studenten van wie ik gildemeester ben** (voorheen "Mijn gildestudenten"; nieuwe naam 2026-11-19) | Alleen studenten bij wie het veld *gildemeester* (bij een van hun gildes) gelijk is aan de naam van de gebruiker, of ze nu verborgen zijn of niet |
   | **Alle studenten in mijn *gilde*** (toegevoegd 2026-11-19), één regel per gilde van de gebruiker, bijvoorbeeld "Alle studenten in mijn Front-end gilde" | Alle studenten met dat gilde, wie hun gildemeester ook is, of ze nu verborgen zijn of niet. De gildes van de gebruiker zijn de gildes bij zijn eigen naam in de lijst Gildemeesters ([spec 006](../006-gildemeesters/spec.md)). Is de gebruiker bij geen gilde gildemeester, dan staat deze keuze er niet |
+  | **Studenten die ik heb verborgen** (toegevoegd 2026-11-19, **alleen op Beheer › Studenten**, onderaan) | Alleen de verborgen studenten. Weer tonen gaat bij Student bewerken ([spec 011](../011-student-bewerken/spec.md), F6) |
   | **Alle studenten van wie ik het portfolio kan zien** | Nieuwe naam voor "Alle gevolgde studenten". Ook de verborgen studenten, gedimd (F5) |
 
-  - Verbergen speelt alleen bij "Alle studenten die ik niet heb verborgen" en "Alle studenten van wie ik het portfolio kan zien". Bij Alle studenten, Mijn coachstudenten, Studenten van wie ik gildemeester ben en Alle studenten in mijn … gilde zijn alle rijen gewone rijen: niet gedimd, zonder de knoppen Verbergen (F4) en Weer tonen (F5).
+  - *Gewijzigd 2026-11-19 op verzoek van de gebruiker:* het oog-icoon staat op Overzicht bij **elke** keuze van wie. Een verborgen rij is bij elke keuze gedimd en heeft het open oog "Weer tonen" (F5). Bij "Alle studenten die ik niet heb verborgen" verdwijnt een rij na verbergen; bij de andere keuzes wordt hij gedimd. *Eerst speelde verbergen alleen bij "Alle studenten die ik niet heb verborgen" en "Alle studenten van wie ik het portfolio kan zien".*
   - De keuzes per gilde staan direct onder "Studenten van wie ik gildemeester ben", in de volgorde van de gildes. Is een onthouden keuze voor een gilde er niet meer (de gebruiker is daar geen gildemeester meer), dan geldt de standaard.
   - *Acceptatie (gilde):* is de gebruiker gildemeester bij UI/UX en Front-end, dan staan er twee regels: "Alle studenten in mijn UI/UX gilde" en "Alle studenten in mijn Front-end gilde"; de tweede toont alle studenten met het gilde FE.
-  - *Acceptatie:* met 10 studenten, waarvan 2 verborgen, toont "Alle studenten die ik niet heb verborgen" "8 van 10 studenten" en "Alle studenten van wie ik het portfolio kan zien" "10 van 10 studenten". "Alle studenten" toont ook "10 van 10 studenten", zonder gedimde rijen en zonder de knoppen Verbergen en Weer tonen.
+  - *Acceptatie:* met 10 studenten, waarvan 2 verborgen, toont "Alle studenten die ik niet heb verborgen" "8 van 10 studenten" en "Alle studenten van wie ik het portfolio kan zien" "10 van 10 studenten". "Alle studenten" toont ook "10 van 10 studenten", met de 2 verborgen rijen gedimd (sinds 2026-11-19).
 
 ### Beoordelaars
 
@@ -151,7 +152,7 @@ Gedrag dat niet uit een afbeelding blijkt:
 
 ### Keuzes bij het bouwen, ter controle
 
-- [ ] **Een student die je niet meer volgt, komt terug.** "Student niet meer volgen" ([spec 011](../011-student-bewerken/spec.md)) verwijdert een student. Deelt die student zijn portfolio nog, dan voegt de volgende Verversen-ronde hem weer toe (F3). Gebruik daarom liever Verbergen. Moet "niet meer volgen" voortaan verbergen, of de app onthouden dat je die student niet wilt?
+- [x] **Een student die je niet meer volgt, komt terug.** Beantwoord 2026-11-19: "Student niet meer volgen" verbergt voortaan ([spec 011](../011-student-bewerken/spec.md), F6); verbergen wordt onthouden, ook bij Verversen. Op Beheer › Studenten toont de keuze "Studenten die ik heb verborgen" ze (F6).
 - [x] Je eigen naam verwijderen (Coaches) sluit je eigen evaluaties niet uit; je naam wordt ook niet automatisch teruggezet ([spec 007](../007-coaches/spec.md), F2a).
 - [x] Iemand die je zelf weer toevoegt (namen typen of uit Portflow kiezen), telt weer mee.
 - [x] Verversen op een pagina zonder studentenlijst (bijvoorbeeld Instellingen) haalt alle studenten op die niet verborgen zijn. Studenten die in een ronde nieuw zijn toegevoegd, worden in die ronde ook opgehaald.
@@ -178,3 +179,5 @@ Gedrag dat niet uit een afbeelding blijkt:
 - 2026-11-18 – F7 vervallen op verzoek van de gebruiker: geen keuzelijst voor het semester meer op Overzicht, alleen de tekst "Sem N"; wijzigen gaat bij Beheer › Studenten
 - 2026-11-19 – F14 gewijzigd op verzoek van de gebruiker: Verversen haalt weer alle niet-verborgen studenten op, maar de zichtbare eerst (Overzicht: de lijst; Evaluaties: de tabel; studentpagina: die student)
 - 2026-11-19 – F6 op verzoek van de gebruiker: "Mijn gildestudenten" heet "Studenten van wie ik gildemeester ben"; per eigen gilde een nieuwe keuze "Alle studenten in mijn … gilde" (ook op Evaluaties)
+- 2026-11-19 – open vraag "niet meer volgen" beantwoord door de gebruiker: de knop verbergt (spec 011, F6); nieuwe keuze "Studenten die ik heb verborgen" in het filter op wie, alleen op Beheer › Studenten (F6)
+- 2026-11-19 – op verzoek van de gebruiker: het oog-icoon (verbergen, weer tonen) staat op Overzicht bij elke keuze van wie (F4–F6)

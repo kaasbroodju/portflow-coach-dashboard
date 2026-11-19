@@ -194,12 +194,6 @@ def create(conn: sqlite3.Connection, values: dict) -> int:
     return student_id
 
 
-def delete(conn: sqlite3.Connection, student_id: int) -> None:
-    """F6: evaluations, portfolios, guilds and custom values go along (foreign keys)."""
-    with conn:
-        conn.execute("DELETE FROM students WHERE id = ?", (student_id,))
-
-
 # Inline changes in the student list (spec 022) ---------------------------------------------
 
 INLINE_FIELDS = ("semester", "squad_id", "track", "squad_role", "coach_id", "guild")

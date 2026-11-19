@@ -197,9 +197,9 @@ class TestHiding(SimpleStartCase):
         html = self.html(wie="iedereen")
         self.assertEqual(len(self.names(html)), 3)
         self.assertIn("3 van 3 studenten", html)
-        self.assertNotIn("is-hidden-student", html)   # an ordinary row, no dimming
-        self.assertNotIn("/verbergen", html)          # no hide or show buttons
-        self.assertNotIn("/tonen", html)
+        self.assertEqual(html.count("is-hidden-student"), 1)   # dimmed, with the eye icons (2026-11-19)
+        self.assertIn("/verbergen", html)
+        self.assertIn("/tonen", html)
         options = re.findall(r'<option value="([a-z]+)"[^>]*>', html.split('name="wie"')[1].split("</select>")[0])
         self.assertEqual(options[0], "iedereen")
 
@@ -208,16 +208,16 @@ class TestHiding(SimpleStartCase):
         self.assertEqual(response.headers["Location"], "/?wie=alle")
         self.assertEqual(self.client.post("/studenten/999/verbergen").status_code, 404)
 
-    def test_hiding_plays_no_part_in_coach_and_guild_filters(self):   # F6
+    def test_eye_icon_with_every_choice(self):   # F6 (changed 2026-11-19)
         with self.db() as conn:
             coach = conn.execute("INSERT INTO staff (name, is_coach) VALUES ('Marieke Ploeg', 1) RETURNING id").fetchone()[0]
             conn.execute("UPDATE students SET coach_id = ?, is_hidden = 1 WHERE id = ?", (coach, self.ids[0]))
         db.set_setting(str(self.db_path), "portflow_user_name", "Marieke Ploeg")
         html = self.html(wie="coach")
         self.assertEqual(self.names(html), ["anna de boer"])
-        self.assertNotIn("is-hidden-student", html)
-        self.assertNotIn("Verbergen in dit overzicht", html)
-        self.assertIn("Verbergen in dit overzicht", self.html(f="1"))   # back to the standard filter (spec 023)
+        self.assertIn("is-hidden-student", html)            # dimmed, with "Weer tonen"
+        self.assertIn("Weer tonen in dit overzicht", html)
+        self.assertIn("Verbergen in dit overzicht", self.html(wie="iedereen"))
 
     def test_all_hidden(self):
         for student_id in self.ids:

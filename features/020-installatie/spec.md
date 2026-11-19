@@ -1,7 +1,7 @@
 # 020 – Installatie, releases en bijwerken
 
 **Status:** in bouw <!-- idee | uitgewerkt | in bouw | klaar -->
-**Laatst bijgewerkt:** 2026-11-17
+**Laatst bijgewerkt:** 2026-11-19
 
 ## Doel
 
@@ -55,11 +55,11 @@ Clonen met git, venv en `requirements.txt` blijft bestaan voor ontwikkelaars ([a
 
 ### Installeren (voor de gebruiker)
 
-- [ ] **I1 – Eén regel.** De README en elke releasepagina tonen per besturingssysteem één regel om te kopiëren, met een korte uitleg in gewone taal ("Open Terminal, plak deze regel en druk op Enter"):
+- [x] **I1 – Eén regel.** De README en elke releasepagina tonen per besturingssysteem één regel om te kopiëren, met een korte uitleg in gewone taal ("Open Terminal, plak deze regel en druk op Enter"):
   - macOS (Terminal): `curl -fsSL https://github.com/petersnoek-hu/portflow-coach-dashboard/releases/latest/download/install-macos.sh | sh`
   - Windows (PowerShell): `irm https://github.com/petersnoek-hu/portflow-coach-dashboard/releases/latest/download/install-windows.ps1 | iex`
   - *Acceptatie:* op een schone Mac en een schone Windows-laptop zonder Python is het dashboard na het plakken van die ene regel geïnstalleerd en geopend.
-- [ ] **I2 – Wat het script doet.** Zonder beheerdersrechten, en met een korte Nederlandse melding per stap:
+- [x] **I2 – Wat het script doet.** Zonder beheerdersrechten, en met een korte Nederlandse melding per stap:
   1. Controleert of Google Chrome geïnstalleerd is; zo niet, dan stopt het met een link naar de downloadpagina van Chrome.
   2. Installeert uv in de gebruikersmap, als dat er nog niet is.
   3. Downloadt de nieuwste release (zip), controleert de controlesom en pakt hem uit in de programmamap (I3).
@@ -75,11 +75,11 @@ Clonen met git, venv en `requirements.txt` blijft bestaan voor ontwikkelaars ([a
   | Gegevens (database, browserprofiel, reservekopieën) | `~/Library/Application Support/Portflow coach dashboard/data/` | `%LOCALAPPDATA%\Portflow coach dashboard\data\` |
 
   Vanuit een git-checkout blijft de app `data/` naast de code gebruiken. Vindt het script bij de eerste installatie een git-checkout met gegevens, of geeft de gebruiker er een op, dan biedt het aan die `data/` over te nemen (een kopie; het origineel blijft staan).
-- [ ] **I4 – Snelkoppeling.** macOS: een app **"Portflow coach dashboard"** in `~/Applications`, met het `>_`-icoon, vast te zetten in het Dock. Windows: een snelkoppeling met dat icoon in het **Startmenu** en op het **bureaublad**. Een klik start de app **zonder terminalvenster** en opent het dashboard in de standaardbrowser. Draait de app al, dan opent alleen het dashboard.
+- [x] **I4 – Snelkoppeling.** macOS: een app **"Portflow coach dashboard"** in `~/Applications`, met het `>_`-icoon, vast te zetten in het Dock. Windows: een snelkoppeling met dat icoon in het **Startmenu** en op het **bureaublad**. Een klik start de app **zonder terminalvenster** en opent het dashboard in de standaardbrowser. Draait de app al, dan opent alleen het dashboard.
   - *Acceptatie:* twee keer klikken geeft twee browsertabbladen en één draaiende app, geen foutmelding over een bezette poort.
 - [x] **I5 – Afsluiten.** In het gebruikersmenu (onderin de zijbalk) staat **"Dashboard afsluiten"**; dat stopt de app en toont "Het dashboard is gestopt. Open het weer met de snelkoppeling."
-- [ ] **I6 – Nog een keer installeren.** Het script opnieuw uitvoeren werkt de installatie bij (zoals U3) en raakt de gegevens niet.
-- [ ] **I7 – Verwijderen.** Het script met `--verwijderen` (macOS: `… | sh -s -- --verwijderen`; Windows: `& ([scriptblock]::Create((irm …))) --verwijderen`, omdat `irm | iex` geen argumenten doorgeeft) haalt het programma en de snelkoppeling weg. De gegevens blijven staan, tenzij de gebruiker op de vraag "Ook je gegevens verwijderen?" ja antwoordt.
+- [x] **I6 – Nog een keer installeren.** Het script opnieuw uitvoeren werkt de installatie bij (zoals U3) en raakt de gegevens niet.
+- [x] **I7 – Verwijderen.** Het script met `--verwijderen` (macOS: `… | sh -s -- --verwijderen`; Windows: `& ([scriptblock]::Create((irm …))) --verwijderen`, omdat `irm | iex` geen argumenten doorgeeft) haalt het programma en de snelkoppeling weg. De gegevens blijven staan, tenzij de gebruiker op de vraag "Ook je gegevens verwijderen?" ja antwoordt.
 - [x] **I8 – Logboek.** Elk installatiescript (ook bij bijwerken en `--verwijderen`) schrijft een logboek **`install.log`** in de map waar de gebruiker het commando gaf. Kan het daar niet schrijven, dan in de thuismap (`~/install.log`, `%USERPROFILE%\install.log`). Bestaat het bestand al, dan komen de nieuwe regels onderaan, met een kop per keer dat het script draait. Elke regel heeft de **datum, tijd en het huidige pad**. Het logboek bevat:
   - de kop: datum, besturingssysteem en versie, het script en de gebruikte mappen;
   - elke uitgevoerde opdracht met zijn volledige uitvoer en de afloop (exitcode);
@@ -101,7 +101,7 @@ Gevonden bij de installatie van v0.9.0 op een Mac met een ontwikkelomgeving (zie
 - [x] **I11 – Alleen een geïnstalleerd dashboard stoppen.** Het script stopt een draaiend dashboard alleen als dat uit de installatiemap komt. Een dashboard uit een git-checkout (ontwikkelversie) blijft draaien; het script meldt dan dat de poort bezet is en dat het geïnstalleerde dashboard pas start nadat de andere versie is gestopt. Het script herkent het geïnstalleerde dashboard aan zijn proces (het pad `<root>/app/app.py`), zodat ook een dashboard van versie 0.9.0 wordt herkend; `/versie` meldt daarnaast `installed`.
   - *Acceptatie:* met de ontwikkelversie op poort 5050 draait het script zonder die te stoppen.
 - [x] **I12 – Eigen poort voor de ontwikkelversie.** De preview in Claude Code (`.claude/launch.json`) gebruikt poort **5051**, zodat de ontwikkelversie en een geïnstalleerd dashboard (5050) naast elkaar kunnen draaien.
-- [ ] **I13 – Inloggen bij de eerste start.** Uitzoeken waarom het inloggen bij de eerste echte installatie na 5 minuten afliep (komt het door de melding van *Appbeheer*, of was het venster niet gezien?), en de oorzaak oplossen of in de melding uitleggen. *Open vraag; eerst onderzoeken.*
+- [ ] **I13 – Inloggen bij de eerste start.** Uitzoeken waarom het inloggen bij de eerste echte installatie na 5 minuten afliep (komt het door de melding van *Appbeheer*, of was het venster niet gezien?), en de oorzaak oplossen of in de melding uitleggen. *Open vraag; eerst onderzoeken.* *Ook op de HU-laptop (2026-11-19) lukte verbinden pas bij de tweede poging; wat er bij de eerste misging, weet de gebruiker niet meer. Geen melding van Appbeheer op Windows, dus die verklaring geldt daar niet.*
 
 ### Bijwerken
 
@@ -166,7 +166,7 @@ Geen eigen ontwerp. De updatebalk lijkt op de demobanner ([design-system.md](../
 - [x] **Afsluiten:** een knop "Dashboard afsluiten" in het gebruikersmenu (I5).
 - [x] **Gegevensmap:** een vaste gebruikersmap (I3); het script biedt aan bestaande gegevens uit een git-checkout over te nemen.
 - [x] **Releases maken:** automatisch bij een tag (R2), met een Claude Code-skill `/release` die de vragen stelt en vooral een goede releasenote schrijft (R4), en een instructie op papier (R5).
-- [ ] **HU-laptops** (blokkeert het bouwen niet, wel het afronden): is er een beheerde Windows-laptop van de HU om op te testen? PowerShell-scripts kunnen daar beperkt zijn.
+- [x] **HU-laptops:** getest door de gebruiker op een beheerde Windows-laptop van de HU (2026-11-19): de installatieregel werkt daar; PowerShell is niet beperkt (zie Logboek).
 - [x] **Eerste versienummer:** 1.0.0.
 
 ## Logboek
@@ -196,3 +196,4 @@ Geen eigen ontwerp. De updatebalk lijkt op de demobanner ([design-system.md](../
 - 2026-11-17 – U7 toegevoegd op verzoek van de gebruiker: resten van eerdere, mislukte pogingen automatisch opruimen; een vastgelopen update (alleen `app-oud`) herstelt het installatiescript
 - 2026-11-17 – U7 gebouwd: `Updater.clean_leftovers` vóór het downloaden, het hulpscript verwijdert de download na een geslaagde update, en beide installatiescripts herstellen een vastgelopen update en ruimen resten op (in het logboek). Tests in `tests/test_install.py`, waaronder het macOS-script met een nagebootste vastgelopen installatie; Windows alleen op syntaxis
 - 2026-11-17 – R6: "Wat is er nieuw" toont nu ook codeblokken (zoals de installatieregel in de releasenote van 0.9.3), `code` en *cursief*; gecontroleerd met de echte releasenote van GitHub
+- 2026-11-19 – getest door de gebruiker op een beheerde Windows-laptop van de HU. Gelukt: installeren met de regel `irm … | iex` in PowerShell zonder fouten, waarna het dashboard openging (I1, I2); de snelkoppelingen in het Startmenu en op het bureaublad starten het dashboard zonder terminalvenster, en een tweede klik opent alleen een extra tabblad (I4); het script nog eens draaien werkt de installatie bij (I6); bijwerken met de knop in de app, waarna het dashboard vanzelf herstart (U3); Dashboard afsluiten via het gebruikersmenu (I5). Studenten en instellingen bleven staan na opnieuw installeren en na bijwerken. Verbinden met Portflow lukte pas bij de tweede poging; de oorzaak van de eerste mislukking is niet bekend (I13 blijft open). Verwijderen (I7) is op de HU-laptop niet geprobeerd; de workflow controleert het bij elke release op een schone Mac en Windows-machine. I1, I2, I4, I6 en I7 afgevinkt; status blijft in bouw tot I13 is uitgezocht

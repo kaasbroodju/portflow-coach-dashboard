@@ -74,7 +74,7 @@ De negen beroepsrollen met hun codes (UX, BIT, CS, CI, FE, BE, AI, GD, TI) staan
 | **`?` (openstaande evaluatie)** | In een cel: de student heeft een evaluatie aangevraagd die nog niet beoordeeld is. Zie [voortgangsregels.md](voortgangsregels.md#openstaand) |
 | **Eindassessment** | Evaluatieverzoek waarin de student in één keer alle tien vaardigheden indient; getoond als "Assessment ingeleverd" |
 | **`n/b`** | Niet beschikbaar: het portfolio van de student is niet (meer) met de gebruiker gedeeld |
-| **Verborgen student** | Een student die de gebruiker in het overzicht onzichtbaar heeft gemaakt. De student is **niet verwijderd**; hij is terug te halen via het filter "Alle studenten van wie ik het portfolio kan zien" ([spec 019](../features/019-eenvoudige-start/spec.md)) |
+| **Verborgen student** | Een student die de gebruiker in het overzicht onzichtbaar heeft gemaakt. De student is **niet verwijderd**; Verversen haalt zijn evaluaties niet op en zet hem niet terug. Hij is te vinden via het filter "Alle studenten van wie ik het portfolio kan zien" of, op Beheer › Studenten, "Studenten die ik heb verborgen" ([spec 019](../features/019-eenvoudige-start/spec.md)); verbergen kan met het oog-icoon op Overzicht of met "Student verbergen" bij Student bewerken ([spec 011](../features/011-student-bewerken/spec.md)) |
 
 <a id="soorten-gebruik"></a>
 ### Soorten gebruik

@@ -149,7 +149,7 @@ class TestManualAdd(GuildsTestCase):  # spec 017
         form = self.client.get("/studenten/toevoegen/handmatig").get_data(as_text=True)
         for field in ('name="name"', 'name="student_number"', 'name="semester"', 'name="guild"', 'name="coach_id"', 'name="notes"'):
             self.assertIn(field, form)
-        self.assertNotIn("Student niet meer volgen", form)
+        self.assertNotIn("Student verbergen", form)
         self.assertNotIn('name="portflow"', form)
 
     def test_name_required_and_form_kept(self):  # F2

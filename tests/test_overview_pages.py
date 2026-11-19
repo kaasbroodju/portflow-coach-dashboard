@@ -636,15 +636,33 @@ class TestStudentEdit(PagesTestCase):  # spec 011
                                     data={"name": "Iris Bouma", "terug": "https://example.com/"})
         self.assertTrue(response.headers["Location"].startswith("/studenten?melding="))
 
-    def test_stop_following(self):  # F6
+    def test_hide_instead_of_remove(self):  # F6 (changed 2026-11-19)
         with self.db() as conn:
             sem = conn.execute("SELECT id FROM students WHERE name = 'Sem Bakker'").fetchone()["id"]
-        self.assertIn("Sem Bakker niet meer volgen?", self.html(f"/studenten/{sem}/bewerken", bevestig="verwijderen"))
-        response = self.client.post(f"/studenten/{sem}/verwijderen", data={"terug": "/studenten"})
-        self.assertIn("melding=", response.headers["Location"])
+            before = conn.execute("SELECT COUNT(*) FROM evaluations WHERE student_id = ?", (sem,)).fetchone()[0]
+        self.assertIn("Sem Bakker verbergen?", self.html(f"/studenten/{sem}/bewerken", bevestig="verbergen"))
+        response = self.client.post(f"/studenten/{sem}/verbergen-bevestigd", data={"terug": "/studenten"})
+        self.assertIn("is+verborgen", response.headers["Location"])
         with self.db() as conn:
-            self.assertIsNone(conn.execute("SELECT 1 FROM students WHERE id = ?", (sem,)).fetchone())
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM evaluations WHERE student_id = ?", (sem,)).fetchone()[0], 0)
+            self.assertEqual(conn.execute("SELECT is_hidden FROM students WHERE id = ?", (sem,)).fetchone()[0], 1)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM evaluations WHERE student_id = ?", (sem,)).fetchone()[0], before)
+        page = self.html(f"/studenten/{sem}/bewerken")
+        self.assertIn("Weer tonen", page)
+        self.assertNotIn("Student verbergen", page)
+        self.client.post(f"/studenten/{sem}/verbergen-bevestigd", data={"terug": "/studenten", "tonen": "1"})
+        with self.db() as conn:
+            self.assertEqual(conn.execute("SELECT is_hidden FROM students WHERE id = ?", (sem,)).fetchone()[0], 0)
+
+    def test_filter_hidden_students_only_on_studenten(self):  # spec 019, F6
+        with self.db() as conn:
+            conn.execute("UPDATE students SET is_hidden = 1 WHERE name = 'Sem Bakker'")
+        html = self.html("/studenten", f="1", wie="verborgen")
+        self.assertIn('value="verborgen" selected', html)
+        self.assertIn("Sem Bakker", html)
+        self.assertNotIn("Iris Bouma", html)
+        overview = self.html("/", f="1", wie="verborgen")
+        self.assertNotIn('value="verborgen"', overview)   # not a choice on Overzicht: back to the standard
+        self.assertIn('value="zichtbaar" selected', overview)
 
 
 class TestProjects(PagesTestCase):  # spec 012
