@@ -119,7 +119,7 @@ De uitgewerkte eisen en de toestanden van de verbinding staan in [spec 003](../f
 - De laatst opgehaalde Portflow-gegevens worden **lokaal bewaard**, zodat de app direct opent.
 - Verversen gebeurt **met de knop "Verversen"** in de bovenbalk, naast de Portflow-status; niet vanzelf bij het openen en niet na het toevoegen van studenten. Naast de knop staat "Bijgewerkt om …".
 - **Uitzondering:** direct na het allereerste verbinden (nog nooit opgehaald) start de eerste ophaalronde vanzelf, voor alle studenten ([spec 019](../features/019-eenvoudige-start/spec.md), F2).
-- Op een pagina met een studentenlijst haalt Verversen alleen de evaluaties op van de studenten die **op dat moment zichtbaar** zijn in de lijst, plus studenten die in die ronde nieuw zijn toegevoegd; op andere pagina's alle studenten die niet verborgen zijn. De lijst met gedeelde portfolio's wordt altijd volledig opgehaald ([spec 019](../features/019-eenvoudige-start/spec.md), F14).
+- Verversen haalt de evaluaties op van alle studenten die niet verborgen zijn, en begint met de studenten die **op dat moment zichtbaar** zijn (de lijst op Overzicht, de tabel op Evaluaties, de student op zijn eigen pagina); daarna studenten die in die ronde nieuw zijn toegevoegd, dan de rest. De lijst met gedeelde portfolio's wordt altijd volledig opgehaald ([spec 019](../features/019-eenvoudige-start/spec.md), F14).
 - Tijdens het ophalen is de voortgang zichtbaar. Feedback items worden parallel opgehaald, hooguit 8 tegelijk.
 - De uitgewerkte eisen staan in [spec 005](../features/005-gegevens-ophalen/spec.md).
 

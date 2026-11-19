@@ -288,21 +288,34 @@ class TestAssessors(SimpleStartCase):
 
 
 class TestVisibleFetch(SimpleStartCase):
-    def test_only_visible_students_are_fetched(self):   # F14
+    def test_visible_students_first_then_the_rest(self):   # F14 (changed 2026-11-19)
         self.connect()   # first round: everyone
         with self.db() as conn:
             ids = {r["name"]: r["id"] for r in conn.execute("SELECT id, name FROM students")}
             conn.execute("UPDATE students SET is_hidden = 1 WHERE name = 'Cas Jansen'")
         self.api.fetched.clear()
-        self.client.post("/portflow/verversen", data={"lijst": "1", "student": [str(ids["Bram Visser"])]})
-        self.assertEqual(self.api.fetched, [103])
+        self.client.post("/portflow/verversen", data={"student": [str(ids["Bram Visser"])]})
+        self.assertEqual(self.api.fetched[0], 103)              # the visible student first
+        self.assertEqual(sorted(self.api.fetched), [101, 102, 103])  # then Anna (two portfolios); Cas (hidden) not
         self.api.fetched.clear()
-        self.api.shares.append(share(14, "Daan Smit", 105))   # a new share is fetched too (F3)
-        self.client.post("/portflow/verversen", data={"lijst": "1", "student": [str(ids["Bram Visser"])]})
-        self.assertEqual(sorted(self.api.fetched), [103, 105])
-        self.api.fetched.clear()
-        self.client.post("/portflow/verversen")   # no list on the page: every student that is not hidden
+        self.api.shares.append(share(14, "Daan Smit", 105))   # a new share comes after the visible ones (F3)
+        self.client.post("/portflow/verversen", data={"student": [str(ids["Bram Visser"])]})
+        self.assertEqual(self.api.fetched[:2], [103, 105])
         self.assertEqual(sorted(self.api.fetched), [101, 102, 103, 105])
+        self.api.fetched.clear()
+        self.client.post("/portflow/verversen", data={"student": [str(ids["Cas Jansen"])]})   # hidden but visible
+        self.assertEqual(self.api.fetched[0], 104)
+        self.api.fetched.clear()
+        self.client.post("/portflow/verversen")   # nothing visible: every student that is not hidden
+        self.assertEqual(sorted(self.api.fetched), [101, 102, 103, 105])
+
+    def test_pages_mark_the_students_to_fetch_first(self):   # F14
+        self.connect()
+        with self.db() as conn:
+            sid = conn.execute("SELECT id FROM students WHERE name = 'Bram Visser'").fetchone()[0]
+        for path, query in (("/evaluaties", {"wie": "iedereen"}), (f"/studenten/{sid}", {})):
+            with self.subTest(path=path):
+                self.assertIn(f'data-student-id="{sid}"', self.html(path, **query))
 
 
 class TestMigration(unittest.TestCase):

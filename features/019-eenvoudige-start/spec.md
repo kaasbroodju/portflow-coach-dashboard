@@ -1,7 +1,7 @@
 # 019 – Eenvoudige start: alle gedeelde studenten zonder instellen
 
 **Status:** klaar
-**Laatst bijgewerkt:** 2026-11-11
+**Laatst bijgewerkt:** 2026-11-19
 
 ## Doel
 
@@ -72,8 +72,14 @@ Er komen **geen twee standen**. Het is één app die zonder instellingen al brui
 
 ### Verversen
 
-- [x] **F14 – Alleen zichtbare studenten.** Verversen haalt de evaluaties op van de studenten die **op dat moment zichtbaar zijn in de lijst**: na het filter op wie, de andere filters en het zoeken. De lijst met gedeelde portfolio's (F1, F3) haalt de app wel altijd volledig op, zodat nieuwe studenten verschijnen. De eerste ophaalronde (F2) haalt alle studenten op. Dit wijkt af van [spec 005](../005-gegevens-ophalen/spec.md), waar Verversen alle gevolgde studenten ophaalt, los van filters.
-  - *Acceptatie:* met het filter "Alle studenten die ik niet heb verborgen" en 2 van de 10 studenten verborgen, haalt Verversen de evaluaties van 8 studenten op; de 2 verborgen studenten houden hun laatst bewaarde gegevens.
+- [x] **F14 – Zichtbare studenten eerst.** *Gewijzigd 2026-11-19 op verzoek van de gebruiker; eerst haalde Verversen alleen de zichtbare studenten op.* Verversen haalt de evaluaties op van **alle studenten die niet verborgen zijn**, en begint met de studenten die **op dat moment zichtbaar** zijn:
+  - op **Overzicht** (en **Beheer › Studenten**): de studenten in de lijst na het filter op wie, de andere filters en het zoeken, in de volgorde van de lijst;
+  - op **Evaluaties**: de studenten in de tabel bovenaan;
+  - op de **pagina van één student**: die student;
+  - op andere pagina's: geen voorrang (op naam).
+
+  Een zichtbare student die verborgen is (bijvoorbeeld bij het filter "Alle studenten"), wordt ook opgehaald. Studenten die in deze ronde nieuw zijn toegevoegd (F3), komen na de zichtbare. De lijst met gedeelde portfolio's (F1, F3) haalt de app altijd volledig op. De eerste ophaalronde (F2) haalt alle studenten op.
+  - *Acceptatie:* met 10 studenten, waarvan 2 verborgen, en een zoekopdracht die er 3 laat zien, haalt Verversen eerst die 3 op en daarna de andere 5; de 2 verborgen studenten houden hun laatst bewaarde gegevens.
 
 ### Semester kiezen in de tabel
 
@@ -125,11 +131,11 @@ Gedrag dat niet uit een afbeelding blijkt:
 - [x] **Beoordelaars:** alle beoordelingen tellen mee; beoordelaars uit de evaluaties worden automatisch toegevoegd; per beoordelaar is in te stellen dat zijn evaluaties niet meetellen (F10–F12).
 - [x] **Naam van het filter:** "Alle gevolgde studenten" heet voortaan "Alle studenten van wie ik het portfolio kan zien"; de nieuwe keuze "Alle studenten die ik niet heb verborgen" is waar Verbergen op werkt (F6).
 - [x] **Oude shares:** die verdwijnen vanzelf, want een share in Portflow eindigt standaard aan het einde van het schooljaar. Wat er toch tussen zit, verbergt de gebruiker zelf (F4).
-- [x] **Evaluaties van verborgen studenten:** Verversen haalt alleen de evaluaties op van de studenten die zichtbaar zijn in de lijst (F14).
+- [x] **Evaluaties van verborgen studenten:** Verversen haalt ze niet op, tenzij ze zichtbaar zijn in de lijst (F14).
 - [x] **"Uit Portflow kiezen"** blijft, voor wie later extra studenten wil volgen ([spec 004](../004-studenten-toevoegen/spec.md)).
 - [x] **Bestaande dashboards:** nieuw toegevoegde studenten komen ook op een bestaand dashboard gewoon zichtbaar binnen; de gebruiker verbergt zelf wat hij niet wil zien (F1, F4).
 - [x] **Verwijderde beoordelaar:** de app onthoudt dat zijn evaluaties niet meetellen (F13).
-- [x] **Verversen bij een filter:** alleen de studenten die op dat moment zichtbaar zijn (F14).
+- [x] **Verversen bij een filter:** alle niet-verborgen studenten, de zichtbare eerst (F14, gewijzigd 2026-11-19).
 - [x] **Filternaam:** "Alle studenten van wie ik het portfolio kan zien" (F6).
 - [x] **Coach- en gildefilter:** tonen alleen studenten bij wie het veld *coach*, of *gildemeester*, gelijk is aan de naam van de gebruiker, los van verbergen (F6).
 - [x] **Verborgen in het coach- en gildefilter:** verbergen speelt alleen bij de twee filters "Alle studenten van wie ik het portfolio kan zien" en "Alle studenten die ik niet heb verborgen". In het coach- en gildefilter zijn verborgen studenten gewone rijen, zonder dimmen en zonder de knoppen Verbergen en Weer tonen (F4, F5).
@@ -167,3 +173,4 @@ Gedrag dat niet uit een afbeelding blijkt:
 - 2026-11-11 – gebouwd en gecontroleerd. Code: `progress.py` (alle beoordelaars tellen, behalve uitgesloten), `staff.py` (uitsluiten, automatisch toevoegen, onthouden bij verwijderen), `portflow_fetch.py` (gedeelde studenten toevoegen, eerste ronde, alleen zichtbare studenten), `overview.py` en `routes.py` (filter, verbergen, semester, standaard niet groeperen, lege kolommen), `_student_table.html`, `staff_edit.html`, `app.js`, `app.css`; database: kolom `students.is_hidden` en tabel `excluded_assessors`. 250 tests slagen, waarvan 18 nieuw in `tests/test_simple_start.py`. In de browser gecontroleerd met de echte database (na een reservekopie): filter, verbergen en weer tonen zonder herladen, gedimde rij, semester kiezen en terugzetten, Verversen stuurt alleen de zichtbare studenten mee, vinkje bij de beoordelaar; geen consolefouten. De eerste ronde na het allereerste verbinden is alleen met een nep-Portflow getest. Eén keuze ter controle staat hierboven. Status klaar
 - 2026-11-11 – op verzoek van de gebruiker: het filter op wie heeft bovenaan een vijfde keuze "Alle studenten", die niets filtert; verborgen studenten zijn daar gewone rijen (F6). Gebouwd en getest.
 - 2026-11-18 – F7 vervallen op verzoek van de gebruiker: geen keuzelijst voor het semester meer op Overzicht, alleen de tekst "Sem N"; wijzigen gaat bij Beheer › Studenten
+- 2026-11-19 – F14 gewijzigd op verzoek van de gebruiker: Verversen haalt weer alle niet-verborgen studenten op, maar de zichtbare eerst (Overzicht: de lijst; Evaluaties: de tabel; studentpagina: die student)

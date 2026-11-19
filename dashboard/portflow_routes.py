@@ -54,9 +54,9 @@ def connect():
 @bp.post("/verversen")
 def refresh_data():
     """Spec 005, F6: start a fetch round (does nothing while one runs or when not connected).
-    Spec 019, F14: on a page with a student list, app.js sends the students visible in it."""
+    Spec 019, F14: app.js sends the students visible on the page; they are fetched first."""
     ids = [int(v) for v in request.form.getlist("student") if v.isdigit()]
-    current_app.extensions["fetcher"].start(ids if request.form.get("lijst") == "1" else None)
+    current_app.extensions["fetcher"].start(ids)
     return back()
 
 

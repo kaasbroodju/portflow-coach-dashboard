@@ -82,20 +82,19 @@
     poll();
   }
 
-  // Spec 019, F14: on a page with a student list, "Verversen" fetches the students visible in it.
+  // Spec 019, F14: "Verversen" fetches the students visible on the page first: the list on
+  // Overzicht (after filters and search), the table on Evaluaties, the student of a student page.
   document.addEventListener("submit", (event) => {
     const form = event.target;
-    const list = document.getElementById("student-table");
-    if (!form.matches("form.refresh") || !list) return;
-    form.querySelectorAll("input[name=student], input[name=lijst]").forEach((el) => el.remove());
-    const add = (name, value) => {
+    if (!form.matches("form.refresh")) return;
+    form.querySelectorAll("input[name=student]").forEach((el) => el.remove());
+    const add = (value) => {
       const input = document.createElement("input");
-      input.type = "hidden"; input.name = name; input.value = value;
+      input.type = "hidden"; input.name = "student"; input.value = value;
       form.appendChild(input);
     };
-    add("lijst", "1");
-    list.querySelectorAll("tr[data-student-id]").forEach((row) => {
-      if (!row.hidden && !row.closest(".table-group")?.hidden) add("student", row.dataset.studentId);
+    document.querySelectorAll("#student-table tr[data-student-id], .compact-table tr[data-student-id]").forEach((row) => {
+      if (!row.hidden && !row.closest(".table-group")?.hidden) add(row.dataset.studentId);
     });
   }, true);
 })();

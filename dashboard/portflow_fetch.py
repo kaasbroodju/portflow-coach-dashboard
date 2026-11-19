@@ -141,8 +141,8 @@ class Fetcher:
 
     def start(self, student_ids: list[int] | None = None) -> bool:
         """F6: start a round; False if one is running or not connected.
-        Spec 019, F14: `student_ids` are the students visible in the list; None means all
-        students that are not hidden."""
+        Spec 019, F14: all students that are not hidden are fetched; `student_ids` (the students
+        visible on the page) come first."""
         token = self.connection.token
         if not token:
             return False
@@ -345,12 +345,13 @@ class Fetcher:
         try:
             before = self._student_ids()
             self._link(token)  # spec 015, F2: link on name first, so new links are fetched too
-            # Spec 019, F2, F14: the first round fetches everyone, later rounds the visible students
-            # plus the students that were added in this round (F3).
-            if first or student_ids is None:
-                students = self._students(None)
-            else:
-                students = self._students(list(student_ids) + sorted(self._student_ids() - before))
+            # Spec 019, F2, F14: every student that is not hidden (the first round: everyone), the
+            # students visible on the page first, then the ones added in this round (F3), then the rest.
+            rest = [s["id"] for s in self._students(None)]
+            first_ids = [] if first else list(student_ids or [])
+            order = list(dict.fromkeys(first_ids + sorted(self._student_ids() - before) + rest))
+            by_id = {s["id"]: s for s in self._students(order)}
+            students = [by_id[i] for i in order if i in by_id]
             self.total = len(students)
             statuses = self._request_statuses(token)
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:

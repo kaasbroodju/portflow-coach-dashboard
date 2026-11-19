@@ -19,7 +19,7 @@
     <tbody class="compact-block">
       {% for row in block %}
       {% set p = row.progress %}
-      <tr class="student-row{% if not row.has_access %} is-no-access{% endif %}">
+      <tr class="student-row{% if not row.has_access %} is-no-access{% endif %}" data-student-id="{{ row.id }}">
         <th scope="row" class="col-student">
           <a class="student-link" href="{{ url_for('pages.student_page', student_id=row.id, van=active) }}">{{ row.name }}</a>{# spec 032, F1 #}
           {% if row.squad_role %}<span class="role-label">{{ row.squad_role }}</span>{% endif %}
