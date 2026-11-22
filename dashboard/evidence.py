@@ -12,7 +12,7 @@ import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 
-from . import portflow_api
+from . import evidence_files, portflow_api
 from .skills import NAMES, SKILLS, skill_for_goal_name
 
 OTHER = "Overig"   # F4: a row for evidence linked to none of the ten skills
@@ -285,6 +285,7 @@ def detail(conn: sqlite3.Connection, student_id: int, evidence_id: int, token: s
             "versions": data.get("versions_count") or 1,
             "skills": [s for s in ((stored["skills"] if stored else "") or "").split(",") if s],
             "text": "", "images": 0, "file_name": "", "file_type": "", "url": "",
+            "portfolio_id": portfolio_id, "files": evidence_files.files_of(version),   # spec 038
         }
         for f in files:
             if isinstance(f.get("free_text"), dict):

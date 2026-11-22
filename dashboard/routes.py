@@ -7,11 +7,11 @@ from pathlib import Path
 
 from urllib.parse import urlencode
 
-from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, redirect, render_template, request, send_file, url_for
 
 from . import (choices, columns as column_data, demo, guilds, overview as overview_data, portflow_link, projects, reset,
                requests_to_review, semesters as semester_data, staff, student_edit, student_intake, summary, timeline)
-from . import db, evidence, feedback, hide_names, paths
+from . import db, evidence, evidence_files, feedback, hide_names, paths
 from . import evaluation_panel as evaluation_panel_data
 from .db import get_db
 from .portflow_fetch import S_REQUESTS_FETCHED, updated_text
@@ -413,13 +413,42 @@ def feedback_panel(student_id: int):
 
 
 def _add_evidence_text(conn, student_id: int, items: list[dict]) -> None:
-    """Spec 036: the text of a text evidence comes first in the conversation (live from Portflow)."""
+    """Spec 036: the text of a text evidence comes first in the conversation (live from Portflow);
+    spec 038: so do the files of a file evidence (shown by the file route below)."""
     token = current_app.extensions["portflow"].token
     for item in items:
-        if item["raw_kind"] == "free_text":
+        if item["raw_kind"] in ("free_text", "file"):
             details, item["evidence_error"] = evidence.detail(conn, student_id, item["evidence_id"], token)
             item["evidence_text"] = details["text"] if details else ""
             item["evidence_images"] = details["images"] if details else 0
+            item["files"] = details["files"] if details else []
+            item["portfolio_id"] = details["portfolio_id"] if details else None
+
+
+@bp.get("/studenten/<int:student_id>/bestand/<int:portfolio_id>/<int:file_id>")
+def evidence_file(student_id: int, portfolio_id: int, file_id: int):
+    """Spec 038, F1, F5: the file itself (pdf, image or video), from the cache or fetched now."""
+    try:
+        path, mime = evidence_files.shown_file(current_app.config["DATABASE"], get_db(),
+                                               current_app.extensions["portflow"].token,
+                                               student_id, portfolio_id, file_id)
+    except evidence_files.FileError as error:
+        return render_template("_file_message.html", message=error.message), error.status
+    response = send_file(path, mimetype=mime, conditional=True, max_age=0)   # conditional: seeking in a video
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Content-Disposition"] = "inline"
+    return response
+
+
+@bp.get("/studenten/<int:student_id>/bestand/<int:portfolio_id>/<int:file_id>/downloaden")
+def evidence_file_download(student_id: int, portfolio_id: int, file_id: int):
+    """Spec 038, F4: the original, via a fresh signed link of Portflow (not stored)."""
+    try:
+        link = evidence_files.original_link(get_db(), current_app.extensions["portflow"].token,
+                                            student_id, portfolio_id, file_id)
+    except evidence_files.FileError as error:
+        return render_template("_file_message.html", message=error.message), error.status
+    return redirect(link)
 
 
 def _panel(student_id: int, template: str, title: str, **context):

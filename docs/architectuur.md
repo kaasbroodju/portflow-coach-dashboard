@@ -46,7 +46,7 @@ dashboard/
     favicon.svg
     fonts/             ← DM Sans + licentie (OFL.txt)
 tests/                 ← unittest
-data/                  ← database (met het Portflow-token) en browserprofiel (niet in git)
+data/                  ← database (met het Portflow-token), browserprofiel en bekeken bestanden in bestanden/ (niet in git)
 install/               ← installatiescripts en iconen (spec 020)
 releases/              ← releasenotes per versie (docs/releases.md)
 .github/workflows/     ← release bij een tag (spec 020, R2)
@@ -132,6 +132,8 @@ Het dashboard toont gegevens van studenten. Uitgangspunten:
 - Studentgegevens blijven lokaal op de laptop van de gebruiker; de lokale database, het Portflow-token en het browserprofiel staan niet in de repository.
 - Het dashboard bewaart de evaluaties van **alle** studenten die hun portfolio met de gebruiker hebben gedeeld, ook als de gebruiker ze niet actief volgt. De student heeft het portfolio zelf gedeeld; een share eindigt in Portflow standaard aan het einde van het schooljaar ([spec 019](../features/019-eenvoudige-start/spec.md)).
 - Sinds [spec 037](../features/037-evaluaties-lezen/spec.md) bewaart het dashboard ook de **teksten** van zelfevaluaties en beoordelingen, net als de teksten van feedbackvragen en reacties ([spec 035](../features/035-feedbackvragen/spec.md)). Ze blijven lokaal; "Alles verwijderen" wist ze.
+- Sinds [spec 038](../features/038-bestanden-bekijken/spec.md) bewaart het dashboard bestanden van bewijsstukken die de gebruiker **bekijkt** (het voorbeeld als pdf of afbeelding, of de video) in `bestanden/` naast de database; bestandsnamen bevatten alleen ids. Een bestand dat 30 dagen niet is geopend, verdwijnt bij het starten; "Alles verwijderen" wist de map; reservekopieën bevatten hem niet.
+- Het Portflow-token gaat alleen naar `portfolio.drieam.app`. Verzoeken met het token volgen geen doorverwijzingen; de ondertekende S3-links van Portflow worden zonder token opgehaald en niet bewaard of gelogd.
 - Ingelezen Excelbestanden worden niet bewaard. Notities bij een student kunnen contactgegevens bevatten als de gebruiker die bij het importeren meeneemt; ze blijven lokaal in de database ([spec 013](../features/013-excel-importeren/spec.md)).
 
 ## Beslissingen

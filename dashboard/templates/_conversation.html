@@ -10,7 +10,33 @@
     {% else %}<p class="muted">(geen tekst)</p>{% endif %}
     {% if t.evidence_images %}<p class="muted">Deze tekst bevat {{ t.evidence_images }} afbeelding{{ "en" if t.evidence_images != 1 }}; die zijn alleen in Portflow te zien.</p>{% endif %}
   </div>
+  {% elif t.raw_kind == "file" %}{# spec 038: the files of the evidence come first #}
+  {% if t.evidence_error %}<p class="muted">{{ t.evidence_error }}</p>{% endif %}
+  {% for f in t.files %}{{ evidence_file(t, f) }}{% endfor %}
   {% endif %}
+{% endmacro %}
+
+{# Spec 038, F1-F5a: one file: shown as pdf, image or video, with Groot bekijken and Downloaden. #}
+{% macro evidence_file(t, f) %}
+  {% set src = url_for('pages.evidence_file', student_id=student_id, portfolio_id=t.portfolio_id, file_id=f.id) %}
+  <figure class="file-card" data-display="{{ f.display }}">
+    <figcaption class="file-card-head">
+      <span class="file-card-name" title="{{ f.name }}">{{ f.name }}</span>
+      <span class="file-card-actions">
+        {% if f.display %}<button class="button button-secondary file-card-button" type="button" data-file-large="{{ src }}" data-file-display="{{ f.display }}" data-file-name="{{ f.name }}">Groot bekijken</button>{% endif %}
+        <a class="button button-secondary file-card-button" href="{{ src }}/downloaden">Downloaden</a>
+      </span>
+    </figcaption>
+    {% if f.display == "pdf" %}
+    <div class="file-card-frame"><span class="muted">Bestand ophalen…</span><iframe src="{{ src }}" title="{{ f.name }}" loading="lazy"></iframe></div>
+    {% elif f.display == "image" %}
+    <div class="file-card-media"><span class="muted">Bestand ophalen…</span><img src="{{ src }}" alt="{{ f.name }}" loading="lazy" data-file-media></div>
+    {% elif f.display == "video" %}
+    <div class="file-card-media"><span class="muted">Bestand ophalen…</span><video src="{{ src }}" controls preload="metadata" data-file-media></video></div>
+    {% else %}
+    <p class="muted">Dit bestand kan niet in het dashboard worden getoond.</p>
+    {% endif %}
+  </figure>
 {% endmacro %}
 
 {% macro feedback_request(t) %}

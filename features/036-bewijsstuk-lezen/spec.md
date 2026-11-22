@@ -30,7 +30,7 @@ Als **coach** of **gildemeester** wil ik vanuit een feedbackvraag ([spec 035](..
 
 - [x] **F1 – Tekst bovenaan het gesprek.** Is het bewijsstuk van een feedbackvraag van het soort **tekst**, dan staat in het feedbackpaneel ([spec 035](../035-feedbackvragen/spec.md), F4) de tekst van het bewijsstuk als **eerste** item van het gesprek, vóór de vraag van de student en de reacties: *tekst van het bewijsstuk → vraag van de student → reacties*.
   - *Acceptatie:* bij een feedbackvraag op een tekst-bewijsstuk staat bovenaan het gesprek de tekst, daarna de vraag en daarna de reacties.
-- [x] **F2 – Andere soorten.** Is het bewijsstuk geen tekst (een bestand of een link), dan verandert er niets aan het gesprek.
+- [x] **F2 – Andere soorten.** Is het bewijsstuk geen tekst (een bestand of een link), dan verandert er niets aan het gesprek. *Sinds 2026-11-22 staan bij een bestand de bestanden bovenaan ([spec 038](../038-bestanden-bekijken/spec.md)).*
 - [x] **F3 – Ophalen bij het openen.** De tekst wordt bij het openen van het feedbackpaneel live uit Portflow gehaald (`GET /portfolios/{id}/evidence/{id}`) en niet bewaard. Lukt dat niet, dan staat er op die plek een korte melding en blijft de rest van het gesprek zichtbaar.
 - [x] **F4 – Veilig tonen.** De tekst behoudt alleen eenvoudige opmaak (alinea, regelafbreking, opsomming, vet, cursief, kopje, citaat, link naar http(s)); al het andere wordt tekst of weggelaten. Ingevoegde afbeeldingen worden niet getoond; er staat hoeveel het er zijn.
 - [x] **F5 – Namen verbergen.** Met Namen verbergen ([spec 033](../033-namen-verbergen/spec.md)) aan geldt de vervanging ook voor deze tekst.
@@ -39,7 +39,7 @@ Als **coach** of **gildemeester** wil ik vanuit een feedbackvraag ([spec 035](..
 
 - Een tweede zijpaneel met het bewijsstuk en de knop "Openen in Portflow" (gebouwd en weer weggehaald op verzoek van de gebruiker, 2026-11-18).
 
-- Bestanden downloaden en tonen (pdf, Word, …): het downloadadres is niet gevonden (geraden adressen gaven 404; de verzoeken van Portflow binnen Canvas zijn in de ingebouwde browser niet te zien). De gebruiker liet dit los op 2026-11-18.
+- Bestanden downloaden en tonen (pdf, Word, …): het downloadadres is niet gevonden (geraden adressen gaven 404; de verzoeken van Portflow binnen Canvas zijn in de ingebouwde browser niet te zien). De gebruiker liet dit los op 2026-11-18; later gebouwd in [spec 038](../038-bestanden-bekijken/spec.md).
 - Een bewijsstuk openen vanuit de stippen in de tijdlijn (niet gekozen).
 - Oudere versies van een bewijsstuk.
 

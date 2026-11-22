@@ -538,7 +538,49 @@
     }
     if (event.target.closest("[data-close-panel]")) panel.hidden = true;
   });
-  document.addEventListener("keydown", (event) => { if (event.key === "Escape") panel.hidden = true; });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const viewer = document.getElementById("file-viewer");
+    if (viewer && !viewer.hidden) return;   // spec 038: Esc first closes "Groot bekijken"
+    panel.hidden = true;
+  });
+})();
+
+(() => {
+  "use strict";
+
+  // Spec 038, F1a: "Groot bekijken" shows a file over almost the whole screen; close with the
+  // close button, Esc or a click next to it. F6: a file that cannot be shown gets a message.
+  const viewer = document.getElementById("file-viewer");
+  if (!viewer) return;
+  const body = document.getElementById("file-viewer-body");
+  const close = () => { viewer.hidden = true; body.replaceChildren(); };
+  const media = (display, src, name) => {
+    if (display === "image") return Object.assign(document.createElement("img"), { src, alt: name });
+    if (display === "video") return Object.assign(document.createElement("video"), { src, controls: true, autoplay: true });
+    return Object.assign(document.createElement("iframe"), { src, title: name });
+  };
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-file-large]");
+    if (button) {
+      document.querySelectorAll("#feedback-panel video").forEach((video) => video.pause());
+      document.getElementById("file-viewer-title").textContent = button.dataset.fileName || "Bestand";
+      body.replaceChildren(media(button.dataset.fileDisplay, button.dataset.fileLarge, button.dataset.fileName || ""));
+      viewer.hidden = false;
+      return;
+    }
+    if (event.target.closest("[data-close-viewer]") || event.target === viewer) close();
+  });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !viewer.hidden) close(); });
+  // An image or video that cannot be fetched: a short message in its place (an iframe shows the
+  // message page of the server itself).
+  document.addEventListener("error", (event) => {
+    const element = event.target;
+    if (!(element instanceof HTMLElement) || !element.matches("[data-file-media]")) return;
+    const message = Object.assign(document.createElement("p"), {
+      className: "muted", textContent: "Dit bestand kan niet in het dashboard worden getoond." });
+    element.replaceWith(message);
+  }, true);
 })();
 
 (() => {

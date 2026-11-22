@@ -15,6 +15,16 @@ RETRY_DELAY_S = 5.0
 SHARES_PAGE_SIZE = 50
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """The token never follows a redirect to another address (docs/architectuur.md, privacy)."""
+
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+_opener = urllib.request.build_opener(_NoRedirect)
+
+
 def get_json(path: str, token: str, timeout: float = TIMEOUT_S) -> tuple[int, object]:
     """GET BASE_URL + path. Returns (HTTP status, parsed JSON or None); status 0 = no connection."""
     request = urllib.request.Request(
@@ -22,7 +32,7 @@ def get_json(path: str, token: str, timeout: float = TIMEOUT_S) -> tuple[int, ob
         headers={"Authorization": f"Bearer {token}", "Accept": "*/*", "User-Agent": "Mozilla/5.0"},
     )
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with _opener.open(request, timeout=timeout) as response:
             body = response.read()
             return response.status, (json.loads(body) if body else None)
     except urllib.error.HTTPError as error:
@@ -192,3 +202,10 @@ def evidence_detail(token: str, portfolio_id: int, evidence_id: int) -> tuple[in
     """The details of one piece of evidence with its latest version: the text of a free text, or
     the name and type of a file (spec 036). JSON, not the file itself."""
     return get_json(f"/portfolios/{portfolio_id}/evidence/{evidence_id}", token)
+
+
+def preview_url(token: str, portfolio_id: int, version_file_id: int) -> tuple[int, object]:
+    """Signed links (30 minutes, no token needed) to a file of a piece of evidence: the original
+    (download_url), and a preview: a pdf for pdf, Word, Excel and PowerPoint (preview_url) or the
+    image itself (object_url). Spec 038."""
+    return get_json(f"/portfolios/{portfolio_id}/evidence-version-files/{version_file_id}/preview-url", token)

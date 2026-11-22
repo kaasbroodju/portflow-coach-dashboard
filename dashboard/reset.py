@@ -6,7 +6,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from . import choices, db
+from . import choices, db, evidence_files
 from .portflow_connection import (S_ALWAYS_VISIBLE, S_CANVAS_URL, S_LAST_REFRESH, S_LAST_REFRESH_KIND,
                                   S_PORTFOLIO_ID, S_USER_NAME)
 from .portflow_token import TOKEN_KEY, remove_token
@@ -94,6 +94,7 @@ def reset_all(app) -> Path:
     except (OSError, sqlite3.Error):
         raise ResetError("De reservekopie is niet gelukt; er is niets verwijderd.") from None
     _empty_database(database)
+    evidence_files.remove_all(database)   # spec 038, F7: the kept files go too
     connection = app.extensions["portflow"]   # F5: the connection stays
     if connection.user_name:   # as after the first connection, the user is on Coaches (spec 007, F2a)
         db.add_user_as_coach(database, connection.user_name)

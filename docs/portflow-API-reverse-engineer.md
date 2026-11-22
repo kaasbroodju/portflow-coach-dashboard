@@ -600,10 +600,23 @@ Gebruikt door het dashboard voor de feedbackvragen op de studentpagina
 > `created_at`, `co_created`, `source`, `files`). In `latest_version.files[]`:
 > - bij tekst `free_text`: `free_text` (de tekst als HTML), `images` (lijst), `has_pending_embedded_files`;
 > - bij een bestand `file`: `file_name`, `type` (MIME-type), `download_state`, `signed_id` (een
->   ondertekende verwijzing); **geen downloadlink**. Hoe een bestand nu te downloaden is, is onbekend;
->   `…/versions/{id}`, `…/content` en `…/download` geven 404.
+>   ondertekende verwijzing); **geen downloadlink**. Elk item in `files[]` heeft een `id`: het
+>   **versiebestand**, nodig voor de downloadlink hieronder. `…/versions/{id}`, `…/content` en
+>   `…/download` geven 404.
 >
-> Gebruikt door het dashboard om een bewijsstuk te lezen ([spec 036](../features/036-bewijsstuk-lezen/spec.md)).
+> **Bestand downloaden of bekijken (waargenomen 2026-11-22):**
+> `GET /portfolios/{portfolio_id}/evidence-version-files/{versiebestand_id}/preview-url` (met token) geeft
+> JSON met `display_name`, `mime_class` (`pdf`, `doc`, `xls`, `ppt`, `image`, `video`, …), `preview_state`
+> (`available` of `inconvertible`) en ondertekende S3-links (host
+> `portflow-euw1-production-storage.s3.eu-west-1.amazonaws.com`, **30 minuten** geldig, te openen
+> **zonder** token; stuur het token er nooit heen):
+> - `download_url`: het origineel, als bijlage (`response-content-disposition=attachment`);
+> - `preview_url` (pdf, Word, Excel, PowerPoint): een **pdf**, inline. Portflow zet Office-bestanden zelf om;
+> - `object_url` (afbeeldingen): de afbeelding, inline.
+> Video heeft `preview_state` `inconvertible` en alleen een `download_url`.
+>
+> Gebruikt door het dashboard om een bewijsstuk te lezen ([spec 036](../features/036-bewijsstuk-lezen/spec.md))
+> en om bestanden te bekijken ([spec 038](../features/038-bestanden-bekijken/spec.md)).
 > De beschrijving hieronder (binaire download) komt uit de oudere scripts en klopt niet meer.
 
 Download van één bewijsstuk/bestand ("evidence") als binaire stream. `portfolio_id` en
