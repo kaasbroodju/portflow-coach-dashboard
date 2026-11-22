@@ -1,0 +1,195 @@
+"""The local AI model (spec 040): talking to Ollama on the laptop itself, and the checks of the wizard (F12).
+
+Only an address on the laptop itself is accepted (F11, privacy): nothing about students leaves the
+laptop. Plain urllib, no extra package. Labels are Dutch: they are shown to the user.
+"""
+
+import ctypes
+import json
+import os
+import platform
+import sys
+import threading
+import time
+import urllib.error
+import urllib.request
+from urllib.parse import urlparse
+
+DEFAULT_URL = "http://127.0.0.1:11434"
+DEFAULT_MODEL = "gemma4:12b-it-qat"     # spec 040, Onderzoek (2026-11-22)
+DEFAULT_MODEL_SIZE = "7,2 GB"
+MIN_MEMORY_GB = 16
+LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
+S_URL = "ai_ollama_url"
+S_MODEL = "ai_model"
+DOWNLOAD_URL = "https://ollama.com/download"
+
+
+class OllamaError(Exception):
+    """`message` is shown to the user (Dutch)."""
+
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
+
+
+def is_local(url: str) -> bool:
+    parsed = urlparse(url or "")
+    return parsed.scheme == "http" and (parsed.hostname or "") in LOCAL_HOSTS and not parsed.path.strip("/")
+
+
+def _request(url: str, path: str, body: dict | None = None, timeout: float = 5.0):
+    if not is_local(url):
+        raise OllamaError("Het adres van Ollama moet op deze laptop zijn (bijvoorbeeld http://127.0.0.1:11434).")
+    data = json.dumps(body).encode() if body is not None else None
+    request = urllib.request.Request(url.rstrip("/") + path, data=data,
+                                     headers={"Content-Type": "application/json"} if data else {})
+    try:
+        return urllib.request.urlopen(request, timeout=timeout)
+    except urllib.error.HTTPError as error:
+        try:
+            detail = json.loads(error.read() or b"{}").get("error") or ""
+        except ValueError:
+            detail = ""
+        raise OllamaError(f"Ollama gaf een fout ({error.code}){': ' + detail if detail else ''}.") from None
+    except (urllib.error.URLError, TimeoutError, OSError):
+        raise OllamaError("Ollama is niet bereikbaar. Is Ollama gestart?") from None
+
+
+def _json(url: str, path: str, body: dict | None = None, timeout: float = 5.0) -> dict:
+    with _request(url, path, body, timeout) as response:
+        try:
+            return json.loads(response.read() or b"{}")
+        except ValueError:
+            raise OllamaError("Ollama gaf een onverwacht antwoord.") from None
+
+
+# The checks of the wizard (F12) ----------------------------------------------------------------
+
+def memory_gb() -> float | None:
+    """Step 1: the working memory of the laptop, in GB (None if unknown)."""
+    try:
+        if sys.platform == "win32":
+            class Status(ctypes.Structure):
+                _fields_ = [("length", ctypes.c_ulong), ("load", ctypes.c_ulong), ("total", ctypes.c_ulonglong),
+                            ("avail", ctypes.c_ulonglong), ("page_total", ctypes.c_ulonglong),
+                            ("page_avail", ctypes.c_ulonglong), ("virtual_total", ctypes.c_ulonglong),
+                            ("virtual_avail", ctypes.c_ulonglong), ("extended", ctypes.c_ulonglong)]
+            status = Status()
+            status.length = ctypes.sizeof(Status)
+            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+                return status.total / 1024 ** 3
+            return None
+        return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1024 ** 3
+    except (AttributeError, ValueError, OSError):
+        return None
+
+
+def system_name() -> str:
+    return {"darwin": "macOS", "win32": "Windows"}.get(sys.platform, platform.system() or "onbekend")
+
+
+def version(url: str) -> str:
+    """Step 2: the version of Ollama; raises OllamaError when it does not answer."""
+    return str(_json(url, "/api/version").get("version") or "onbekend")
+
+
+def models(url: str) -> list[dict]:
+    """Step 3, F11: the installed models: name and size in GB."""
+    return [{"name": m.get("name", ""), "size_gb": round((m.get("size") or 0) / 1e9, 1)}
+            for m in _json(url, "/api/tags").get("models") or [] if m.get("name")]
+
+
+def has_model(url: str, model: str) -> bool:
+    names = {m["name"] for m in models(url)}
+    return model in names or (":" not in model and f"{model}:latest" in names)
+
+
+def capabilities(url: str, model: str) -> set[str]:
+    """F7: whether the model reads images ('vision')."""
+    try:
+        return set(_json(url, "/api/show", {"model": model}).get("capabilities") or [])
+    except OllamaError:
+        return set()
+
+
+class Pull:
+    """Step 3: let Ollama download a model, with progress; one at a time."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.state = {"running": False, "model": "", "done": 0, "total": 0, "status": "", "error": ""}
+
+    def start(self, url: str, model: str) -> bool:
+        with self.lock:
+            if self.state["running"]:
+                return False
+            self.state = {"running": True, "model": model, "done": 0, "total": 0, "status": "Starten…", "error": ""}
+        threading.Thread(target=self._run, args=(url, model), daemon=True).start()
+        return True
+
+    def _run(self, url: str, model: str) -> None:
+        try:
+            with _request(url, "/api/pull", {"model": model, "stream": True}, timeout=600) as response:
+                for line in response:
+                    try:
+                        part = json.loads(line)
+                    except ValueError:
+                        continue
+                    if part.get("error"):
+                        raise OllamaError(f"Downloaden is niet gelukt: {part['error']}")
+                    with self.lock:
+                        self.state["status"] = str(part.get("status") or "")
+                        if part.get("total"):
+                            self.state["total"], self.state["done"] = part["total"], part.get("completed") or 0
+        except OllamaError as error:
+            with self.lock:
+                self.state["error"] = error.message
+        finally:
+            with self.lock:
+                self.state["running"] = False
+
+    def status(self) -> dict:
+        with self.lock:
+            return dict(self.state)
+
+
+# Asking the model ----------------------------------------------------------------------------
+
+def chat(url: str, model: str, system: str, user: str, schema: dict | None, *, images: list[str] = (),
+         history: list[dict] = (), num_ctx: int = 16384, cancel: threading.Event | None = None, progress=None,
+         timeout: float = 900):
+    """F5: a question with a fixed JSON answer (Ollama's `format`); without a schema a free text answer
+    (F21, with `history`: earlier user/assistant messages after the first). Streams, so it can be
+    stopped (F4) and shows progress. Returns the parsed JSON or the text; raises OllamaError."""
+    first = {"role": "user", "content": user}
+    if images:
+        first["images"] = list(images)
+    body = {"model": model, "stream": True, "think": False,
+            "options": {"temperature": 0.2, "num_ctx": num_ctx},
+            "messages": [{"role": "system", "content": system}, first, *history]}
+    if schema is not None:
+        body["format"] = schema
+    parts: list[str] = []
+    started = time.monotonic()
+    with _request(url, "/api/chat", body, timeout=timeout) as response:
+        for line in response:
+            if cancel is not None and cancel.is_set():
+                raise OllamaError("Gestopt.")
+            try:
+                part = json.loads(line)
+            except ValueError:
+                continue
+            if part.get("error"):
+                raise OllamaError(f"Het model gaf een fout: {part['error']}")
+            parts.append((part.get("message") or {}).get("content") or "")
+            if progress:
+                progress(len("".join(parts)), time.monotonic() - started)
+            if part.get("done"):
+                break
+    if schema is None:
+        return "".join(parts).strip()
+    try:
+        return json.loads("".join(parts))
+    except ValueError:
+        raise OllamaError("Het model gaf geen geldig antwoord. Probeer het opnieuw.") from None

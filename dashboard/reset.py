@@ -9,13 +9,17 @@ from pathlib import Path
 from . import choices, db, evidence_files
 from .portflow_connection import (S_ALWAYS_VISIBLE, S_CANVAS_URL, S_LAST_REFRESH, S_LAST_REFRESH_KIND,
                                   S_PORTFOLIO_ID, S_USER_NAME)
+from .ai_advice import PROMPT_SETTINGS
+from .claude_ai import S_APPROVED as S_CLAUDE_APPROVED, S_KEY as S_CLAUDE_KEY
+from .ollama import S_MODEL, S_URL
 from .portflow_token import TOKEN_KEY, remove_token
 
 CONFIRM_WORD = "VERWIJDEREN"
 BACKUP_DIR = "reservekopieen"
 
 # F5: the settings of the Portflow connection stay.
-KEPT_SETTINGS = (TOKEN_KEY, S_CANVAS_URL, S_ALWAYS_VISIBLE, S_PORTFOLIO_ID, S_USER_NAME, S_LAST_REFRESH, S_LAST_REFRESH_KIND)
+KEPT_SETTINGS = (TOKEN_KEY, S_CANVAS_URL, S_ALWAYS_VISIBLE, S_PORTFOLIO_ID, S_USER_NAME, S_LAST_REFRESH, S_LAST_REFRESH_KIND,
+                 S_URL, S_MODEL, "ai_trial", S_CLAUDE_KEY, S_CLAUDE_APPROVED, *PROMPT_SETTINGS)   # spec 040: the AI settings stay too (no student data)
 
 # F2: what disappears, with a count (table, Dutch label).
 SUMMARY = [("students", "studenten"), ("evaluations", "evaluaties (bewaarde kopie uit Portflow)"),
@@ -63,6 +67,12 @@ def backup(database: str, now: datetime | None = None) -> Path:
         copy.close()
         source.close()
     remove_token(target)
+    copy = sqlite3.connect(target)   # spec 040, F17: no Claude API key in a backup either
+    try:
+        with copy:
+            copy.execute("DELETE FROM settings WHERE key = ?", (S_CLAUDE_KEY,))
+    finally:
+        copy.close()
     return target
 
 

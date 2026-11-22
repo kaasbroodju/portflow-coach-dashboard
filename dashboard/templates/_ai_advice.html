@@ -1,0 +1,97 @@
+{# Spec 040: the card "Advies (AI)" at the bottom of the evaluation page; app.js replaces it while
+   an advice is being made (F4). #}
+{% set job = advice_job %}
+{% set busy = job and job.state == "running" %}
+<section class="card ai-advice" id="ai-advies" aria-labelledby="ai-advice-title"
+         data-advice="{{ url_for('ai.advice_card', request_id=advice_request_id) }}"{% if busy %} data-advice-busy{% endif %}>
+  <div class="ai-advice-head">
+    <h2 id="ai-advice-title">Advies (AI)</h2>
+    {% if advice %}<span class="muted">{{ advice.service_label }} · {{ advice.model }} · {{ advice.date }}{% if advice.duration %} · het model deed er {{ advice.duration }} over{% endif %}</span>{% endif %}
+  </div>
+  <p class="ai-advice-note">Dit advies is gemaakt door een AI-model. Het kan kloppen of niet kloppen: jij beslist over het niveau, in Portflow.</p>
+
+  {% if not advice_services %}{# F10 #}
+  <p class="wizard-check is-todo">Er is nog geen AI ingesteld{% if not advice_ready.version %} (Ollama is niet gevonden op deze laptop){% elif not advice_ready.has_model %} (het model {{ advice_ready.model }} staat nog niet in Ollama){% endif %}.</p>
+  <a class="button button-secondary" href="{{ url_for('ai.setup') }}">AI-advies instellen</a>
+  {% else %}
+
+  {% if advice_counts %}{# F2 #}
+  <details class="ai-advice-sent">
+    <summary>Wat gaat er naar het model?</summary>
+    <ul>
+      <li>De toelichting en de zelfevaluatie van {{ advice_counts.skills }} vaardighe{{ "id" if advice_counts.skills == 1 else "den" }}, met het niveau dat de student vraagt.</li>
+      <li>De LEF-teksten van alle niveaus van die vaardigheden.</li>
+      <li>{{ advice_counts.evidence }} bewijsstuk{{ "ken" if advice_counts.evidence != 1 }} uit deze semesterperiode{% if advice_counts.files %}, waarvan {{ advice_counts.files }} met bestanden (de tekst, of een afbeelding als afbeelding){% endif %}.</li>
+      <li>{{ advice_counts.earlier }} eerdere beoordeling{{ "en" if advice_counts.earlier != 1 }} en {{ advice_counts.feedback }} feedbackbericht{{ "en" if advice_counts.feedback != 1 }}.</li>
+    </ul>
+    <p class="muted">Namen worden vervangen door "Student", "Coach 1", "Medestudent 1" enzovoort; in afbeeldingen kan dat niet. Met het lokale model blijft alles op deze laptop; met een AI "via internet" gaat het naar die dienst.</p>
+    {% if advice and (advice.counts.names_only or advice.counts.cut) %}
+    <p class="muted">Bij het vorige advies gingen {{ (advice.counts.names_only|length) + advice.counts.cut }} bewijsstuk(ken) mee met alleen de naam{% if advice.counts.names_only %}: {{ advice.counts.names_only|join(", ") }}{% endif %}.</p>
+    {% endif %}
+  </details>
+  {% endif %}
+
+  {% if busy and job.kind == "advice" %}{# F4 #}
+  <div class="ai-advice-busy">
+    <span class="ai-spinner" aria-hidden="true"></span>
+    <span><strong>Advies wordt gemaakt</strong> <span class="muted">({{ job.service_label }})… {{ job.step }}</span><br>
+      <span class="muted">Dit kan een paar minuten duren. Je kunt intussen verder op de pagina; het advies verschijnt hier vanzelf.</span></span>
+    <form method="post" action="{{ url_for('ai.advice_stop', request_id=advice_request_id) }}" data-advice-form>
+      <button class="button button-secondary" type="submit">Stoppen</button>
+    </form>
+  </div>
+  {% else %}
+  {% if job and job.kind == "advice" and job.state in ("error", "stopped") %}<p class="panel-message" role="alert">{{ job.error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('ai.advice_start', request_id=advice_request_id) }}" class="ai-advice-ask" data-advice-form>
+    <label>AI <select name="dienst">
+      {% for s in advice_services %}<option value="{{ s.key }}" {% if (job and job.service == s.key) or (not job and advice and advice.service == s.key) %}selected{% endif %}>{{ s.label }}</option>{% endfor %}
+    </select></label>
+    <button class="button{% if advice %} button-secondary{% endif %}" type="submit" {% if busy %}disabled{% endif %}>{% if advice %}Opnieuw vragen{% else %}Advies vragen{% endif %}</button>
+    {% if advice and advice.conversation %}<span class="muted">Een nieuw advies wist het gesprek hieronder.</span>{% endif %}
+  </form>
+  {% endif %}
+  {% endif %}
+
+  {% if advice %}{# F5, F6 #}
+  <div class="ai-advice-skills">
+    {% for s in advice.skills %}
+    <article class="ai-advice-skill">
+      <h3><span class="skill-code">{{ s.code }}</span> {{ s.name }}
+        <span class="ai-advice-level" title="Voorgesteld niveau (AI)">advies: niveau {{ s.level }}</span></h3>
+      <p>{{ s.reasoning }}</p>
+      {% if s.missing %}<p class="ai-advice-missing"><strong>Nog te laten zien:</strong> {{ s.missing }}</p>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if advice %}{# F21: follow-up questions #}
+  <div class="ai-chat">
+    <h3>Vragen over dit advies</h3>
+    {% for turn in advice.conversation %}
+    <div class="ai-chat-question"><p class="feedback-meta"><strong>Jij</strong> · {{ turn.date }}</p><p class="feedback-text">{{ turn.question }}</p></div>
+    <div class="ai-chat-answer"><p class="feedback-meta"><strong>{{ advice.service_label }}</strong>{% if turn.duration %} · in {{ turn.duration }}{% endif %}</p><p class="feedback-text">{{ turn.answer }}</p></div>
+    {% endfor %}
+    {% if busy and job.kind == "question" %}
+    <div class="ai-chat-question"><p class="feedback-meta"><strong>Jij</strong></p><p class="feedback-text">{{ job.question }}</p></div>
+    <div class="ai-advice-busy">
+      <span class="ai-spinner" aria-hidden="true"></span>
+      <span class="muted">{{ job.step }}</span>
+      <form method="post" action="{{ url_for('ai.advice_stop', request_id=advice_request_id) }}" data-advice-form>
+        <button class="button button-secondary" type="submit">Stoppen</button>
+      </form>
+    </div>
+    {% else %}
+    {% if job and job.kind == "question" and job.state in ("error", "stopped") %}<p class="panel-message" role="alert">{{ job.error }}</p>{% endif %}
+    {% if advice.can_ask %}
+    <form method="post" action="{{ url_for('ai.advice_question', request_id=advice_request_id) }}" class="ai-chat-form" data-advice-form>
+      <label for="ai-vraag" class="muted">Stel een vervolgvraag aan {{ advice.service_label }}{% if advice.service == "claude" %} (via internet){% endif %}</label>
+      <textarea id="ai-vraag" name="vraag" rows="3" required placeholder="Bijvoorbeeld: Waarom niet niveau 3 bij PL?"></textarea>
+      <button class="button" type="submit" {% if busy %}disabled{% endif %}>Vraag stellen</button>
+    </form>
+    {% else %}
+    <p class="muted">Vraag eerst opnieuw een advies om vervolgvragen te kunnen stellen.</p>
+    {% endif %}
+    {% endif %}
+  </div>
+  {% endif %}
+</section>

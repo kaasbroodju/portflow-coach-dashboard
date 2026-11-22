@@ -644,3 +644,96 @@
     document.querySelectorAll(".level-details.is-floating").forEach((tip) => place(tip.closest(".col-skill")));
   }, true);
 })();
+
+(() => {
+  "use strict";
+
+  // Spec 040, F4: the AI advice is made in the background; the card shows the progress and
+  // replaces itself until it is done. The buttons work without a page reload.
+  const replaceCard = (html) => {
+    const card = document.getElementById("ai-advies");
+    if (!card) return;
+    card.outerHTML = html;
+    watch();
+  };
+  let timer = null;
+  const watch = () => {
+    clearTimeout(timer);
+    const card = document.getElementById("ai-advies");
+    if (!card || !card.hasAttribute("data-advice-busy")) return;
+    timer = setTimeout(() => {
+      fetch(card.dataset.advice, { headers: { "X-Requested-With": "fetch" } })
+        .then((r) => (r.ok ? r.text() : Promise.reject(r.status)))
+        .then(replaceCard)
+        .catch(() => { timer = setTimeout(watch, 3000); });
+    }, 1500);
+  };
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!form.matches("[data-advice-form]")) return;
+    event.preventDefault();
+    form.querySelector("button").disabled = true;
+    fetch(form.action, { method: "POST", body: new FormData(form), headers: { "X-Requested-With": "fetch" } })
+      .then((r) => (r.ok ? r.text() : Promise.reject(r.status)))
+      .then(replaceCard)
+      .catch(() => form.submit());
+  });
+  watch();
+
+  // Spec 040, F12, step 3: downloading the model, with a progress bar.
+  const pull = document.querySelector("[data-pull-status]");
+  if (pull) {
+    const bar = pull.querySelector("progress");
+    const text = pull.querySelector("[data-pull-text]");
+    const box = pull.querySelector(".wizard-progress");
+    const show = (s) => {
+      box.hidden = false;
+      bar.value = s.total ? Math.round((s.done / s.total) * 100) : 0;
+      const gb = (n) => (n / 1e9).toFixed(1).replace(".", ",");
+      text.textContent = s.error || (s.total ? `${s.status} · ${gb(s.done)} van ${gb(s.total)} GB` : s.status);
+    };
+    const poll = () => {
+      fetch(pull.dataset.pullStatus).then((r) => r.json()).then((s) => {
+        show(s);
+        if (s.running) setTimeout(poll, 1000);
+        else if (!s.error) window.location.hash = "stap-3", window.location.reload();
+      }).catch(() => setTimeout(poll, 3000));
+    };
+    pull.querySelector("[data-pull-form]").addEventListener("submit", (event) => {
+      event.preventDefault();
+      event.target.querySelector("button").disabled = true;
+      fetch(event.target.action, { method: "POST", headers: { "X-Requested-With": "fetch" } }).then(poll);
+    });
+    if (!box.hidden) poll();
+  }
+
+  // Spec 040, F12, step 4: the trial question.
+  const trial = document.querySelector("[data-trial]");
+  if (trial) {
+    const result = document.querySelector("[data-trial-result]");
+    trial.addEventListener("click", () => {
+      trial.disabled = true;
+      result.hidden = false;
+      result.className = "wizard-check";
+      const started = Date.now();
+      result.textContent = "Bezig… (de eerste keer laadt Ollama het model; dat kan een minuut duren)";
+      const tick = setInterval(() => {
+        result.textContent = `Bezig… ${Math.round((Date.now() - started) / 1000)} s (de eerste keer laadt Ollama het model; dat kan een minuut duren)`;
+      }, 1000);
+      fetch(trial.dataset.trial, { method: "POST", headers: { "X-Requested-With": "fetch" } })
+        .then((r) => r.json())
+        .then((r) => {
+          clearInterval(tick);
+          if (r.ok) {
+            window.location.hash = "stap-4";
+            window.location.reload();
+          } else {
+            result.className = "wizard-check is-todo";
+            result.textContent = r.message;
+            trial.disabled = false;
+          }
+        })
+        .catch(() => { clearInterval(tick); result.textContent = "De proefvraag is niet gelukt."; trial.disabled = false; });
+    });
+  }
+})();

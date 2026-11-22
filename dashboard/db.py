@@ -203,6 +203,19 @@ CREATE TABLE IF NOT EXISTS received_requests (
     created_at         TEXT NOT NULL DEFAULT '',  -- ISO timestamp (UTC)
     note               TEXT                       -- the student's note (HTML), spec 039
 );
+
+-- Spec 040, F9: the last AI advice per review request (stays on the laptop).
+CREATE TABLE IF NOT EXISTS ai_advice (
+    review_request_id  INTEGER PRIMARY KEY,
+    model              TEXT NOT NULL,
+    created_at         TEXT NOT NULL,             -- ISO timestamp (UTC)
+    advice             TEXT NOT NULL,             -- JSON: per skill code, level, reasoning, missing
+    counts             TEXT NOT NULL,             -- JSON: what was sent (F2)
+    service            TEXT NOT NULL DEFAULT 'lokaal',  -- lokaal or claude (F14)
+    seconds            INTEGER,                   -- how long the model took (F20)
+    prompt             TEXT,                      -- what was sent, names replaced, for follow-up questions (F21)
+    conversation       TEXT NOT NULL DEFAULT '[]' -- JSON: follow-up questions and answers (F21)
+);
 """
 
 # The students table on its own, to rebuild it without old columns (spec 018, F9).
@@ -245,6 +258,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE evaluations ADD COLUMN text TEXT")   # spec 037, F1
     if "note" not in {row["name"] for row in conn.execute("PRAGMA table_info(received_requests)")}:
         conn.execute("ALTER TABLE received_requests ADD COLUMN note TEXT")   # spec 039, F5
+    if _table_exists(conn, "ai_advice") and "service" not in {r["name"] for r in conn.execute("PRAGMA table_info(ai_advice)")}:
+        conn.execute("ALTER TABLE ai_advice ADD COLUMN service TEXT NOT NULL DEFAULT 'lokaal'")   # spec 040, F14
+    if _table_exists(conn, "ai_advice") and "seconds" not in {r["name"] for r in conn.execute("PRAGMA table_info(ai_advice)")}:
+        conn.execute("ALTER TABLE ai_advice ADD COLUMN seconds INTEGER")                          # spec 040, F20
+        conn.execute("ALTER TABLE ai_advice ADD COLUMN prompt TEXT")                              # spec 040, F21
+        conn.execute("ALTER TABLE ai_advice ADD COLUMN conversation TEXT NOT NULL DEFAULT '[]'")
     from .choices import ensure_lists, migrate_student_texts   # spec 024
     ensure_lists(conn)
     if "track" in columns:

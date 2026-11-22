@@ -219,3 +219,18 @@ def clean_up(database: str | Path, days: int = KEEP_DAYS, now: float | None = No
 def remove_all(database: str | Path) -> None:
     """Spec 014: "Alles verwijderen" also removes the kept files."""
     shutil.rmtree(cache_dir(database), ignore_errors=True)
+
+
+def original_bytes(conn: sqlite3.Connection, token: str | None, student_id: int, portfolio_id: int, file_id: int, *,
+                   api=None, limit: int = 50 * 1024 * 1024) -> bytes:
+    """Spec 040, F7: the original file in memory (not stored), for reading its text. Raises FileError."""
+    link = original_link(conn, token, student_id, portfolio_id, file_id, api=api)
+    request = urllib.request.Request(link, headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        with _opener.open(request, timeout=TIMEOUT_S) as response:
+            data = response.read(limit + 1)
+    except (urllib.error.URLError, TimeoutError, OSError):
+        raise FileError("Het bestand kon niet worden opgehaald.", 503) from None
+    if len(data) > limit:
+        raise FileError("Dit bestand is te groot.", 413)
+    return data

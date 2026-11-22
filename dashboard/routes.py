@@ -11,7 +11,7 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 
 from . import (choices, columns as column_data, demo, guilds, overview as overview_data, portflow_link, projects, reset,
                requests_to_review, semesters as semester_data, staff, student_edit, student_intake, summary, timeline)
-from . import db, evidence, evidence_files, feedback, hide_names, paths
+from . import ai_routes, db, evidence, evidence_files, feedback, hide_names, paths
 from . import evaluation_panel as evaluation_panel_data
 from . import evaluation_page as evaluation_page_data
 from .db import get_db
@@ -429,6 +429,8 @@ def evaluation_page(request_id: int):
         weeks = timeline.student_weeks(row, start, end)
         context = dict(_evidence_context(conn, student_id, weeks, start, end, skills=data["codes"]),
                        row=row, blocks=[[row]], weeks=weeks, tallest=max((len(w["blocks"]) for w in weeks), default=0))
+    if data["skills"]:
+        context.update(ai_routes.card_context(conn, request_id))   # spec 040
     return render_template(
         "evaluation_page.html", page={"title": data["request"]["title"], "label": data["request"]["title"]},
         active=came_from, data=data, period=f"{timeline.long_date(start)} – {timeline.long_date(end)}",
@@ -761,6 +763,7 @@ def settings():
         version_check=request.args.get("versie") if request.args.get("versie") in ("nieuw", "actueel", "mislukt") else None,
         latest_release=current_app.extensions["updater"].latest(),  # spec 020, U6
         always_visible=connection.always_visible,
+        ai=ai_routes.readiness(current_app.config["DATABASE"]),     # spec 040, F11
     )
 
 

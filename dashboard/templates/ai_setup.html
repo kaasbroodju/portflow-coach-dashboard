@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{# Spec 040, F12: the wizard "AI-advies instellen": step by step, with a check by the dashboard
+   after every step. The checks run when the page opens; "Controleren" opens it again. #}
+{% macro step_head(number, key, title) %}
+  <summary class="wizard-step-head">
+    <span class="wizard-mark{% if steps[key] %} is-done{% endif %}" aria-hidden="true">{% if steps[key] %}✓{% else %}{{ number }}{% endif %}</span>
+    <span class="wizard-title">{{ title }}</span>
+    <span class="wizard-state muted">{% if steps[key] %}klaar{% elif current == key %}nu doen{% else %}nog niet{% endif %}</span>
+  </summary>
+{% endmacro %}
+{% macro check_button(number) %}
+  <a class="button button-secondary" href="{{ url_for('ai.setup') }}#stap-{{ number }}">Controleren</a>
+{% endmacro %}
+{% block content %}
+<section class="card wizard-intro">
+  <h2>AI-advies instellen</h2>
+  <p class="muted">Bij een evaluatie kan een AI een advies over het niveau geven. Hieronder stel je de AI's in die je wilt gebruiken;
+    op de pagina van een evaluatie kies je per keer welke. Het lokale model is het veiligst: daarbij gaat er niets van je laptop af.</p>
+  <nav class="wizard-toc"><a href="#lokaal">Lokaal model</a>{% if claude.allowed %} · <a href="#claude">Claude</a>{% endif %} · <a href="#opdracht">Opdracht aan de AI</a></nav>
+</section>
+
+<section class="card wizard" id="lokaal" aria-labelledby="wizard-title">
+  <h2 id="wizard-title">Lokaal model (Ollama)</h2>
+  <p class="muted">In vier stappen zet je een AI-model op deze laptop klaar. Het dashboard controleert na elke stap of het gelukt is.
+    Het model draait in het programma Ollama, op je eigen laptop: er gaan geen gegevens van studenten naar internet.</p>
+  {% if request.args.get("fout") == "adres" %}<p class="panel-message" role="alert">Het adres van Ollama moet op deze laptop zijn, bijvoorbeeld http://127.0.0.1:11434.</p>{% endif %}
+
+  {# Step 1: the laptop #}
+  <details class="wizard-step" id="stap-1" {% if not steps.memory %}open{% endif %}>
+    {{ step_head(1, "memory", "Je laptop") }}
+    <div class="wizard-body">
+      {% if memory is not none %}
+      <p class="wizard-check {% if memory >= min_memory %}is-ok{% else %}is-warning{% endif %}">
+        {{ system }}, {{ memory|round(0)|int }} GB werkgeheugen.
+        {% if memory >= min_memory %}Genoeg voor het voorgestelde model.
+        {% else %}Dat is weinig: het voorgestelde model ({{ default_size }}) heeft {{ min_memory }} GB nodig. Het kan traag zijn of niet starten; probeer het toch, of kies bij stap 3 een kleiner model (het advies wordt dan minder goed).{% endif %}
+      </p>
+      {% else %}
+      <p class="wizard-check is-warning">Het werkgeheugen van deze laptop kon niet worden uitgelezen. Het voorgestelde model heeft {{ min_memory }} GB nodig.</p>
+      {% endif %}
+      <p class="muted">Het model gebruikt tijdens het maken van een advies veel geheugen. Sluit zo nodig andere zware programma's.</p>
+    </div>
+  </details>
+
+  {# Step 2: Ollama #}
+  <details class="wizard-step" id="stap-2" {% if current == "ollama" %}open{% endif %}>
+    {{ step_head(2, "ollama", "Ollama installeren en starten") }}
+    <div class="wizard-body">
+      {% if steps.ollama %}
+      <p class="wizard-check is-ok">Ollama {{ state.version }} draait op deze laptop.</p>
+      {% else %}
+      <p class="wizard-check is-todo">Ollama is nog niet gevonden{% if state.error %} ({{ state.error }}){% endif %}.</p>
+      {% endif %}
+      {% set mac %}
+        <h3>Op een Mac</h3>
+        <ol class="wizard-list">
+          <li>Ga naar <a href="{{ download_url }}" target="_blank" rel="noopener noreferrer">{{ download_url }}</a> en kies <strong>Download for macOS</strong>.</li>
+          <li>Open het gedownloade bestand en sleep <strong>Ollama</strong> naar de map <strong>Programma's</strong>. Mag dat niet op je laptop, open Ollama dan gewoon vanuit Downloads.</li>
+          <li>Start <strong>Ollama</strong>. Je ziet een lamaatje in de menubalk bovenaan. Als Ollama een venster opent, mag je dat sluiten: het programma blijft op de achtergrond draaien.</li>
+        </ol>
+      {% endset %}
+      {% set windows %}
+        <h3>Op Windows</h3>
+        <ol class="wizard-list">
+          <li>Ga naar <a href="{{ download_url }}" target="_blank" rel="noopener noreferrer">{{ download_url }}</a> en kies <strong>Download for Windows</strong>.</li>
+          <li>Open <strong>OllamaSetup.exe</strong> en klik op <strong>Install</strong>. Er zijn geen beheerdersrechten nodig.</li>
+          <li>Ollama start vanzelf. Je ziet een lamaatje rechtsonder bij de klok (soms achter het pijltje ^). Start je de laptop opnieuw, dan start Ollama ook weer.</li>
+        </ol>
+      {% endset %}
+      {% if system == "Windows" %}{{ windows }}{{ mac }}{% else %}{{ mac }}{{ windows }}{% endif %}
+      <p class="muted">Draait Ollama al, maar zegt het dashboard van niet? Start Ollama opnieuw en klik op Controleren.</p>
+      {{ check_button(2) }}
+    </div>
+  </details>
+
+  {# Step 3: the model #}
+  <details class="wizard-step" id="stap-3" {% if current == "model" %}open{% endif %}>
+    {{ step_head(3, "model", "Model downloaden") }}
+    <div class="wizard-body">
+      {% if steps.model %}
+      <p class="wizard-check is-ok">Het model <strong>{{ state.model }}</strong> staat in Ollama.</p>
+      {% elif steps.ollama %}
+      <p class="wizard-check is-todo">Het model <strong>{{ state.model }}</strong> staat nog niet in Ollama.</p>
+      {% else %}
+      <p class="wizard-check is-todo">Doe eerst stap 2.</p>
+      {% endif %}
+      <p>Voorstel: <strong>{{ default_model }}</strong> ({{ default_size }}). Dat model schrijft goed Nederlands, kan afbeeldingen lezen en verzon in een proef niets.
+        Het downloaden duurt bij een gewone verbinding 5 tot 15 minuten.</p>
+      {% if steps.ollama %}
+      <form method="post" action="{{ url_for('ai.save_settings') }}" class="wizard-form">
+        <input type="hidden" name="stap" value="3">
+        <label>Model
+          <select name="model" onchange="this.form.submit()">
+            {% set names = state.models|map(attribute="name")|list %}
+            {% if default_model not in names %}<option value="{{ default_model }}" {% if state.model == default_model %}selected{% endif %}>{{ default_model }} (voorstel, nog niet gedownload)</option>{% endif %}
+            {% if state.model not in names and state.model != default_model %}<option value="{{ state.model }}" selected>{{ state.model }} (nog niet gedownload)</option>{% endif %}
+            {% for m in state.models %}<option value="{{ m.name }}" {% if m.name == state.model %}selected{% endif %}>{{ m.name }} ({{ m.size_gb|string|replace(".", ",") }} GB){% if m.name == default_model %} · voorstel{% endif %}</option>{% endfor %}
+          </select>
+        </label>
+        <noscript><button class="button button-secondary" type="submit">Kiezen</button></noscript>
+      </form>
+      {% if not steps.model %}
+      <div class="wizard-pull" data-pull-status="{{ url_for('ai.pull_status') }}">
+        <form method="post" action="{{ url_for('ai.pull') }}" data-pull-form>
+          <button class="button" type="submit" {% if pull.running %}disabled{% endif %}>Model downloaden</button>
+        </form>
+        <div class="wizard-progress" {% if not pull.running and not pull.error %}hidden{% endif %}>
+          <progress max="100" value="{{ ((pull.done / pull.total * 100) if pull.total else 0)|round|int }}"></progress>
+          <span class="muted" data-pull-text>{{ pull.error or pull.status }}</span>
+        </div>
+        <p class="muted">Of typ in een Terminal (Mac) of Opdrachtprompt (Windows): <code>ollama pull {{ state.model }}</code></p>
+      </div>
+      {% endif %}
+      {% endif %}
+      {{ check_button(3) }}
+    </div>
+  </details>
+
+  {# Step 4: trial question #}
+  <details class="wizard-step" id="stap-4" {% if current == "trial" %}open{% endif %}>
+    {{ step_head(4, "trial", "Proefvraag") }}
+    <div class="wizard-body">
+      {% if trial %}
+      <p class="wizard-check {% if trial.seconds > slow %}is-warning{% else %}is-ok{% endif %}">De proefvraag werkte: {{ trial.seconds }} seconden.
+        {% if trial.seconds > slow %}Dat is langzaam; een echt advies duurt dan een aantal minuten.{% endif %}</p>
+      {% endif %}
+      <p>Het dashboard stuurt een kleine, verzonnen evaluatie naar <strong>{{ state.model }}</strong> en kijkt of er een bruikbaar advies terugkomt.
+        De eerste keer duurt het langer, omdat Ollama het model dan in het geheugen laadt.</p>
+      {% if steps.model %}
+      <button class="button" type="button" data-trial="{{ url_for('ai.trial') }}">{% if trial %}Opnieuw proberen{% else %}Proefvraag stellen{% endif %}</button>
+      <p class="wizard-check" data-trial-result hidden></p>
+      {% else %}
+      <p class="wizard-check is-todo">Doe eerst stap 3.</p>
+      {% endif %}
+    </div>
+  </details>
+
+  {# Step 5: done #}
+  <div class="wizard-step wizard-done" id="stap-5">
+    {% if current == "done" %}
+    <p class="wizard-check is-ok"><strong>Klaar.</strong> Op de pagina van een evaluatie (Evaluaties › Te beoordelen › een verzoek) kies je onderaan het lokale model en klik je op <strong>Advies vragen</strong>.</p>
+    <a class="button" href="{{ url_for('pages.evaluations') }}">Naar Evaluaties</a>
+    {% else %}
+    <p class="muted">Als alle stappen klaar zijn, kun je bij een evaluatie AI-advies vragen.</p>
+    {% endif %}
+  </div>
+
+  <details class="wizard-advanced">
+    <summary class="muted">Geavanceerd: adres van Ollama</summary>
+    <form method="post" action="{{ url_for('ai.save_settings') }}" class="wizard-form">
+      <input type="hidden" name="stap" value="2">
+      <label>Adres <input type="url" name="url" value="{{ state.url }}" required></label>
+      <button class="button button-secondary" type="submit">Opslaan</button>
+      <p class="muted">Alleen een adres op deze laptop zelf (127.0.0.1 of localhost).</p>
+    </form>
+  </details>
+</section>
+
+{# F13: Claude via the API; F22: only for the allowed Portflow user #}
+{% if claude.allowed %}
+<section class="card wizard" id="claude" aria-labelledby="claude-title">
+  <h2 id="claude-title">Claude (via internet)</h2>
+  <div class="ai-warning" role="note">
+    <p><strong>Let op: gebruik alleen AI-diensten die door de HU zijn goedgekeurd voor werk van studenten.</strong></p>
+    <p>Met Claude gaat het materiaal van een evaluatie via internet naar Anthropic: de zelfevaluatie, LEF-teksten, eerdere beoordelingen,
+      feedback en de inhoud van bewijsstukken, ook afbeeldingen. Namen worden vervangen door "Student", "Coach 1" enzovoort;
+      in afbeeldingen en gescande documenten kan dat niet. Controleer daarom eerst of de HU het gebruik van Claude hiervoor toestaat.</p>
+  </div>
+  {% if claude.error %}<p class="panel-message" role="alert">{{ claude.error }}</p>{% endif %}
+  {% if claude.key %}
+  <p class="wizard-check is-ok">Claude is ingesteld: sleutel {{ claude.key }}, model {{ claude.model }}{% if claude.approved %}; toestemming van de HU bevestigd op {{ claude.approved }}{% endif %}.{% if claude.saved %} De sleutel werkt.{% endif %}</p>
+  <form method="post" action="{{ url_for('ai.claude_remove') }}">
+    <button class="button button-secondary" type="submit">Sleutel verwijderen</button>
+  </form>
+  {% else %}
+  <ol class="wizard-list">
+    <li>Maak een account in de <a href="https://platform.claude.com" target="_blank" rel="noopener noreferrer">Claude Console</a> (of gebruik het account dat de HU je geeft) en zorg dat er tegoed is. Eén advies kost ongeveer 10 tot 30 cent.</li>
+    <li>Maak onder <strong>API keys</strong> een sleutel aan en kopieer hem.</li>
+    <li>Zet hieronder het vinkje, plak de sleutel en klik op <strong>Opslaan en controleren</strong>. Het dashboard controleert de sleutel bij Anthropic; dat kost niets.</li>
+  </ol>
+  <form method="post" action="{{ url_for('ai.claude_save') }}" class="wizard-form wizard-claude">
+    <label class="checkbox"><input type="checkbox" name="toegestaan" value="1" required> Ik heb gecontroleerd dat de HU het gebruik van Claude hiervoor toestaat.</label>
+    <label>API-sleutel <input type="password" name="sleutel" autocomplete="off" placeholder="sk-ant-…" required></label>
+    <button class="button" type="submit">Opslaan en controleren</button>
+  </form>
+  <p class="muted">De sleutel blijft op deze laptop, in de database van het dashboard; hij staat niet in reservekopieën en wordt nooit in de browser getoond.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{# F18, F19: the instruction for every AI #}
+<section class="card" id="opdracht" aria-labelledby="prompt-title">
+  <h2 id="prompt-title">Opdracht aan de AI</h2>
+  <p class="muted">Deze opdracht gaat mee met elk advies, voor elke AI. Pas hem aan als je iets anders wilt; per vaardigheid kun je aangeven waar de AI extra op moet letten.</p>
+  {% if prompt_saved %}<p class="wizard-check is-ok">Opgeslagen.</p>{% endif %}
+  <form method="post" action="{{ url_for('ai.prompts_save') }}" class="prompt-form">
+    <label class="prompt-main">Algemene opdracht{% if not prompt_is_default %} <span class="muted">(aangepast)</span>{% endif %}
+      <textarea name="opdracht" rows="9">{{ prompt }}</textarea></label>
+    <h3>Aanvulling per vaardigheid</h3>
+    <p class="muted">Gaat alleen mee als die vaardigheid in het verzoek zit. Bijvoorbeeld: "Let bij PL op of de student de planning met de opdrachtgever afstemt."</p>
+    {% for code in skills %}
+    <label class="prompt-skill"><span><span class="skill-code">{{ code }}</span> {{ skill_names[code] }}</span>
+      <textarea name="opdracht_{{ code }}" rows="2">{{ skill_prompts.get(code, "") }}</textarea></label>
+    {% endfor %}
+    <div class="prompt-actions">
+      <button class="button" type="submit">Opslaan</button>
+      <button class="button button-secondary" type="submit" name="standaard" value="1" formnovalidate>Standaardtekst terugzetten</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

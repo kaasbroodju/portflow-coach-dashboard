@@ -107,7 +107,7 @@ Wijkt de bouw af van de spec? Dan wordt eerst de spec aangepast.
 | 037 | [Evaluaties lezen in een zijpaneel](037-evaluaties-lezen/spec.md) | `klaar` |
 | 038 | [Bestanden bekijken](038-bestanden-bekijken/spec.md) | `klaar` |
 | 039 | [Evaluatie voorbereiden](039-evaluatie-voorbereiden/spec.md) | `klaar` |
-| 040 | [AI-advies bij een evaluatie](040-ai-advies-niveau/spec.md) | `uitgewerkt` |
+| 040 | [AI-advies bij een evaluatie](040-ai-advies-niveau/spec.md) | `in bouw` |
 
 ## Kandidaten
 
