@@ -1056,3 +1056,47 @@ a.evidence-dot:hover { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25); }
 .file-viewer-body iframe { width: 100%; height: 100%; border: 0; }
 .file-viewer-body img, .file-viewer-body video { max-width: 100%; max-height: 100%; }
 .file-message-page { margin: 0; padding: 12px; background: var(--page); font-size: 13px; }
+
+/* Spec 039: the evaluation page. */
+.to-review-link { color: inherit; text-decoration: none; }
+.to-review-link:hover { background: var(--page); }
+.to-review-link:hover .to-review-student, .student-open .to-review-link:hover .to-review-student { text-decoration: underline; }
+.evaluation-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.evaluation-head-main { display: flex; gap: 14px; align-items: flex-start; min-width: 0; }
+.evaluation-head h2 { margin: 0 0 4px; }
+.evaluation-head p { margin: 0 0 6px; }
+.evaluation-skills { display: flex; flex-wrap: wrap; gap: 4px; }
+.evaluation-skills .mark-assessment { margin-left: 0; }
+.evaluation-nav { display: flex; align-items: center; gap: 10px; }
+.button.is-disabled { opacity: 0.45; pointer-events: none; }
+.compact-table th.is-requested { box-shadow: inset 0 -3px 0 var(--accent); color: var(--accent); }
+.evaluation-skill-card h3 { margin: 22px 0 8px; font-size: 15px; }
+.evaluation-skill-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding-bottom: 12px; border-bottom: 3px solid var(--border); }
+.evaluation-skill-head h2 { margin: 0; display: flex; align-items: center; gap: 8px; }
+.cat-line-product { border-bottom-color: #909db9; }
+.cat-line-social { border-bottom-color: #a6b392; }
+.cat-line-personal { border-bottom-color: #cba084; }
+.evaluation-levels { display: flex; gap: 22px; margin: 0; }
+.evaluation-levels div { display: flex; flex-direction: column; align-items: flex-end; }
+.evaluation-levels dt { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.evaluation-levels dd { margin: 0; font-size: 18px; }
+.evaluation-self-text, .evaluation-note { padding: 12px 14px; border-radius: var(--radius-small); background: var(--page); }
+.evaluation-self-text p:last-child, .evaluation-note p:last-child { margin-bottom: 0; }
+.evidence-mention { font-weight: 600; }
+.lef-level { margin: 0 0 8px; border: 1px solid var(--border); border-radius: var(--radius-small); }
+.lef-level summary { padding: 8px 12px; cursor: pointer; font-weight: 500; }
+.lef-text { padding: 0 14px 10px; font-size: 14px; }
+.lef-text ul { margin: 4px 0 8px; padding-left: 20px; }
+.lef-context { margin-top: 8px; padding: 8px 12px; border-left: 3px solid var(--border); color: var(--text-muted); font-size: 13px; }
+.lef-context p { margin: 0 0 6px; }
+.evaluation-earlier summary { cursor: pointer; margin-bottom: 8px; color: var(--text-muted); font-size: 13px; }
+.evaluation-evidence, .evaluation-threads { margin: 0; padding: 0; list-style: none; }
+.evaluation-evidence li, .evaluation-threads li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 7px 0;
+  border-top: 1px solid var(--border); font-size: 14px; }
+.evaluation-evidence a { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.evaluation-evidence .timeline-swatch { display: inline-block; width: 10px; height: 10px; }
+.evaluation-evidence .muted, .evaluation-threads .muted { font-size: 13px; }
+.mark-label { padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+.mark-mentioned { background: #f3e3d9; color: #8a4a33; }
+.mark-new { background: #dcefe3; color: #2e6b47; }

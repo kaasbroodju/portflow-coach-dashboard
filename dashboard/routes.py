@@ -13,6 +13,7 @@ from . import (choices, columns as column_data, demo, guilds, overview as overvi
                requests_to_review, semesters as semester_data, staff, student_edit, student_intake, summary, timeline)
 from . import db, evidence, evidence_files, feedback, hide_names, paths
 from . import evaluation_panel as evaluation_panel_data
+from . import evaluation_page as evaluation_page_data
 from .db import get_db
 from .portflow_fetch import S_REQUESTS_FETCHED, updated_text
 from .portflow_connection import initials
@@ -370,13 +371,19 @@ def student_page(student_id: int):
         edit_url=url_for("pages.student_edit_page", student_id=student_id, terug=request.full_path.rstrip("?")))
 
 
-def _evidence_context(conn, student_id: int, weeks: list[dict], start: date, end: date, message: str | None = None) -> dict:
-    """Spec 034: what the evidence timeline needs."""
+def _evidence_context(conn, student_id: int, weeks: list[dict], start: date, end: date, message: str | None = None,
+                      skills: list[str] | None = None) -> dict:
+    """Spec 034: what the evidence timeline needs; spec 039, F7: only the rows of `skills`, without
+    the feedback rows (those are per skill on the evaluation page)."""
     fetched = evidence.last_fetch(conn, student_id)
     when = None
     if fetched and fetched["fetched_at"]:
         when = updated_text(datetime.fromisoformat(fetched["fetched_at"]), datetime.now(timezone.utc))
-    return {"evidence": evidence.timeline(conn, student_id, start, end), "evidence_weeks": weeks,
+    shown = evidence.timeline(conn, student_id, start, end)
+    if skills:
+        shown = dict(shown, rows=[r for r in shown["rows"] if r["code"] in skills])
+        shown["total"] = sum(len(r["dots"]) for r in shown["rows"])
+    return {"evidence": shown, "evidence_weeks": weeks, "evidence_skills": ",".join(skills or []),
             "feedback_stats": feedback.summary(conn, student_id, start, end),     # spec 035
             "feedback_rows": feedback.rows(conn, student_id, start, end),
             "evidence_fetched": when, "evidence_collections": fetched["collections"] if fetched else None,
@@ -395,7 +402,37 @@ def fetch_evidence(student_id: int):
         return redirect(url_for("pages.student_page", student_id=student_id))
     row = next(r for r in overview_data.student_rows(conn, date.today()) if r["id"] == student_id)
     weeks = timeline.student_weeks(row, start, end)
-    return render_template("_evidence_timeline.html", **_evidence_context(conn, student_id, weeks, start, end, message))
+    skills = [s for s in request.args.get("vaardigheden", "").split(",") if s in SKILLS]   # spec 039, F7
+    return render_template("_evidence_timeline.html",
+                           **_evidence_context(conn, student_id, weeks, start, end, message, skills or None))
+
+
+@bp.get("/evaluaties/<int:request_id>")
+def evaluation_page(request_id: int):
+    """Spec 039: one review request with everything needed to assess it."""
+    conn = get_db()
+    today = date.today()
+    start, end, period_saved = overview_data.semester_period(conn, today)
+    came_from = request.args.get("van") if request.args.get("van") in ("overview", "evaluations") else "evaluations"
+    _, student_id = evaluation_page_data.student_of(conn, request_id)
+
+    def mention(evidence_id: int, label: str) -> str | None:   # F6
+        return url_for("pages.evidence_panel", student_id=student_id, ids=evidence_id) if student_id else None
+
+    data = evaluation_page_data.build(conn, request_id, today, start, end, mention)
+    if data is None:   # F9
+        return render_template("evaluation_page.html", page={"title": "Evaluatie niet gevonden", "label": "Evaluatie"},
+                               active="evaluations", data=None), 404
+    context = {}
+    row = next((r for r in overview_data.student_rows(conn, today) if r["id"] == student_id), None) if student_id else None
+    if row:
+        weeks = timeline.student_weeks(row, start, end)
+        context = dict(_evidence_context(conn, student_id, weeks, start, end, skills=data["codes"]),
+                       row=row, blocks=[[row]], weeks=weeks, tallest=max((len(w["blocks"]) for w in weeks), default=0))
+    return render_template(
+        "evaluation_page.html", page={"title": data["request"]["title"], "label": data["request"]["title"]},
+        active=came_from, data=data, period=f"{timeline.long_date(start)} – {timeline.long_date(end)}",
+        period_saved=period_saved, **context)
 
 
 @bp.get("/studenten/<int:student_id>/feedback")
@@ -417,7 +454,13 @@ def _add_evidence_text(conn, student_id: int, items: list[dict]) -> None:
     spec 038: so do the files of a file evidence (shown by the file route below)."""
     token = current_app.extensions["portflow"].token
     for item in items:
-        if item["raw_kind"] in ("free_text", "file"):
+        if item.get("live"):   # spec 039, F6: not stored; name and kind come from Portflow
+            details, item["evidence_error"] = evidence.detail(conn, student_id, item["evidence_id"], token)
+            if details:
+                item.update(evidence=details["name"], kind=details["kind"], raw_kind=details["raw_kind"])
+            item.update(evidence_text=details["text"] if details else "", evidence_images=details["images"] if details else 0,
+                        files=details["files"] if details else [], portfolio_id=details["portfolio_id"] if details else None)
+        elif item["raw_kind"] in ("free_text", "file"):
             details, item["evidence_error"] = evidence.detail(conn, student_id, item["evidence_id"], token)
             item["evidence_text"] = details["text"] if details else ""
             item["evidence_images"] = details["images"] if details else 0

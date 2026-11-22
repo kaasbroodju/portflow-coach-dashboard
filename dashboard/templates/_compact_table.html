@@ -6,7 +6,7 @@
     <thead>
       <tr>
         <th scope="col" class="col-student">Student</th>
-        {% for code in skills %}<th scope="col" class="col-skill cat-{{ skill_category[code] }}" title="{{ skill_names[code] }}">{{ code }}</th>{% endfor %}
+        {% for code in skills %}<th scope="col" class="col-skill cat-{{ skill_category[code] }}{% if requested and code in requested %} is-requested{% endif %}" title="{{ skill_names[code] }}{% if requested and code in requested %} · gevraagd in deze evaluatie{% endif %}">{{ code }}</th>{% endfor %}
         <th scope="col">Gilde</th>
         <th scope="col">Project</th>
         <th scope="col" title="Semester">Sem</th>

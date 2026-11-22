@@ -203,8 +203,9 @@ class _SafeHtml(html.parser.HTMLParser):
     """Keep a fixed set of simple tags (F3, technical requirement); everything else becomes text.
     Links only to http(s), opening in a new tab; mentions of other evidence become their label."""
 
-    def __init__(self):
+    def __init__(self, mention=None):
         super().__init__(convert_charrefs=True)
+        self.mention = mention   # spec 039, F6: (evidence id, label) -> address of a link, or None
         self.out: list[str] = []
         self.open: list[str] = []
         self.skip: list[str] = []   # inside <script>, <style> or a mention: no text of its own
@@ -227,7 +228,13 @@ class _SafeHtml(html.parser.HTMLParser):
             self.out.append(f"<{tag}>")
             self.open.append(tag)
         elif tag == "span" and attrs.get("data-mention-type") == "evidence" and attrs.get("data-label"):
-            self.out.append(html.escape(f"[{attrs['data-label']}]"))
+            evidence_id = attrs.get("data-id") or ""
+            href = self.mention(int(evidence_id), attrs["data-label"]) if self.mention and evidence_id.isdigit() else None
+            if href and "a" not in self.open:
+                self.out.append(f'<a class="evidence-mention" href="{html.escape(href, quote=True)}" data-feedback '
+                                f'data-panel-title="Bewijsstuk">{html.escape(attrs["data-label"])}</a>')
+            else:
+                self.out.append(html.escape(f"[{attrs['data-label']}]"))
             self.skip.append("span")
 
     def handle_endtag(self, tag):
@@ -251,8 +258,10 @@ class _SafeHtml(html.parser.HTMLParser):
         return "".join(self.out) + "".join(f"</{t}>" for t in reversed(self.open))
 
 
-def safe_html(text: str) -> str:
-    parser = _SafeHtml()
+def safe_html(text: str, mention=None) -> str:
+    """mention: optional (evidence id, label) -> link address; then a mention of evidence becomes a
+    link that opens it in the side panel (spec 039, F6) instead of "[label]"."""
+    parser = _SafeHtml(mention)
     parser.feed(text or "")
     parser.close()
     return parser.result()

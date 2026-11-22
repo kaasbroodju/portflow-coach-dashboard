@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{# Spec 039: one review request with everything needed to assess it (in Portflow). #}
+{% macro level_text(value) %}{% if value is none %}–{% else %}{{ value }}{% endif %}{% endmacro %}
+{% macro lef_block(label, level, text) %}
+  <details class="lef-level">
+    <summary>{{ label }}: niveau {{ level }} · {{ text.title }}</summary>
+    <div class="lef-text">{{ text.html|safe }}</div>
+  </details>
+{% endmacro %}
+{% block content %}
+{% if not data %}
+<section class="card"><p>Dit evaluatieverzoek bestaat niet (meer). <a href="{{ url_for('pages.evaluations') }}">Naar Evaluaties</a></p></section>
+{% else %}
+{% set r = data.request %}
+
+{# F1, F13: the request, with previous / next in Te beoordelen #}
+<section class="card evaluation-head" aria-labelledby="evaluation-title"{% if r.student_id %} data-reload-when-fetched="{{ r.student_id }}"{% endif %}>
+  <div class="evaluation-head-main">
+    <span class="avatar">{{ r.student|initials }}</span>
+    <div>
+      <h2 id="evaluation-title">{{ r.title }}</h2>
+      <p class="muted">
+        {% if r.student_id %}<a href="{{ url_for('pages.student_page', student_id=r.student_id, van='evaluations') }}">{{ r.student }}</a>{% else %}{{ r.student }}{% endif %}
+        {% if r.submitted %} · ingediend {{ r.submitted }}{% endif %}
+        {% if r.open and r.waiting %} · wacht {{ r.waiting }}{% endif %}
+        {% if r.to_me %} · <span class="role-label">aan jou</span>{% endif %}
+        {% if not r.open %} · beoordeeld{% endif %}
+      </p>
+      <p class="evaluation-skills">
+        {% if data.full_assessment %}<span class="mark-assessment">Assessment ingeleverd</span>
+        {% else %}{% for code in data.codes %}<span class="skill-code" title="{{ skill_names[code] }}">{{ code }}</span>{% endfor %}{% endif %}
+      </p>
+    </div>
+  </div>
+  {% if data.queue_position %}
+  <nav class="evaluation-nav" aria-label="Te beoordelen">
+    {% if data.previous %}<a class="button button-secondary" href="{{ url_for('pages.evaluation_page', request_id=data.previous) }}">← Vorige</a>{% else %}<span class="button button-secondary is-disabled" aria-disabled="true">← Vorige</span>{% endif %}
+    <span class="muted">{{ data.queue_position[0] }} van {{ data.queue_position[1] }}</span>
+    {% if data.next %}<a class="button button-secondary" href="{{ url_for('pages.evaluation_page', request_id=data.next) }}">Volgende →</a>{% else %}<span class="button button-secondary is-disabled" aria-disabled="true">Volgende →</span>{% endif %}
+  </nav>
+  {% endif %}
+</section>
+
+{% if not r.student_id %}
+<section class="card"><p class="muted">Deze student staat niet in het dashboard. Voeg hem toe bij Beheer › Studenten en klik op Verversen om zijn voortgang en bewijsstukken te zien.</p></section>
+{% endif %}
+
+{% if row %}
+{# F2, F3: the progress row and the evaluations per week, as on the student page #}
+<section class="card timeline-card evaluation-progress" aria-labelledby="evaluation-progress-title">
+  <div class="timeline-head">
+    <div>
+      <h2 id="evaluation-progress-title">Stand van zaken</h2>
+      <p class="muted">{{ period }}{% if not period_saved %} (het lopende semester){% endif %}</p>
+    </div>
+  </div>
+  {% set requested = data.codes %}{% include "_compact_table.html" %}
+  {% include "_student_weeks.html" %}
+</section>
+{% endif %}
+
+{# F5, F6: the note of the student #}
+<section class="card evaluation-self" aria-labelledby="evaluation-note-title">
+  <h2 id="evaluation-note-title">Toelichting van de student</h2>
+  {% if not r.note_known %}<p class="muted">De toelichting is alleen zichtbaar voor de beoordelaar.</p>
+  {% elif not r.note_fetched %}<p class="muted">Klik op Verversen om de toelichting op te halen.</p>
+  {% elif r.note %}<div class="evidence-text evaluation-note">{{ r.note|safe }}</div>
+  {% else %}<p class="muted">De student heeft geen toelichting geschreven.</p>{% endif %}
+</section>
+
+{# F4, F5, F8, F10-F12: per requested skill #}
+{% for s in data.skills %}
+<section class="card evaluation-skill-card" id="vaardigheid-{{ s.code }}" aria-labelledby="skill-{{ s.code }}-title">
+  <div class="evaluation-skill-head cat-line-{{ s.category }}">
+    <h2 id="skill-{{ s.code }}-title"><span class="skill-code">{{ s.code }}</span> {{ s.name }}</h2>
+    <dl class="evaluation-levels">
+      <div><dt>Beoordeelt</dt><dd>{{ s.assessor }}</dd></div>
+      <div><dt>Behaald</dt><dd>{{ level_text(s.current) }}</dd></div>
+      <div><dt>Student vraagt</dt><dd><strong>{{ level_text(s.claimed) }}</strong></dd></div>
+    </dl>
+  </div>
+
+  <h3>Zelfevaluatie{% if s.self_date %} <span class="muted">· {{ s.self_date }}</span>{% endif %}</h3>
+  {% if s.self_text %}<div class="evidence-text evaluation-self-text">{{ s.self_text|safe }}</div>
+  {% else %}<p class="muted">Geen tekst bij de zelfevaluatie.</p>{% endif %}
+  {% for e in s.assessed_here %}
+  <div class="feedback-message feedback-msg-reply">
+    <p class="feedback-meta"><strong>{{ e.author }}</strong> · {{ e.role }}{% if e.level %} · niveau {{ e.level }}{% endif %} · {{ e.date }}</p>
+    {% if e.text %}<div class="evidence-text">{{ e.text|safe }}</div>{% endif %}
+  </div>
+  {% endfor %}
+
+  {# F10 #}
+  {% if s.lef_claimed or s.lef_current %}
+  <h3>LEF</h3>
+  {% if s.lef_claimed %}{{ lef_block("Gevraagd", s.claimed, s.lef_claimed) }}{% endif %}
+  {% if s.lef_current %}{{ lef_block("Behaald", s.current, s.lef_current) }}{% endif %}
+  {% endif %}
+
+  {# F11 #}
+  <h3>Eerdere evaluaties{% if s.earlier %} <span class="muted">· {{ s.earlier|length }}</span>{% endif %}</h3>
+  {% if s.earlier %}
+  <details class="evaluation-earlier"{% if s.earlier|length <= 2 %} open{% endif %}>
+    <summary>{% if s.earlier|length <= 2 %}Verbergen{% else %}Toon {{ s.earlier|length }} eerdere evaluaties{% endif %}</summary>
+    {% for e in s.earlier %}
+    <div class="feedback-message feedback-msg-reply">
+      <p class="feedback-meta"><strong>{{ e.author }}</strong> · {{ e.role }} · niveau {{ e.level }} · {{ e.date }}{% if e.title %} · {{ e.title }}{% endif %}</p>
+      {% if e.text %}<div class="evidence-text">{{ e.text|safe }}</div>{% else %}<p class="muted feedback-text">(geen tekst)</p>{% endif %}
+    </div>
+    {% endfor %}
+  </details>
+  {% else %}<p class="muted">Nog geen eerdere evaluaties van deze vaardigheid.</p>{% endif %}
+
+  {# F8 #}
+  <h3>Bewijsstukken <span class="muted">· {{ s.evidence|length }} in deze semesterperiode</span></h3>
+  {% if s.evidence %}
+  <ul class="evaluation-evidence">
+    {% for e in s.evidence %}
+    <li>
+      <a href="{{ url_for('pages.evidence_panel', student_id=r.student_id, ids=e.id) }}" data-feedback data-panel-title="Bewijsstuk">
+        <i class="timeline-swatch evidence-{{ e.raw_kind or 'mixed' }}" aria-hidden="true"></i>{{ e.name }}</a>
+      <span class="muted">{{ e.kind }}{% if e.collections %} · {{ e.collections }}{% endif %} · {{ e.created }}{% if e.updated %} (bijgewerkt {{ e.updated }}){% endif %}</span>
+      {% if e.mentioned %}<span class="mark-label mark-mentioned">genoemd in zelfevaluatie</span>{% endif %}
+      {% if e.new %}<span class="mark-label mark-new" title="Toegevoegd of bijgewerkt na de vorige beoordeling ({{ s.last_assessed }})">nieuw sinds vorige beoordeling</span>{% endif %}
+      {% if e.requests %}<span class="muted evaluation-evidence-feedback">{{ e.requests }} feedbackvra{{ "ag" if e.requests == 1 else "gen" }}, {{ e.replies }} reactie{{ "s" if e.replies != 1 }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% elif evidence_fetched %}<p class="muted">Geen bewijsstukken bij deze vaardigheid in deze semesterperiode.</p>
+  {% else %}<p class="muted" data-evidence-pending>De bewijsstukken worden opgehaald…</p>{% endif %}
+
+  {# F12 #}
+  <h3>Feedbackvragen <span class="muted">· {{ s.threads|length }}</span></h3>
+  {% if s.threads %}
+  <ul class="evaluation-threads">
+    {% for t in s.threads %}
+    <li><a href="{{ url_for('pages.feedback_panel', student_id=r.student_id, vragen=t.id) }}" data-feedback>{{ t.evidence }}</a>
+      <span class="muted">{{ t.author }} · {{ t.date }} · {% if t.replies %}{{ t.replies }} reactie{{ "s" if t.replies != 1 }} ({{ t.roles|join(", ") }}){% else %}nog geen reactie{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="muted">Geen feedbackvragen op deze bewijsstukken in deze semesterperiode.</p>{% endif %}
+</section>
+{% endfor %}
+
+{% if row %}
+{# F7: the evidence timeline, only the requested skills #}
+<section class="card timeline-card" aria-label="Bewijsstukken per vaardigheid">
+  {% include "_evidence_timeline.html" %}
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

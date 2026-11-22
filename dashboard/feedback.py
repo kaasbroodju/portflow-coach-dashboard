@@ -131,7 +131,9 @@ def evidence_items(conn: sqlite3.Connection, student_id: int, evidence_ids: list
     for evidence_id in dict.fromkeys(evidence_ids):
         item = conn.execute("SELECT * FROM evidence_items WHERE student_id = ? AND evidence_id = ?",
                             (student_id, evidence_id)).fetchone()
-        if item is None:
+        if item is None:   # spec 039, F6: a mentioned piece of evidence that is not stored: fetched live
+            result.append({"evidence_id": evidence_id, "evidence": "Bewijsstuk", "raw_kind": "", "kind": "",
+                           "skills": [], "threads": [], "live": True})
             continue
         result.append({
             "evidence_id": evidence_id, "evidence": item["name"] or "Bewijsstuk", "raw_kind": item["kind"] or "",

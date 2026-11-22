@@ -7,6 +7,7 @@ Pages read `status()`; the token never leaves the connection object.
 """
 
 import json
+import uuid
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -135,6 +136,8 @@ class Fetcher:
         self.running = False
         self.done = 0
         self.total = 0
+        self.round = ""                  # spec 039: which round, so a page reloads once per round
+        self.fetched: set[int] = set()   # spec 039: the students done in this round
         self._lock = threading.Lock()
 
     # Starting -------------------------------------------------------------
@@ -150,6 +153,7 @@ class Fetcher:
             if self.running:
                 return False
             self.running, self.done, self.total = True, 0, 0
+            self.round, self.fetched = uuid.uuid4().hex, set()
         self.spawn(lambda: self._run(token, student_ids))
         return True
 
@@ -176,6 +180,8 @@ class Fetcher:
             "unlinked": unlinked,
             "can_start": bool(self.connection.token) and not self.running,
             "last": last,
+            "round": self.round,
+            "fetched": sorted(self.fetched),
         }
 
     # Work ---------------------------------------------------------------------
@@ -245,7 +251,8 @@ class Fetcher:
         return statuses
 
     def _save_requests(self, items: list[dict]) -> None:
-        """Spec 030: the review requests to the user, without the student's note or due date."""
+        """Spec 030: the review requests to the user, without the due date; since spec 039 with the
+        student's note (HTML, shown safely on the evaluation page)."""
         rows = []
         for item in items:
             rid, status = item.get("review_request_id"), item.get("status")
@@ -260,6 +267,8 @@ class Fetcher:
                 "portfolio_id": item.get("portfolio_id") if isinstance(item.get("portfolio_id"), int) else None,
                 "status": status,
                 "created_at": str(item.get("created_at") or ""),
+                # "" when Portflow has no note (null): fetched, but nothing written; NULL = not fetched yet
+                "note": item.get("review_request_note") if isinstance(item.get("review_request_note"), str) else "",
             })
         conn = db.connect(self.database)
         try:
@@ -267,8 +276,8 @@ class Fetcher:
                 conn.execute("DELETE FROM received_requests")
                 conn.executemany(
                     "INSERT OR REPLACE INTO received_requests (review_request_id, title, student_name, "
-                    "student_portflow_id, portfolio_id, status, created_at) VALUES (:review_request_id, :title, "
-                    ":student_name, :student_portflow_id, :portfolio_id, :status, :created_at)", rows)
+                    "student_portflow_id, portfolio_id, status, created_at, note) VALUES (:review_request_id, :title, "
+                    ":student_name, :student_portflow_id, :portfolio_id, :status, :created_at, :note)", rows)
         finally:
             conn.close()
         db.set_setting(self.database, S_REQUESTS_FETCHED, self.now().isoformat())
@@ -361,6 +370,7 @@ class Fetcher:
                         failed_names.append(student["name"])  # keeps its old data (F4, F12)
                     else:
                         self._save(student["id"], outcome, rows)
+                    self.fetched.add(student["id"])
                     self.done += 1
             self._add_assessors()
             completed = True

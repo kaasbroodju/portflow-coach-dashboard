@@ -62,6 +62,18 @@
       }
       wasFetching = status.fetch_running;
 
+      // Spec 039: a page about one student (evaluation page, student page) shows its new data as
+      // soon as that student is fetched (the first of the round), not only after the whole round.
+      const watched = document.querySelector("[data-reload-when-fetched]");
+      if (watched && status.fetch_round && status.fetch_students.includes(Number(watched.dataset.reloadWhenFetched))) {
+        const key = `fetched:${status.fetch_round}:${watched.dataset.reloadWhenFetched}`;
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, "1");
+          location.reload();
+          return;
+        }
+      }
+
       const typing = statusEl()?.contains(document.activeElement) && document.activeElement.matches("input, textarea");
       if (fingerprint !== null && status.fingerprint !== fingerprint && !typing) {
         replace("portflow-status", status.status_html, true);
@@ -508,7 +520,11 @@
   if (status) status.textContent = "Bewijsstukken ophalen…";
   fetch(block.dataset.fetch, { method: "POST", headers: { "X-Requested-With": "fetch" } })
     .then((response) => (response.ok ? response.text() : Promise.reject(response.status)))
-    .then((html) => { block.outerHTML = html; })
+    .then((html) => {
+      block.outerHTML = html;
+      // Spec 039: the evaluation page lists the evidence per skill too; show them once fetched.
+      if (document.querySelector("[data-evidence-pending]")) window.location.reload();
+    })
     .catch(() => { if (status) status.textContent = "Ophalen is niet gelukt; probeer het later opnieuw."; });
 })();
 

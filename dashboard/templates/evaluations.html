@@ -80,7 +80,7 @@
   {% if requests %}
   <ul class="to-review-list">
     {% for r in requests %}
-    <li class="to-review-item">
+    <li><a class="to-review-item to-review-link" href="{{ url_for('pages.evaluation_page', request_id=r.id) }}">{# spec 039, F1 #}
       <span class="avatar avatar-small">{{ r.initials }}</span>
       <span class="to-review-main">
         <span class="to-review-student">{{ r.student }}</span>
@@ -93,7 +93,7 @@
       </span>
       <span class="to-review-date">{% if r.submitted %}ingediend {{ r.submitted.day }}-{{ r.submitted.month }}-{{ r.submitted.year }}{% endif %}</span>
       <span class="to-review-waiting">{{ r.waiting }}</span>
-    </li>
+    </a></li>
     {% endfor %}
   </ul>
   {% elif fetched %}

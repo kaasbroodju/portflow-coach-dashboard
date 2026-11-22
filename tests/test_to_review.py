@@ -21,7 +21,7 @@ def invitation(rid, status="not_started", name="Lotte Bakker", user_id=11, creat
 
 
 class TestStoredByFetch(FetchTestCase):   # Data
-    def test_requests_are_stored_without_note_or_due_date(self):
+    def test_requests_are_stored_with_note_without_due_date(self):   # spec 039: the note is kept
         self.api.invitations = [invitation(1), invitation(2, status="scored")]
         self.fetcher.start()
         rows = self.sql("SELECT review_request_id, title, student_name, student_portflow_id, status, created_at "
@@ -29,7 +29,15 @@ class TestStoredByFetch(FetchTestCase):   # Data
         self.assertEqual(rows, [(1, "OC & KO 1ste evaluatie", "Lotte Bakker", 11, "not_started", "2026-11-12T09:14:38.478Z"),
                                 (2, "OC & KO 1ste evaluatie", "Lotte Bakker", 11, "scored", "2026-11-12T09:14:38.478Z")])
         columns = [r[1] for r in self.sql("PRAGMA table_info(received_requests)")]
-        self.assertFalse(any("note" in c or "due" in c or "picture" in c for c in columns))
+        self.assertFalse(any("due" in c or "picture" in c for c in columns))
+        self.assertEqual(self.sql("SELECT note FROM received_requests WHERE review_request_id = 1"), [("<p>geheim</p>",)])
+
+    def test_no_note_is_stored_as_empty(self):   # spec 039: null in Portflow is "no note", not "not fetched"
+        item = invitation(1)
+        item["review_request_note"] = None
+        self.api.invitations = [item]
+        self.fetcher.start()
+        self.assertEqual(self.sql("SELECT note FROM received_requests"), [("",)])
 
     def test_next_round_replaces_and_failed_call_keeps(self):
         self.api.invitations = [invitation(1), invitation(2)]

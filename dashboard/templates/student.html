@@ -1,12 +1,11 @@
 {% extends "base.html" %}
 {# Spec 032: the page of one student: the compact progress table, a timeline with a block per
    evaluation, and the open evaluations. #}
-{% macro short(d) %}{{ d.day }}/{{ d.month }}{% endmacro %}
 {% block content %}
 {% if not row %}
 <section class="card"><p>Deze student bestaat niet (meer). <a href="{{ url_for('pages.overview') }}">Naar Overzicht</a></p></section>
 {% else %}
-<section class="card timeline-card" aria-labelledby="student-progress-title">
+<section class="card timeline-card" aria-labelledby="student-progress-title" data-reload-when-fetched="{{ row.id }}">
   <div class="timeline-head">
     <div>
       <h2 id="student-progress-title">Voortgang</h2>
@@ -16,33 +15,7 @@
   </div>
   {% include "_compact_table.html" %}
 
-  {# F3: a bar per week, built from a block per evaluation. #}
-  <h3>Evaluaties per week</h3>
-  {% if not tallest %}
-  <p class="timeline-empty">Nog geen evaluaties in deze semesterperiode.</p>
-  {% else %}
-  <div class="skill-timeline" style="--weeks: {{ weeks|length }}; --rows: {{ tallest }}">
-    <ol class="skill-weeks">
-      {% for w in weeks %}
-      <li class="skill-week" aria-label="W{{ w.number }}, {{ short(w.monday) }} – {{ short(w.sunday) }}: {{ w.achieved|length }} behaald, {{ w.pending|length }} ingediend">
-        {# column-reverse: the first block is at the bottom, the total on top #}
-        {% for b in w.blocks %}{% if b.panel %}<a class="skill-block skill-{{ b.category }}" title="{{ b.tip }}" data-feedback data-panel-title="Evaluatie"
-           href="{{ url_for('pages.evaluation_panel', student_id=row.id, **b.panel) }}">{{ b.label }}</a>{% else %}<span class="skill-block skill-{{ b.category }}" title="{{ b.tip }}">{{ b.label }}</span>{% endif %}{% endfor %}
-        {% if w.blocks %}<span class="skill-total">{{ w.blocks|length }}</span>{% endif %}
-      </li>
-      {% endfor %}
-    </ol>
-    <ol class="timeline-labels" aria-hidden="true">
-      {% for w in weeks %}<li><span>W{{ w.number }}</span><span class="muted">{{ short(w.monday) }}</span></li>{% endfor %}
-    </ol>
-  </div>
-  <p class="timeline-legend">
-    <span><i class="timeline-swatch skill-product"></i>behaald, productvaardigheid</span>
-    <span><i class="timeline-swatch skill-social"></i>behaald, sociale vaardigheid</span>
-    <span><i class="timeline-swatch skill-personal"></i>behaald, persoonsvormende vaardigheid</span>
-    <span><i class="timeline-swatch skill-pending"></i>ingediend (?)</span>
-  </p>
-  {% endif %}
+  {% include "_student_weeks.html" %}
 
   {% include "_evidence_timeline.html" %}{# spec 034 #}
 </section>
@@ -53,7 +26,7 @@
   {% if requests %}
   <ul class="to-review-list">
     {% for r in requests %}
-    <li class="to-review-item">
+    <li>{% if r.request_id is not none %}<a class="to-review-item to-review-link" href="{{ url_for('pages.evaluation_page', request_id=r.request_id, van=active) }}">{# spec 039, F1 #}{% else %}<span class="to-review-item">{% endif %}
       <span class="to-review-main">
         <span class="to-review-student">{{ r.title }}{% if r.to_me %} <span class="role-label">aan jou</span>{% endif %}</span>
       </span>
@@ -63,7 +36,7 @@
       </span>
       <span class="to-review-date">{% if r.submitted_text %}ingediend {{ r.submitted_text }}{% endif %}</span>
       <span class="to-review-waiting">{{ r.waiting }}</span>
-    </li>
+    {% if r.request_id is not none %}</a>{% else %}</span>{% endif %}</li>
     {% endfor %}
   </ul>
   {% else %}

@@ -55,7 +55,7 @@ Geen eigen ontwerp. Het zijpaneel "Te beoordelen" uit het Kompas-ontwerp ([desig
 - **Bron:** `GET /portfolios/{eigen_portfolio_id}/progress-review/invitations/received` ([API §4.6](../../docs/portflow-API-reverse-engineer.md); [architectuur.md](../../docs/architectuur.md)). Dit verzoek doet "Verversen" al ([spec 005](../005-gegevens-ophalen/spec.md), F3), maar bewaart nu alleen de status. Nieuw: de verzoeken zelf bewaren in een lokale tabel: `review_request_id`, titel, naam en Portflow-id van de student, portfolio-id, status en `created_at`.
 - **Vaardigheden:** uit de lokale tabel `evaluations` (zelfevaluaties met hetzelfde `review_request_id`).
 - **Verversen:** met "Verversen", zoals de rest; geen eigen Portflow-verzoeken op de pagina.
-- **Privacy:** de toelichting van de student (`review_request_note`) en de gewenste datum worden niet bewaard. Naam en titel staan alleen in de lokale database; "Alles verwijderen" ([spec 014](../014-alles-verwijderen/spec.md)) wist ook deze tabel, en een reservekopie volgt de bestaande regels. De profielfoto (tijdelijke S3-URL) wordt niet gebruikt; de avatar toont initialen.
+- **Privacy:** de gewenste datum wordt niet bewaard. De toelichting van de student (`review_request_note`) werd eerst ook niet bewaard; sinds 2026-11-22 wel, voor de evaluatiepagina ([spec 039](../039-evaluatie-voorbereiden/spec.md)). Naam en titel staan alleen in de lokale database; "Alles verwijderen" ([spec 014](../014-alles-verwijderen/spec.md)) wist ook deze tabel, en een reservekopie volgt de bestaande regels. De profielfoto (tijdelijke S3-URL) wordt niet gebruikt; de avatar toont initialen.
 
 ## Technische eisen
 
@@ -76,3 +76,4 @@ Geen eigen ontwerp. Het zijpaneel "Te beoordelen" uit het Kompas-ontwerp ([desig
 - 2026-11-17 – spec aangemaakt op verzoek van de gebruiker, met een voorstel en open vragen
 - 2026-11-17 – open vragen beantwoord door de gebruiker; status uitgewerkt
 - 2026-11-17 – gebouwd: tabel `received_requests` (gevuld in de ophaalronde, `portflow_fetch.Fetcher._save_requests`; een mislukte aanroep houdt de vorige lijst), lijst in `dashboard/requests_to_review.py`, kaart op `evaluations.html`, teller in de zijbalk; "Alles verwijderen" telt en wist de tabel. F5: "nog niet opgehaald" volgt een eigen instelling (`requests_last_fetched`), zodat de lijst ook na een eerdere ophaalronde zonder verzoeken eerlijk is. Tests in `tests/test_to_review.py`; in de browser bekeken met echte gegevens na Verversen (21 openstaande verzoeken). Status klaar
+- 2026-11-22 – gewijzigd op verzoek van de gebruiker: de toelichting bij een verzoek wordt bewaard, voor spec 039; een verzoek in de lijst opent nu de evaluatiepagina (spec 039, F1)

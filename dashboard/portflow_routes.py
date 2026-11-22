@@ -34,6 +34,8 @@ def status():
         poll_ms=1500 if fetch["running"] else portflow["poll_ms"],
         fetch_running=fetch["running"],
         fetch_last=fetch["last"],
+        fetch_round=fetch["round"],
+        fetch_students=fetch["fetched"],
         fingerprint="|".join(str(portflow[k]) for k in
                              ("state", "sub", "message", "user_name", "last_refresh", "busy"))
                     + "|" + fetch["text"] + str(fetch["can_start"]) + str(len(fetch["unlinked"])),

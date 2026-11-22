@@ -13,6 +13,7 @@
   {% elif t.raw_kind == "file" %}{# spec 038: the files of the evidence come first #}
   {% if t.evidence_error %}<p class="muted">{{ t.evidence_error }}</p>{% endif %}
   {% for f in t.files %}{{ evidence_file(t, f) }}{% endfor %}
+  {% elif t.evidence_error %}<p class="muted">{{ t.evidence_error }}</p>
   {% endif %}
 {% endmacro %}
 

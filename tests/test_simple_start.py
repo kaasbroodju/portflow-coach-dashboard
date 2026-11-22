@@ -317,6 +317,18 @@ class TestVisibleFetch(SimpleStartCase):
             with self.subTest(path=path):
                 self.assertIn(f'data-student-id="{sid}"', self.html(path, **query))
 
+    def test_status_tells_which_students_are_done(self):   # spec 039: a page reloads when its student is fetched
+        self.connect()
+        with self.db() as conn:
+            sid = conn.execute("SELECT id FROM students WHERE name = 'Bram Visser'").fetchone()[0]
+        self.client.post("/portflow/verversen", data={"student": [str(sid)]})
+        first = self.client.get("/portflow/status").get_json()
+        self.assertIn(sid, first["fetch_students"])
+        self.assertTrue(first["fetch_round"])
+        self.client.post("/portflow/verversen")
+        self.assertNotEqual(self.client.get("/portflow/status").get_json()["fetch_round"], first["fetch_round"])
+        self.assertIn(f'data-reload-when-fetched="{sid}"', self.html(f"/studenten/{sid}"))
+
 
 class TestMigration(unittest.TestCase):
     def test_existing_students_become_visible(self):

@@ -1,0 +1,29 @@
+{# Spec 032, F3: the evaluations of one student per week, a block per evaluation; also on the
+   evaluation page (spec 039, F3). Needs `row`, `weeks` and `tallest`. #}
+{% macro short(d) %}{{ d.day }}/{{ d.month }}{% endmacro %}
+  <h3>Evaluaties per week</h3>
+  {% if not tallest %}
+  <p class="timeline-empty">Nog geen evaluaties in deze semesterperiode.</p>
+  {% else %}
+  <div class="skill-timeline" style="--weeks: {{ weeks|length }}; --rows: {{ tallest }}">
+    <ol class="skill-weeks">
+      {% for w in weeks %}
+      <li class="skill-week" aria-label="W{{ w.number }}, {{ short(w.monday) }} – {{ short(w.sunday) }}: {{ w.achieved|length }} behaald, {{ w.pending|length }} ingediend">
+        {# column-reverse: the first block is at the bottom, the total on top #}
+        {% for b in w.blocks %}{% if b.panel %}<a class="skill-block skill-{{ b.category }}" title="{{ b.tip }}" data-feedback data-panel-title="Evaluatie"
+           href="{{ url_for('pages.evaluation_panel', student_id=row.id, **b.panel) }}">{{ b.label }}</a>{% else %}<span class="skill-block skill-{{ b.category }}" title="{{ b.tip }}">{{ b.label }}</span>{% endif %}{% endfor %}
+        {% if w.blocks %}<span class="skill-total">{{ w.blocks|length }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    <ol class="timeline-labels" aria-hidden="true">
+      {% for w in weeks %}<li><span>W{{ w.number }}</span><span class="muted">{{ short(w.monday) }}</span></li>{% endfor %}
+    </ol>
+  </div>
+  <p class="timeline-legend">
+    <span><i class="timeline-swatch skill-product"></i>behaald, productvaardigheid</span>
+    <span><i class="timeline-swatch skill-social"></i>behaald, sociale vaardigheid</span>
+    <span><i class="timeline-swatch skill-personal"></i>behaald, persoonsvormende vaardigheid</span>
+    <span><i class="timeline-swatch skill-pending"></i>ingediend (?)</span>
+  </p>
+  {% endif %}

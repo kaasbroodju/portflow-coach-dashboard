@@ -200,7 +200,8 @@ CREATE TABLE IF NOT EXISTS received_requests (
     student_portflow_id INTEGER,                  -- requester.id, = students.portflow_user_id
     portfolio_id       INTEGER,
     status             TEXT NOT NULL,             -- not_started, in_progress, submitted, scored, denied
-    created_at         TEXT NOT NULL DEFAULT ''   -- ISO timestamp (UTC)
+    created_at         TEXT NOT NULL DEFAULT '',  -- ISO timestamp (UTC)
+    note               TEXT                       -- the student's note (HTML), spec 039
 );
 """
 
@@ -242,6 +243,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     evaluation_columns = {row["name"] for row in conn.execute("PRAGMA table_info(evaluations)")}
     if "text" not in evaluation_columns:
         conn.execute("ALTER TABLE evaluations ADD COLUMN text TEXT")   # spec 037, F1
+    if "note" not in {row["name"] for row in conn.execute("PRAGMA table_info(received_requests)")}:
+        conn.execute("ALTER TABLE received_requests ADD COLUMN note TEXT")   # spec 039, F5
     from .choices import ensure_lists, migrate_student_texts   # spec 024
     ensure_lists(conn)
     if "track" in columns:
