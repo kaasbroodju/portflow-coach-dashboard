@@ -65,7 +65,7 @@
         <form method="post" action="{{ url_for('updates.stop') }}">
           <button class="sidebar-menu-item" type="submit">{{ icon("power") }}<span>Dashboard afsluiten</span></button>
         </form>
-        <p class="sidebar-version">Versie {{ app_version }}</p>
+        <p class="sidebar-version">Versie {{ app_version }}{% if beta %} + beta {{ beta.commit[:7] }}{% endif %}</p>
       </div>
     </details>
   </aside>

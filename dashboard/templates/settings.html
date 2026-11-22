@@ -153,7 +153,17 @@
 {# Spec 020: version (R1) and checking for new versions (U4). #}
 <section class="card" id="versie">
   <h2>Versie</h2>
-  <p>Versie {{ app_version }}{% if not can_update %} <span class="muted">(vanuit de broncode; bijwerken gaat met git)</span>{% endif %}</p>
+  <p>{% if beta %}<strong>Beta: commit {{ beta.commit[:7] }}, na versie {{ app_version }}</strong>{% if beta.branch %} (branch {{ beta.branch }}){% endif %}{% else %}Versie {{ app_version }}{% endif %}{% if not can_update %} <span class="muted">(vanuit de broncode; bijwerken gaat met git)</span>{% endif %}</p>
+  {# Spec 020, B1: choose between the newest release and a beta (a commit). #}
+  <div class="version-channel">
+    <label for="version-channel">Versie</label>
+    <select id="version-channel">
+      <option value="release" selected>Nieuwste release</option>
+      <option value="beta" {% if not can_update %}disabled{% endif %}>Beta (commit kiezen)</option>
+    </select>
+  </div>
+  {% if not can_update %}<p class="muted">Een beta installeren kan alleen in een geïnstalleerd dashboard. Gebruik je de broncode, werk dan bij met <code>git pull</code> en kies een andere versie met <code>git checkout</code>.</p>{% endif %}
+  <div id="channel-release">
   {# Spec 020, U6: check right away and offer the newer version. #}
   {% if version_check == "nieuw" and latest_release %}
   <div class="version-offer" role="status">
@@ -172,6 +182,25 @@
   <form method="post" action="{{ url_for('updates.check_now') }}" class="version-check">
     <button class="button button-secondary" type="submit">Nu bijwerken</button>
   </form>
+  </div>
+  {% if can_update %}
+  <div id="channel-beta" class="beta-panel" hidden
+       data-branches-url="{{ url_for('updates.beta_branches') }}" data-commits-url="{{ url_for('updates.beta_commits') }}">
+    <label for="beta-branch">Branch</label>
+    <select id="beta-branch"></select>
+    <p class="muted" id="beta-status" role="status"></p>
+    <form method="post" action="{{ url_for('updates.install_beta') }}" id="beta-form">
+      <input type="hidden" name="branch" id="beta-branch-field">
+      <ul class="beta-commits" id="beta-commits"></ul>
+      <button class="button button-secondary" type="button" id="beta-install" disabled>Installeer</button>
+      <div class="panel-message" id="beta-warning" role="alert" hidden>
+        <p><strong>Dit is een beta-versie die niet is getest en misschien niet goed werkt.</strong> Er wordt eerst een reservekopie van je gegevens gemaakt.</p>
+        <button class="button button-primary" type="submit">Installeer beta-versie</button>
+        <button class="button button-secondary" type="button" id="beta-cancel">Annuleren</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
   <form method="post" action="{{ url_for('updates.save_check') }}" class="settings-form" id="update-check-form">
     <label class="checkbox">
       <input type="checkbox" name="controleren" value="1" {% if update_check %}checked{% endif %}>

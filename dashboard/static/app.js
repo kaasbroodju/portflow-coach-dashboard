@@ -490,7 +490,8 @@
       const answer = await fetch("/versie", { cache: "no-store" }).then((r) => r.json());
       lastAnswer = Date.now();
       if (stuck) stuck.hidden = true;
-      if (answer.version !== oldVersion) {
+      const done = answer.result && answer.result.attempt === attempt && answer.result.ok;   // a beta keeps the number
+      if (answer.version !== oldVersion || done) {
         window.location.href = "/instellingen#versie";
         return;
       }
@@ -736,4 +737,84 @@
         .catch(() => { clearInterval(tick); result.textContent = "De proefvraag is niet gelukt."; trial.disabled = false; });
     });
   }
+})();
+
+(() => {
+  "use strict";
+
+  // Spec 020, B1-B5: the dropdown "Versie" in Instellingen; a beta shows the commits of a branch.
+  const channel = document.getElementById("version-channel");
+  const panel = document.getElementById("channel-beta");
+  if (!channel || !panel) return;
+  const release = document.getElementById("channel-release");
+  const branchSelect = document.getElementById("beta-branch");
+  const status = document.getElementById("beta-status");
+  const list = document.getElementById("beta-commits");
+  const install = document.getElementById("beta-install");
+  const warning = document.getElementById("beta-warning");
+  const branchField = document.getElementById("beta-branch-field");
+  const ERROR = "Ophalen is niet gelukt. Controleer je internetverbinding en probeer het over een poosje opnieuw.";
+  let loadedBranches = false;
+  let request = 0;
+
+  const resetChoice = () => { install.disabled = true; warning.hidden = true; install.hidden = false; };
+
+  const showCommits = async () => {
+    const mine = ++request;   // an older answer must not replace a newer choice
+    list.replaceChildren();
+    resetChoice();
+    branchField.value = branchSelect.value;
+    status.textContent = "Commits ophalen…";
+    try {
+      const response = await fetch(`${panel.dataset.commitsUrl}?branch=${encodeURIComponent(branchSelect.value)}`);
+      const data = await response.json();
+      if (mine !== request) return;
+      if (!response.ok) { status.textContent = data.error || ERROR; return; }
+      status.textContent = data.commits.length ? "" : "Deze branch heeft geen commits.";
+      data.commits.forEach((commit) => {
+        const item = document.createElement("li");
+        const label = document.createElement("label");
+        const radio = document.createElement("input");
+        radio.type = "radio"; radio.name = "commit"; radio.value = commit.commit;
+        radio.addEventListener("change", () => { resetChoice(); install.disabled = false; });
+        const code = document.createElement("code");
+        code.textContent = commit.short;
+        const message = document.createElement("span");
+        message.textContent = commit.message;
+        const when = document.createElement("span");
+        when.className = "muted";
+        when.textContent = commit.installed ? `${commit.date} · geïnstalleerd` : commit.date;
+        label.append(radio, code, message, when);
+        item.append(label);
+        list.append(item);
+      });
+    } catch (error) {
+      if (mine === request) status.textContent = ERROR;
+    }
+  };
+
+  const loadBranches = async () => {
+    status.textContent = "Branches ophalen…";
+    try {
+      const response = await fetch(panel.dataset.branchesUrl);
+      const data = await response.json();
+      if (!response.ok) { status.textContent = data.error || ERROR; return; }
+      data.branches.forEach((name) => branchSelect.append(new Option(name, name)));
+      branchSelect.value = data.branches.includes(data.default) ? data.default : data.branches[0];
+      loadedBranches = true;
+      showCommits();
+    } catch (error) {
+      status.textContent = ERROR;
+    }
+  };
+
+  channel.addEventListener("change", () => {
+    const beta = channel.value === "beta";
+    panel.hidden = !beta;
+    release.hidden = beta;
+    if (beta && !loadedBranches) loadBranches();
+  });
+  branchSelect.addEventListener("change", showCommits);
+  install.addEventListener("click", () => { warning.hidden = false; install.hidden = true; });
+  document.getElementById("beta-cancel").addEventListener("click", () => { warning.hidden = true; install.hidden = false; });
 })();

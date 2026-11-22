@@ -1,7 +1,7 @@
 # 020 – Installatie, releases en bijwerken
 
 **Status:** in bouw <!-- idee | uitgewerkt | in bouw | klaar -->
-**Laatst bijgewerkt:** 2026-11-19
+**Laatst bijgewerkt:** 2026-11-22
 
 ## Doel
 
@@ -108,7 +108,7 @@ Gevonden bij de installatie van v0.9.0 op een Mac met een ontwikkelomgeving (zie
 - [x] **U1 – Controleren op een nieuwe versie.** Bij het starten en daarna eens per dag vraagt de app de nieuwste release op bij GitHub (`GET https://api.github.com/repos/petersnoek-hu/portflow-coach-dashboard/releases/latest`). Er gaan geen gegevens mee, behalve het verzoek zelf. Lukt het niet (geen internet), dan gebeurt er niets.
 - [x] **U2 – Melding.** Is de versie op GitHub nieuwer, dan staat op elke pagina een smalle balk (zoals de demobanner): **"Versie 1.3.0 is beschikbaar (je hebt 1.2.0)."** met **"Wat is er nieuw"** (een pagina in de app met de releasenote, R6, en een link naar GitHub), **"Nu bijwerken"** en **"Later"**. "Later" verbergt de balk tot de volgende versie.
   - *Acceptatie:* met versie 1.2.0 geïnstalleerd en 1.3.0 op GitHub verschijnt de balk; na "Later" niet meer, tot 1.4.0 verschijnt.
-- [x] **U3 – Nu bijwerken.** De app maakt eerst een reservekopie van de database (zonder token, zoals [spec 014](../014-alles-verwijderen/spec.md)), downloadt de zip, controleert de controlesom, zet de nieuwe code in de programmamap, laat uv de pakketten bijwerken en start zichzelf opnieuw. De pagina toont "Bijwerken…" en herlaadt vanzelf. Lukt het niet, dan blijft de oude versie werken en staat er een melding.
+- [x] **U3 – Nu bijwerken.** De app maakt eerst een reservekopie van de database (zonder token, zoals [spec 014](../014-alles-verwijderen/spec.md), zie B8), downloadt de zip, controleert de controlesom, zet de nieuwe code in de programmamap, laat uv de pakketten bijwerken en start zichzelf opnieuw. De pagina toont "Bijwerken…" en herlaadt vanzelf. Lukt het niet, dan blijft de oude versie werken en staat er een melding.
   - *Acceptatie:* na "Nu bijwerken" staat in Instellingen de nieuwe versie, en de studenten, instellingen en Portflow-verbinding zijn er nog.
   - Het hulpscript dat de mappen wisselt (`update_swap.py`) stopt eerst alle processen van de installatie (zoals de Chrome van het inloggen), probeert hernoemen een paar keer (een virusscanner kan nieuwe bestanden even vasthouden), houdt een logboek bij in `<gegevens>/bijwerken/bijwerken.log` en start **altijd** weer een dashboard: de nieuwe versie, of bij elke fout de oude.
   - Blijft het dashboard langer dan 3 minuten weg, dan toont de pagina "Bijwerken…" wat de gebruiker kan doen (opnieuw openen met de snelkoppeling, het logboek, `app-oud` terugzetten).
@@ -129,12 +129,37 @@ Gevonden bij de installatie van v0.9.0 op een Mac met een ontwikkelomgeving (zie
   `app-oud` blijft als reserve staan (hoogstens één). Kopieën van gegevens (`data-leeg-…`, `data-voor-overnemen-…`) en reservekopieën worden nooit automatisch verwijderd. Verwijderen (I7) haalt ook `app-mislukt` weg.
   - *Acceptatie:* met alleen `app-oud` en een achtergebleven `app-nieuw` in de installatiemap staat na het installatiescript weer een werkende `app`, en `app-nieuw` is weg.
 
+### Beta-versie installeren
+
+Voor wie een wijziging wil proberen die nog geen release is (bijvoorbeeld een coach die een fout heeft gemeld, of een tester). De commits zijn niet getest door de workflow van R2; daarom staat er een waarschuwing en een reservekopie.
+
+- [x] **B1 – Keuzelijst "Versie".** In de kaart **Versie** in Instellingen staat een keuzelijst **"Versie"** met twee keuzes:
+  - **Nieuwste release** (standaard): het gedrag van U6 (knop "Nu bijwerken", uitkomst in dezelfde kaart);
+  - **Beta (commit kiezen)**: toont de lijst met recente commits (B2) en een tweede keuzelijst **"Branch"** (B3).
+  - Vanuit een git-checkout is de keuze Beta niet beschikbaar; er staat dat bijwerken met `git pull` en `git checkout` gaat (zoals U5).
+  - *Acceptatie:* in een installatie toont de keuzelijst twee keuzes; kiezen van Beta toont de branch-keuzelijst en de commits, zonder de pagina te herladen.
+- [x] **B2 – Lijst met recente commits.** Na het kiezen van Beta haalt de app de **10 nieuwste commits** van de gekozen branch op bij GitHub (`GET https://api.github.com/repos/petersnoek-hu/portflow-coach-dashboard/commits?sha=<branch>&per_page=10`) en toont per commit: de korte code (7 tekens), de eerste regel van de commitbericht, de datum en tijd, en een keuzerondje. De eerste commit is niet vooraf gekozen. De huidige beta-commit (B7) is gemarkeerd "geïnstalleerd". Er is geen paginering.
+  - *Acceptatie:* de lijst toont precies de 10 nieuwste commits van de branch, nieuwste bovenaan.
+- [x] **B3 – Branch kiezen.** De keuzelijst **"Branch"** bevat de branches van de repository (`GET …/branches?per_page=100`), met `main` vooraan en als standaard. Na het veranderen van de branch worden meteen de commits van die branch getoond (B2) en vervalt een eerder gekozen commit.
+  - *Acceptatie:* een andere branch kiezen toont de commits van die branch; er is geen "Installeer" zolang er geen commit gekozen is.
+- [x] **B4 – Fouten bij ophalen.** Lukt ophalen van de branches of commits niet (geen internet, of de GitHub-limiet voor verzoeken zonder inloggen is bereikt), dan staat er: "Ophalen is niet gelukt. Controleer je internetverbinding en probeer het over een poosje opnieuw." De rest van Instellingen blijft werken.
+- [x] **B5 – Installeren met waarschuwing.** Is een commit gekozen, dan staat er een knop **"Installeer"**. Die vraagt eerst een bevestiging met de waarschuwing: **"Dit is een beta-versie die niet is getest en misschien niet goed werkt. Er wordt eerst een reservekopie van je gegevens gemaakt."**, met de knoppen **"Installeer beta-versie"** en **"Annuleren"**. Pas na bevestigen volgt B6.
+  - *Acceptatie:* "Annuleren" verandert niets (geen reservekopie, geen download); de waarschuwing komt bij elke keer installeren.
+- [x] **B6 – Beta ophalen en installeren.** Na de bevestiging doet de app hetzelfde als U3, maar met de code van die commit: reservekopie (B8), de zip van die commit downloaden (`https://github.com/petersnoek-hu/portflow-coach-dashboard/archive/<volledige commitcode>.zip`), controleren, uitpakken in de programmamap, pakketten bijwerken met uv en opnieuw starten, met dezelfde bescherming als U3 en U7 (bij elke fout blijft de oude versie werken, met een melding). Een commit heeft geen controlesom van de workflow; daarom controleert de app dat de zip uit precies die commit komt (de naam van de bovenste map in de zip eindigt op de volledige commitcode) en dat hij `dashboard/version.py` en `uv.lock` bevat.
+  - *Acceptatie:* na "Installeer beta-versie" draait het dashboard met de code van de gekozen commit, en de studenten, instellingen en Portflow-verbinding zijn er nog.
+- [x] **B7 – Beta herkenbaar.** Na het installeren van een beta staat in Instellingen › Versie **"Beta: commit a1b2c3d, na versie 0.13.0 (branch main)"**, en onderaan de zijbalk (op elke pagina) **"Versie 0.13.0 + beta a1b2c3d"**. Het versienummer is dat uit de code van de commit: de laatste release vóór die commit, want het nummer verandert alleen bij een release. "Na versie" is dus ook van toepassing op de commit van de release zelf; de app zoekt dat niet apart uit. De app bewaart de commit en branch in `app/.beta`; een gewone update of het installatiescript verwijdert dat bestand. Installeren van de nieuwste release (U3, U6) of van een andere commit zet de gebruiker dus weer terug naar een release of een andere beta. Zie ook de open vraag over de updatebalk.
+- [x] **B8 – Reservekopie vóór elke installatie.** Vóór elke installatie van een andere versie maakt de app een reservekopie van de **database**, en pas als die gelukt is begint het downloaden. Dat geldt voor het installeren van een **beta** (B6) én van de **nieuwste release** (U3, U6, de knop in de updatebalk). De reservekopie is die van [spec 014](../014-alles-verwijderen/spec.md) (`reset.backup`): een consistente kopie in `<gegevens>/reservekopieen/`, zonder Portflow-token en zonder API-sleutel.
+  - De map `bestanden/` ([spec 038](../038-bestanden-bekijken/spec.md)) en het Chrome-profiel (`browser-profile/`) horen er niet bij: de bestanden zijn altijd opnieuw uit Portflow te halen en het profiel bevat de inlog van Portflow.
+  - Mislukt de reservekopie, dan wordt er niets gedownload of vervangen en staat er: "De reservekopie is niet gelukt; er is niets veranderd." De reservekopieën worden nooit automatisch verwijderd (U7).
+  - *Acceptatie:* na het installeren van een beta en na het installeren van de nieuwste release staat in `reservekopieen/` telkens een nieuwe database-kopie (zonder token); mislukt de reservekopie (bijvoorbeeld een volle schijf), dan blijft de oude versie ongewijzigd.
+
 ### Buiten scope
 
 - Een ondertekend programma (aanpak B), Linux, Homebrew of de Microsoft Store.
 - Chrome automatisch installeren.
 - Een gedeelde server of webversie: het dashboard blijft lokaal ([architectuur.md](../../docs/architectuur.md#beslissingen)).
-- Teruggaan naar een oudere versie vanuit de app (kan met het script en een versienummer, later).
+- Teruggaan naar een oudere **release** vanuit de app (kan met het script en een versienummer, later). Een oudere commit kiezen als beta (B1) kan wel.
+- Pull requests of tags kiezen in plaats van een branch en commit; meer dan 10 commits tonen.
 
 ## Schermen
 
@@ -143,7 +168,7 @@ Geen eigen ontwerp. De updatebalk lijkt op de demobanner ([design-system.md](../
 ## Data
 
 - **Bron:** GitHub (releases); geen Portflow-gegevens.
-- **Verzonden gegevens:** alleen het verzoek aan GitHub (IP-adres en de versie in de User-Agent); geen namen, geen token.
+- **Verzonden gegevens:** alleen het verzoek aan GitHub (IP-adres en de versie in de User-Agent); geen namen, geen token. Ook de verzoeken voor branches, commits en de zip van een beta (B2, B3, B6) bevatten niets anders. Commitberichten en datums komen van GitHub en worden alleen getoond.
 - **Privacy:** de database, het token en het browserprofiel blijven in de gegevensmap op de laptop (I3) en gaan nooit mee in een update of een release.
 
 ## Technische eisen
@@ -168,6 +193,8 @@ Geen eigen ontwerp. De updatebalk lijkt op de demobanner ([design-system.md](../
 - [x] **Releases maken:** automatisch bij een tag (R2), met een Claude Code-skill `/release` die de vragen stelt en vooral een goede releasenote schrijft (R4), en een instructie op papier (R5).
 - [x] **HU-laptops:** getest door de gebruiker op een beheerde Windows-laptop van de HU (2026-11-19): de installatieregel werkt daar; PowerShell is niet beperkt (zie Logboek).
 - [x] **Eerste versienummer:** 1.0.0.
+- [x] **Updatebalk bij een beta (B7).** Akkoord (2026-11-22): draait er een beta, dan vergelijkt de balk (U2) zoals altijd het versienummer met de nieuwste release; is er geen nieuwere release, dan blijft de balk weg en blijft de beta staan. Een beta op een hoger versienummer dan de nieuwste release geeft dus geen melding.
+- [x] **Reservekopie en `bestanden/` (B8).** De map `bestanden/` komt niet in de reservekopie (2026-11-22): de bestanden zijn altijd opnieuw uit Portflow te halen. Daarmee vervalt ook de vraag over de grootte en de naam van een kopie van die map.
 
 ## Logboek
 
@@ -197,3 +224,7 @@ Geen eigen ontwerp. De updatebalk lijkt op de demobanner ([design-system.md](../
 - 2026-11-17 – U7 gebouwd: `Updater.clean_leftovers` vóór het downloaden, het hulpscript verwijdert de download na een geslaagde update, en beide installatiescripts herstellen een vastgelopen update en ruimen resten op (in het logboek). Tests in `tests/test_install.py`, waaronder het macOS-script met een nagebootste vastgelopen installatie; Windows alleen op syntaxis
 - 2026-11-17 – R6: "Wat is er nieuw" toont nu ook codeblokken (zoals de installatieregel in de releasenote van 0.9.3), `code` en *cursief*; gecontroleerd met de echte releasenote van GitHub
 - 2026-11-19 – getest door de gebruiker op een beheerde Windows-laptop van de HU. Gelukt: installeren met de regel `irm … | iex` in PowerShell zonder fouten, waarna het dashboard openging (I1, I2); de snelkoppelingen in het Startmenu en op het bureaublad starten het dashboard zonder terminalvenster, en een tweede klik opent alleen een extra tabblad (I4); het script nog eens draaien werkt de installatie bij (I6); bijwerken met de knop in de app, waarna het dashboard vanzelf herstart (U3); Dashboard afsluiten via het gebruikersmenu (I5). Studenten en instellingen bleven staan na opnieuw installeren en na bijwerken. Verbinden met Portflow lukte pas bij de tweede poging; de oorzaak van de eerste mislukking is niet bekend (I13 blijft open). Verwijderen (I7) is op de HU-laptop niet geprobeerd; de workflow controleert het bij elke release op een schone Mac en Windows-machine. I1, I2, I4, I6 en I7 afgevinkt; status blijft in bouw tot I13 is uitgezocht
+- 2026-11-22 – B1–B8 toegevoegd op verzoek van de gebruiker: een beta-versie installeren via de keuzelijst Versie in Instellingen (tweede keuzelijst voor de branch, de 10 nieuwste commits, waarschuwing, dan de code van die commit ophalen), en een reservekopie van de database vóór elke installatie, ook van de nieuwste release (U3 aangepast). Keuzes van de gebruiker: keuzelijst met 'Nieuwste release' en 'Beta (commit kiezen)', niet vanuit een git-checkout, 10 commits. Nog niet gebouwd; open vragen volgen in het volgende item
+- 2026-11-22 – open vragen beantwoord door de gebruiker: de updatebalk vergelijkt bij een beta zoals altijd (B7), en `bestanden/` hoort niet in de reservekopie, omdat die uit Portflow opnieuw te halen is (B8 en U3 aangepast). De reservekopie is dus de database zonder token (spec 014). Status uitgewerkt voor B1–B8; nog niet gebouwd
+- 2026-11-22 – B1–B8 gebouwd: keuzelijst Versie in Instellingen met Beta, branch-keuzelijst en de 10 nieuwste commits (`update_routes.py`, `settings.html`, `app.js`), `Updater.branches/commits/start_beta` in `updates.py` (download van de zip van de commit, controle dat de map in de zip de commitcode draagt, `app/.beta`), en de reservekopie (database zonder token) vóór elke installatie, ook van de nieuwste release; mislukt die, dan wordt er niets gedownload. De pagina Bijwerken herlaadt ook als het versienummer gelijk blijft (een beta). Tests in `tests/test_install.py`; in de browser tegen GitHub gecontroleerd tot en met de waarschuwing (niet daadwerkelijk een beta geïnstalleerd, om de eigen installatie niet te raken). Nog niet geprobeerd: een echte beta-installatie op een geïnstalleerd dashboard, en op Windows
+- 2026-11-22 – B7 aangepast op verzoek van de gebruiker: bij een beta staat in Instellingen "Beta: commit …, na versie X (branch …)" en in de zijbalk "Versie X + beta …"; de eenvoudige variant, zonder extra verzoek aan GitHub (de uitgebreide variant met "N commits na versie X" via de compare-API is niet gebouwd)

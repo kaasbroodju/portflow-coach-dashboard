@@ -1,10 +1,13 @@
-"""New versions on GitHub (spec 020, U1-U5, R6).
+"""New versions on GitHub (spec 020, U1-U5, R6, B1-B8).
 
 The check asks GitHub for the latest release; nothing is sent but the request itself (with the
 version in the User-Agent). Updating is only possible for an installed dashboard (paths.py): the
 new code is downloaded, checked against its SHA-256 and unpacked next to the old code; then the
 app starts update_swap.py and stops. That script swaps the folders, lets uv update the packages
 and starts the new version (or the old one again when something fails).
+
+A beta (B1-B8) is the code of one commit: the same steps, with GitHub's zip of that commit instead of
+a release (there is no checksum for a commit, so the folder name in the zip must carry the commit).
 """
 
 import hashlib
@@ -12,6 +15,7 @@ import json
 import os
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -22,6 +26,7 @@ import uuid
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 from markupsafe import Markup, escape
 
@@ -31,6 +36,11 @@ from .version import VERSION
 REPOSITORY = "petersnoek-hu/portflow-coach-dashboard"
 INSTALL_MARKER = "<!-- installatie"   # the release page adds the install lines after this (spec 020, I1)
 LATEST_URL = f"https://api.github.com/repos/{REPOSITORY}/releases/latest"
+BRANCHES_URL = f"https://api.github.com/repos/{REPOSITORY}/branches?per_page=100"
+DEFAULT_BRANCH = "main"
+COMMITS_SHOWN = 10   # B2
+BETA_FILE = ".beta"  # B7: in the app folder: {"commit": ..., "branch": ...}
+COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 ZIP_NAME = "portflow-coach-dashboard.zip"
 SHA_NAME = ZIP_NAME + ".sha256"
 CHECK_EVERY_S = 24 * 60 * 60
@@ -65,6 +75,40 @@ def release_from_github(data: dict) -> dict | None:
         "zip_url": assets.get(ZIP_NAME),
         "sha_url": assets.get(SHA_NAME),
     }
+
+
+def commits_url(branch: str) -> str:
+    return f"https://api.github.com/repos/{REPOSITORY}/commits?sha={quote(branch, safe='')}&per_page={COMMITS_SHOWN}"
+
+
+def archive_url(commit: str) -> str:
+    return f"https://github.com/{REPOSITORY}/archive/{commit}.zip"
+
+
+def branch_names(data: list) -> list[str]:
+    """B3: the branches, with the default branch first."""
+    names = [str(b["name"]) for b in data if isinstance(b, dict) and b.get("name")]
+    return sorted(names, key=lambda name: (name != DEFAULT_BRANCH, name.lower()))
+
+
+def commit_rows(data: list, installed: str = "") -> list[dict]:
+    """B2: what the list shows per commit: the code, the first line of the message and the local time."""
+    rows = []
+    for item in data[:COMMITS_SHOWN]:
+        commit = item.get("commit") if isinstance(item, dict) else None
+        sha = str(item.get("sha") or "") if isinstance(item, dict) else ""
+        if not isinstance(commit, dict) or not COMMIT_RE.fullmatch(sha):
+            continue
+        lines = str(commit.get("message") or "").strip().splitlines()
+        when = ""
+        try:
+            raw = (commit.get("committer") or {}).get("date") or ""
+            when = datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone().strftime("%d-%m-%Y %H:%M")
+        except (ValueError, AttributeError):
+            pass
+        rows.append({"commit": sha, "short": sha[:7], "message": lines[0] if lines else "", "date": when,
+                     "installed": sha == installed})
+    return rows
 
 
 def notes_html(text: str) -> Markup:
@@ -200,6 +244,33 @@ class Updater:
         """U5: only an installed dashboard updates itself; a git checkout uses git."""
         return paths.install_info(self.project_dir) is not None
 
+    # Beta versions (B1-B3, B7) ----------------------------------------------------------------
+
+    def beta(self) -> dict | None:
+        """B7: the commit and branch of the installed beta, or None for a release."""
+        try:
+            data = json.loads((self.project_dir / BETA_FILE).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        ok = isinstance(data, dict) and COMMIT_RE.fullmatch(str(data.get("commit")))
+        return {"commit": data["commit"], "branch": str(data.get("branch") or "")} if ok else None
+
+    def branches(self) -> list[str] | None:
+        """B3; None when GitHub cannot be reached (B4)."""
+        try:
+            data = json.loads(self.fetch(BRANCHES_URL))
+        except (OSError, ValueError):
+            return None
+        return branch_names(data) if isinstance(data, list) else None
+
+    def commits(self, branch: str) -> list[dict] | None:
+        """B2; None when GitHub cannot be reached (B4)."""
+        try:
+            data = json.loads(self.fetch(commits_url(branch)))
+        except (OSError, ValueError):
+            return None
+        return commit_rows(data, (self.beta() or {}).get("commit", "")) if isinstance(data, list) else None
+
     # Updating (U3) --------------------------------------------------------------------------------
 
     def update_dir(self) -> Path:
@@ -231,16 +302,25 @@ class Updater:
         latest = self.available() or self.latest()
         if not self.can_update() or not latest or not is_newer(latest.get("version")):
             return False
+        return self._begin(lambda: self._prepare_release(latest, port), shutdown)
+
+    def start_beta(self, commit: str, branch: str, port: int, shutdown) -> bool:
+        """B5, B6: install the code of one commit."""
+        if not self.can_update() or not COMMIT_RE.fullmatch(commit or ""):
+            return False
+        return self._begin(lambda: self._prepare_beta(commit, branch[:200], port), shutdown)
+
+    def _begin(self, prepare, shutdown) -> bool:
         with self._lock:
             if self.state["busy"]:
                 return False
             self.state = {"busy": True, "step": "Reservekopie maken", "error": "", "attempt": uuid.uuid4().hex}
-        self.spawn(lambda: self._update(latest, port, shutdown))
+        self.spawn(lambda: self._update(prepare, shutdown))
         return True
 
-    def _update(self, latest: dict, port: int, shutdown) -> None:
+    def _update(self, prepare, shutdown) -> None:
         try:
-            self._prepare(latest, port)
+            prepare()
         except UpdateError as error:
             self.state.update(busy=False, error=error.message)
             return
@@ -250,22 +330,45 @@ class Updater:
         self.state["step"] = "Opnieuw starten"
         shutdown()
 
-    def _prepare(self, latest: dict, port: int) -> None:
+    def _backup(self) -> None:
+        """B8: before anything is downloaded or replaced; without the token, like spec 014."""
+        try:
+            reset.backup(self.database)
+        except (OSError, sqlite3.Error):
+            raise UpdateError("De reservekopie is niet gelukt; er is niets veranderd.") from None
+
+    def _prepare_release(self, latest: dict, port: int) -> None:
         if not latest.get("zip_url") or not latest.get("sha_url"):
             raise UpdateError("Deze versie heeft geen downloadbestand. Probeer het later opnieuw.")
-        reset.backup(self.database)   # without the token, like spec 014
-        work = self.update_dir()
-        work.mkdir(parents=True, exist_ok=True)
+        self._backup()
+        self.update_dir().mkdir(parents=True, exist_ok=True)
         self.clean_leftovers()   # U7
 
         self.state["step"] = "Nieuwe versie downloaden"
         try:
             archive = self.fetch(latest["zip_url"], timeout=120)
             expected = self.fetch(latest["sha_url"]).decode("ascii", "replace").split()[0].lower()
-        except (OSError, IndexError, urllib.error.URLError):
+        except (OSError, IndexError):
             raise UpdateError("Downloaden is niet gelukt. Controleer je internetverbinding en probeer het opnieuw.")
         if hashlib.sha256(archive).hexdigest() != expected:
             raise UpdateError("De download is beschadigd (de controlesom klopt niet). Probeer het opnieuw.")
+        self._stage(archive, port, latest["version"])
+
+    def _prepare_beta(self, commit: str, branch: str, port: int) -> None:
+        self._backup()
+        self.update_dir().mkdir(parents=True, exist_ok=True)
+        self.clean_leftovers()   # U7
+
+        self.state["step"] = "Beta-versie downloaden"
+        try:
+            archive = self.fetch(archive_url(commit), timeout=120)
+        except OSError:
+            raise UpdateError("Downloaden is niet gelukt. Controleer je internetverbinding en probeer het opnieuw.")
+        self._stage(archive, port, f"beta {commit[:7]}", commit=commit, branch=branch)
+
+    def _stage(self, archive: bytes, port: int, label: str, *, commit: str = "", branch: str = "") -> None:
+        """Unpack in <root>/app-nieuw and start update_swap.py (U3, B6)."""
+        work = self.update_dir()
         zip_path = work / ZIP_NAME
         zip_path.write_bytes(archive)
 
@@ -273,11 +376,21 @@ class Updater:
         root = self.project_dir.parent
         target = root / "app-nieuw"
         shutil.rmtree(target, ignore_errors=True)
-        extract_zip(zip_path, target)
-        info = paths.install_info(self.project_dir) or {}
-        (target / ".installed").write_text(json.dumps(info), encoding="utf-8")
-        if not (target / "app.py").exists():
-            raise UpdateError("De download bevat geen dashboard. Probeer het later opnieuw.")
+        try:
+            extract_zip(zip_path, target, commit=commit)
+            info = paths.install_info(self.project_dir) or {}
+            (target / ".installed").write_text(json.dumps(info), encoding="utf-8")
+            if commit:   # B7
+                (target / BETA_FILE).write_text(json.dumps({"commit": commit, "branch": branch}), encoding="utf-8")
+            required = ("app.py", "dashboard/version.py", "uv.lock") if commit else ("app.py",)
+            if not all((target / name).exists() for name in required):
+                raise UpdateError("De download bevat geen dashboard. Probeer het later opnieuw.")
+        except UpdateError:
+            shutil.rmtree(target, ignore_errors=True)
+            raise
+        except zipfile.BadZipFile:
+            shutil.rmtree(target, ignore_errors=True)
+            raise UpdateError("De download is beschadigd. Probeer het opnieuw.") from None
 
         # update_swap.py runs outside the app folder, because that folder is replaced.
         script = work / "update_swap.py"
@@ -285,18 +398,29 @@ class Updater:
         (work / "resultaat.json").unlink(missing_ok=True)
         launch_detached([sys.executable, str(script), "--root", str(root), "--uv", str(info.get("uv", "uv")),
                          "--port", str(port), "--python", sys.executable, "--attempt", self.state["attempt"],
-                         "--version", latest["version"]], cwd=str(work))
+                         "--version", label], cwd=str(work))
 
 
-def extract_zip(zip_path: Path, target: Path) -> None:
-    """Unpack, refusing paths that would end up outside the target folder."""
+def extract_zip(zip_path: Path, target: Path, commit: str = "") -> None:
+    """Unpack, refusing paths that would end up outside the target folder. GitHub's zip of a commit
+    has one folder around everything, named after the repository and the commit (B6): check that it
+    is that commit and unpack without the folder."""
     target.mkdir(parents=True)
     base = target.resolve()
     with zipfile.ZipFile(zip_path) as archive:
-        for member in archive.namelist():
+        names = archive.namelist()
+        for member in names:
             if not (base / member).resolve().is_relative_to(base):
                 raise UpdateError("De download bevat ongeldige bestanden.")
+        top = {name.split("/")[0] for name in names}
+        if commit and (len(top) != 1 or not next(iter(top)).endswith(commit)):
+            raise UpdateError("De download komt niet van de gekozen commit. Probeer het opnieuw.")
         archive.extractall(target)
+    if commit:
+        inner = target / top.pop()
+        for child in inner.iterdir():
+            child.rename(target / child.name)
+        inner.rmdir()
 
 
 def launch_detached(command: list[str], cwd: str) -> None:

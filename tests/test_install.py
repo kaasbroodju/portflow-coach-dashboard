@@ -239,6 +239,107 @@ class TestUpdating(UpdaterCase):   # U3
         self.assertFalse((self.dir / "buiten.txt").exists())
 
 
+SHA = "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
+SHA2 = "b" * 40
+
+
+def commit_json(sha=SHA, message="Eerste regel\n\nTweede regel", date="2026-11-20T10:30:00Z"):
+    return {"sha": sha, "commit": {"message": message, "committer": {"date": date}}}
+
+
+class TestBeta(UpdaterCase):   # B1-B8
+    def setUp(self):
+        super().setUp()
+        (self.project / ".installed").write_text(json.dumps({"uv": "/bin/uv"}), encoding="utf-8")
+        self.archive = zip_bytes({f"portflow-coach-dashboard-{SHA}/app.py": "print('beta')",
+                                  f"portflow-coach-dashboard-{SHA}/dashboard/version.py": 'VERSION = "9.9.9"',
+                                  f"portflow-coach-dashboard-{SHA}/uv.lock": ""})
+        self.answers[updates.archive_url(SHA)] = self.archive
+        self.stopped = []
+
+    def start(self, commit=SHA, branch="main"):
+        with mock.patch.object(updates, "launch_detached") as launch:
+            started = self.updater.start_beta(commit, branch, 5050, shutdown=lambda: self.stopped.append(True))
+        return started, launch
+
+    def test_branches_start_with_main_and_commits_are_listed(self):   # B2, B3
+        self.answers[updates.BRANCHES_URL] = json.dumps([{"name": "zeta"}, {"name": "main"}, {"name": "Alfa"}]).encode()
+        self.assertEqual(self.updater.branches(), ["main", "Alfa", "zeta"])
+        data = [commit_json(message=""), commit_json(SHA2, "Tweede"), {"sha": "kapot"}] + [commit_json()] * 12
+        self.answers[updates.commits_url("feature/x y")] = json.dumps(data).encode()
+        (self.project / updates.BETA_FILE).write_text(json.dumps({"commit": SHA2, "branch": "main"}))
+        rows = self.updater.commits("feature/x y")
+        self.assertIn("sha=feature%2Fx%20y&per_page=10", updates.commits_url("feature/x y"))
+        self.assertEqual(len(rows), 9)   # the first 10 of the list, without the broken one
+        self.assertEqual([r["installed"] for r in rows[:2]], [False, True])
+        self.assertEqual((rows[1]["short"], rows[1]["message"]), ("bbbbbbb", "Tweede"))
+        first = updates.commit_rows([commit_json()])[0]
+        self.assertEqual(first["message"], "Eerste regel")
+        self.assertRegex(first["date"], r"^\d\d-\d\d-\d{4} \d\d:\d\d$")
+
+    def test_fetch_errors(self):   # B4
+        self.assertIsNone(self.updater.branches())
+        self.assertIsNone(self.updater.commits("main"))
+        self.answers[updates.BRANCHES_URL] = b"<html>"
+        self.assertIsNone(self.updater.branches())
+
+    def test_backup_then_download_unpack_and_restart(self):   # B6, B7, B8
+        started, launch = self.start()
+        self.assertTrue(started)
+        self.assertEqual(self.updater.state["error"], "")
+        new = self.dir / "root" / "app-nieuw"
+        self.assertEqual((new / "app.py").read_text(), "print('beta')")
+        self.assertEqual(json.loads((new / updates.BETA_FILE).read_text()), {"commit": SHA, "branch": "main"})
+        self.assertEqual(json.loads((new / ".installed").read_text()), {"uv": "/bin/uv"})
+        self.assertEqual(len(list((self.dir / "data" / "reservekopieen").iterdir())), 1)
+        self.assertEqual(self.requests, [updates.archive_url(SHA)])
+        self.assertEqual(launch.call_args.args[0][-1], f"beta {SHA[:7]}")
+        self.assertEqual(self.stopped, [True])
+
+    def test_beta_is_recognised_in_the_app_folder(self):   # B7
+        self.assertIsNone(self.updater.beta())
+        (self.project / updates.BETA_FILE).write_text(json.dumps({"commit": SHA, "branch": "main"}))
+        self.assertEqual(self.updater.beta(), {"commit": SHA, "branch": "main"})
+        (self.project / updates.BETA_FILE).write_text("{}")
+        self.assertIsNone(self.updater.beta())
+
+    def test_failed_backup_downloads_nothing(self):   # B8
+        with mock.patch.object(updates.reset, "backup", side_effect=OSError("schijf vol")):
+            self.start()
+        self.assertEqual(self.updater.state["error"], "De reservekopie is niet gelukt; er is niets veranderd.")
+        self.assertEqual(self.requests, [])
+        self.assertEqual(self.stopped, [])
+
+    def test_latest_release_is_backed_up_too(self):   # B8
+        with mock.patch.object(updates.reset, "backup", side_effect=OSError("schijf vol")):
+            self.answers[updates.LATEST_URL] = json.dumps(release()).encode()
+            self.updater.check_now()
+            self.requests.clear()
+            self.updater.start_update(5050, shutdown=lambda: self.stopped.append(True))
+        self.assertIn("reservekopie is niet gelukt", self.updater.state["error"])
+        self.assertEqual(self.requests, [])
+
+    def test_zip_of_another_commit_is_refused(self):   # B6
+        self.answers[updates.archive_url(SHA)] = zip_bytes({f"portflow-coach-dashboard-{SHA2}/app.py": "x"})
+        started, launch = self.start()
+        self.assertIn("niet van de gekozen commit", self.updater.state["error"])
+        launch.assert_not_called()
+        self.assertFalse((self.dir / "root" / "app-nieuw").exists())
+
+    def test_zip_without_version_or_lockfile_is_refused(self):   # B6
+        self.answers[updates.archive_url(SHA)] = zip_bytes({f"portflow-coach-dashboard-{SHA}/app.py": "x"})
+        started, launch = self.start()
+        self.assertIn("geen dashboard", self.updater.state["error"])
+        launch.assert_not_called()
+
+    def test_only_a_full_commit_code_in_an_installation(self):   # B1, B5
+        self.assertFalse(self.start("main")[0])
+        self.assertFalse(self.start("../../etc")[0])
+        (self.project / ".installed").unlink()   # a git checkout
+        self.assertFalse(self.start()[0])
+        self.assertEqual(self.requests, [])
+
+
 class TestSwap(TempCase):   # U3, second half
     def setUp(self):
         super().setUp()
@@ -410,6 +511,37 @@ class TestPages(UpdaterCase):   # R1, U2, U4, I5
         self.assertIn(f"Je hebt de nieuwste versie ({VERSION}).", self.check())
         del self.answers[updates.LATEST_URL]
         self.assertIn("Controleren is niet gelukt.", self.check())
+
+    def test_version_dropdown(self):   # B1
+        checkout = self.html("/instellingen")
+        self.assertIn("Beta (commit kiezen)", checkout)
+        self.assertIn("<option value=\"beta\" disabled>", checkout)
+        self.assertIn("git checkout", checkout)
+        self.assertNotIn("beta-form", checkout)
+        (self.project / ".installed").write_text("{}", encoding="utf-8")
+        html = self.html("/instellingen")
+        self.assertIn('id="beta-form"', html)
+        self.assertIn("Dit is een beta-versie die niet is getest en misschien niet goed werkt.", html)   # B5
+        self.assertNotIn("disabled>Beta", html)
+        (self.project / updates.BETA_FILE).write_text(json.dumps({"commit": SHA, "branch": "main"}))   # B7
+        settings = self.html("/instellingen")
+        self.assertIn(f"Beta: commit {SHA[:7]}, na versie {VERSION}</strong> (branch main)", settings)
+        self.assertIn(f"Versie {VERSION} + beta {SHA[:7]}</p>", settings)   # the sidebar, on every page
+
+    def test_beta_endpoints(self):   # B2, B3, B4
+        self.answers[updates.BRANCHES_URL] = json.dumps([{"name": "x"}, {"name": "main"}]).encode()
+        self.assertEqual(self.client.get("/instellingen/beta/branches").get_json(), {"branches": ["main", "x"], "default": "main"})
+        self.answers[updates.commits_url("x")] = json.dumps([commit_json()]).encode()
+        commits = self.client.get("/instellingen/beta/commits?branch=x").get_json()["commits"]
+        self.assertEqual(commits[0]["commit"], SHA)
+        self.assertEqual(self.client.get("/instellingen/beta/commits").status_code, 400)
+        response = self.client.get("/instellingen/beta/commits?branch=y")   # GitHub unreachable
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("Ophalen is niet gelukt.", response.get_json()["error"])
+
+    def test_install_beta_shows_progress_page(self):   # B6
+        response = self.client.post("/instellingen/beta/installeren", data={"commit": "main", "branch": "main"})
+        self.assertEqual(response.headers["Location"], "/bijwerken?gestart=0")   # nothing is started
 
     def test_stop(self):   # I5
         self.assertIn("Dashboard afsluiten", self.html("/"))

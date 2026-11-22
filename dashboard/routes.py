@@ -101,6 +101,7 @@ def shell_context():
         "update_available": current_app.extensions["updater"].available(),   # spec 020, U2
         "can_update": current_app.extensions["updater"].can_update(),        # spec 020, U5
         "app_version": VERSION,                                              # spec 020, R1
+        "beta": current_app.extensions["updater"].beta(),                    # spec 020, B7
         "hide_names": hide_names.is_on(),                                    # spec 033
     }
 

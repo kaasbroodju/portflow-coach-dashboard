@@ -1,4 +1,4 @@
-"""Version, updating and stopping (spec 020: R1, R6, I4, I5, U2-U5)."""
+"""Version, updating, beta versions and stopping (spec 020: R1, R6, I4, I5, U2-U6, B1-B8)."""
 
 import os
 import threading
@@ -9,6 +9,7 @@ from . import updates
 from .version import VERSION
 
 bp = Blueprint("updates", __name__)
+BETA_FETCH_ERROR = "Ophalen is niet gelukt. Controleer je internetverbinding en probeer het over een poosje opnieuw."   # B4
 APP_ID = "portflow-coach-dashboard"   # I4: app.py recognises a running dashboard by this
 
 
@@ -86,6 +87,35 @@ def check_now():
     release = _updater().check_now()
     outcome = "mislukt" if release is None else ("nieuw" if updates.is_newer(release["version"]) else "actueel")
     return redirect(url_for("pages.settings", versie=outcome, _anchor="versie"))
+
+
+@bp.get("/instellingen/beta/branches")
+def beta_branches():
+    """B3: the branches for the second dropdown."""
+    branches = _updater().branches()
+    if branches is None:
+        return jsonify(error=BETA_FETCH_ERROR), 502
+    return jsonify(branches=branches, default=updates.DEFAULT_BRANCH)
+
+
+@bp.get("/instellingen/beta/commits")
+def beta_commits():
+    """B2: the newest commits of a branch."""
+    branch = request.args.get("branch", "").strip()
+    if not branch or len(branch) > 200:
+        return jsonify(error=BETA_FETCH_ERROR), 400
+    commits = _updater().commits(branch)
+    if commits is None:
+        return jsonify(error=BETA_FETCH_ERROR), 502
+    return jsonify(commits=commits)
+
+
+@bp.post("/instellingen/beta/installeren")
+def install_beta():
+    """B5, B6: the warning was confirmed in the page; back up, download and install that commit."""
+    started = _updater().start_beta(request.form.get("commit", ""), request.form.get("branch", ""),
+                                    _port(), _shutdown())
+    return redirect(url_for("updates.updating", gestart=int(started)))
 
 
 @bp.post("/afsluiten")
