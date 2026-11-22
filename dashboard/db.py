@@ -214,7 +214,8 @@ CREATE TABLE IF NOT EXISTS ai_advice (
     service            TEXT NOT NULL DEFAULT 'lokaal',  -- lokaal or claude (F14)
     seconds            INTEGER,                   -- how long the model took (F20)
     prompt             TEXT,                      -- what was sent, names replaced, for follow-up questions (F21)
-    conversation       TEXT NOT NULL DEFAULT '[]' -- JSON: follow-up questions and answers (F21)
+    conversation       TEXT NOT NULL DEFAULT '[]', -- JSON: follow-up questions and answers (F21)
+    names              TEXT NOT NULL DEFAULT '{}'  -- JSON: the name replacement used, to restore the real names (F23)
 );
 """
 
@@ -264,6 +265,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE ai_advice ADD COLUMN seconds INTEGER")                          # spec 040, F20
         conn.execute("ALTER TABLE ai_advice ADD COLUMN prompt TEXT")                              # spec 040, F21
         conn.execute("ALTER TABLE ai_advice ADD COLUMN conversation TEXT NOT NULL DEFAULT '[]'")
+    if _table_exists(conn, "ai_advice") and "names" not in {r["name"] for r in conn.execute("PRAGMA table_info(ai_advice)")}:
+        conn.execute("ALTER TABLE ai_advice ADD COLUMN names TEXT NOT NULL DEFAULT '{}'")           # spec 040, F23
     from .choices import ensure_lists, migrate_student_texts   # spec 024
     ensure_lists(conn)
     if "track" in columns:

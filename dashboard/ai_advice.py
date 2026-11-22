@@ -121,6 +121,25 @@ def replacements(conn: sqlite3.Connection, student_name: str) -> dict[str, str]:
     return names
 
 
+def restore(text: str, names: dict[str, str]) -> str:
+    """F23: undo the name replacement in the AI output, so the real names are shown again.
+    names is real -> placeholder (as used before sending). A single-word placeholder ("Student")
+    is matched case-sensitively so a generic "de student" stays; multi-word placeholders
+    ("Coach 1", "de beoordelaar") case-insensitively. Longest placeholder first, whole words."""
+    if not text or not names:
+        return text
+    # When two names map to the same placeholder (the student's full name and first name both to
+    # "Student"), restore to the longest real name.
+    by_placeholder: dict[str, str] = {}
+    for real, placeholder in names.items():
+        if placeholder and (placeholder not in by_placeholder or len(real) > len(by_placeholder[placeholder])):
+            by_placeholder[placeholder] = real
+    for placeholder, real in sorted(by_placeholder.items(), key=lambda kv: len(kv[0]), reverse=True):
+        flags = 0 if placeholder.isalnum() else re.IGNORECASE   # bare word: exact case only
+        text = re.sub(r"(?<!\w)" + re.escape(placeholder) + r"(?!\w)", lambda _m: real, text, flags=flags)
+    return text
+
+
 # Collecting the material (F2, F7, F8) ------------------------------------------------------------------
 
 def _plain(html_text: str | None) -> str:
@@ -316,36 +335,46 @@ def saved(conn: sqlite3.Connection, request_id: int) -> dict | None:
     if row is None:
         return None
     moment = datetime.fromisoformat(row["created_at"]).astimezone()
+    names = json.loads(row["names"] or "{}")   # F23: the real names go back into what is shown
+    skills = [dict(s, reasoning=restore(s["reasoning"], names), missing=restore(s["missing"], names))
+              for s in json.loads(row["advice"])]
+    counts = json.loads(row["counts"])
+    counts["names_only"] = [restore(n, names) for n in counts.get("names_only", [])]
+    conversation = [{"question": turn["question"], "answer": restore(turn["answer"], names),
+                     "date": turn.get("date", ""), "duration": duration(turn.get("seconds"))}
+                    for turn in json.loads(row["conversation"] or "[]")]
     return {"model": row["model"], "service": row["service"], "service_label": SERVICES.get(row["service"], row["service"]),
             "date": f"{moment.day}-{moment.month}-{moment.year} {moment:%H:%M}",
             "duration": duration(row["seconds"]), "can_ask": bool(row["prompt"]),
-            "conversation": [dict(turn, duration=duration(turn.get("seconds"))) for turn in json.loads(row["conversation"] or "[]")],
-            "skills": json.loads(row["advice"]), "counts": json.loads(row["counts"])}
+            "conversation": conversation, "skills": skills, "counts": counts}
 
 
 def save(database: str, request_id: int, model: str, skills: list[dict], counts: dict, service: str = "lokaal",
-         seconds: int | None = None, prompt_text: str | None = None) -> None:
-    """F9: a new advice replaces the old one and its conversation (F21)."""
+         seconds: int | None = None, prompt_text: str | None = None, names: dict[str, str] | None = None) -> None:
+    """F9: a new advice replaces the old one and its conversation (F21). `names` (F23) is the name
+    replacement used, kept to show the real names again; the stored advice itself stays anonymized
+    (it is sent back to the AI for follow-up questions)."""
     conn = db.connect(database)
     try:
         with conn:
             conn.execute("INSERT OR REPLACE INTO ai_advice (review_request_id, model, created_at, advice, counts, service, "
-                         "seconds, prompt, conversation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '[]')",
+                         "seconds, prompt, conversation, names) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)",
                          (request_id, model, datetime.now(timezone.utc).isoformat(), json.dumps(skills), json.dumps(counts),
-                          service, seconds, prompt_text))
+                          service, seconds, prompt_text, json.dumps(names or {})))
     finally:
         conn.close()
 
 
-def add_turn(database: str, request_id: int, question: str, answer: str, seconds: int) -> None:
-    """F21: keep a follow-up question with its answer."""
+def add_turn(database: str, request_id: int, question: str, question_anon: str, answer: str, seconds: int) -> None:
+    """F21: keep a follow-up question (the real one for showing, the anonymized one for the AI history,
+    F23) with its answer (anonymized; the real names are put back when shown)."""
     conn = db.connect(database)
     try:
         with conn:
             row = conn.execute("SELECT conversation FROM ai_advice WHERE review_request_id = ?", (request_id,)).fetchone()
             turns = json.loads(row["conversation"] or "[]") if row else []
             moment = datetime.now(timezone.utc).astimezone()
-            turns.append({"question": question, "answer": answer, "seconds": seconds,
+            turns.append({"question": question, "question_anon": question_anon, "answer": answer, "seconds": seconds,
                           "date": f"{moment.day}-{moment.month}-{moment.year} {moment:%H:%M}"})
             conn.execute("UPDATE ai_advice SET conversation = ? WHERE review_request_id = ?", (json.dumps(turns), request_id))
     finally:
@@ -366,7 +395,8 @@ def _history(row, question: str) -> list[dict]:
     turns = json.loads(row["conversation"] or "[]")
     for i, turn in enumerate(turns):
         prefix = FOLLOW_UP + "\n\n" if i == 0 else ""
-        messages += [{"role": "user", "content": prefix + turn["question"]}, {"role": "assistant", "content": turn["answer"]}]
+        messages += [{"role": "user", "content": prefix + turn.get("question_anon", turn["question"])},
+                     {"role": "assistant", "content": turn["answer"]}]
     messages.append({"role": "user", "content": (FOLLOW_UP + "\n\n" if not turns else "") + question})
     return messages
 
@@ -411,8 +441,9 @@ class Jobs:
                 raise ollama.OllamaError("Vraag eerst opnieuw een advies; bij dit advies is het materiaal niet bewaard.")
             student = conn.execute("SELECT s.name FROM evaluations e JOIN students s ON s.id = e.student_id "
                                    "WHERE e.review_request_id = ? LIMIT 1", (request_id,)).fetchone()
-            names = replacements(conn, student["name"] if student else "")
-            history = _history(row, anonymize(question, names))
+            names = json.loads(row["names"] or "{}") or replacements(conn, student["name"] if student else "")
+            question_anon = anonymize(question, names)
+            history = _history(row, question_anon)
             started = time.monotonic()
 
             def written(*_):
@@ -429,7 +460,7 @@ class Jobs:
                                      num_ctx=NUM_CTX, cancel=cancel, progress=written)
             if not answer:
                 raise ollama.OllamaError("Het model gaf geen antwoord. Probeer het opnieuw.")
-            add_turn(self.database, request_id, question, answer, round(time.monotonic() - started))
+            add_turn(self.database, request_id, question, question_anon, answer, round(time.monotonic() - started))
             self._set(request_id, state="done", step="Klaar")
         except ollama.OllamaError as error:
             self._set(request_id, state="stopped" if cancel.is_set() else "error", error=error.message)
@@ -483,7 +514,8 @@ class Jobs:
                 self._set(request_id, step=text)
 
             material = collect(conn, self.database, self.token_source(), request_id, date.today(), step, vision=vision)
-            text, images, counts = prompt(material, replacements(conn, material["student"]))
+            names = replacements(conn, material["student"])
+            text, images, counts = prompt(material, names)
             step("Advies schrijven…")
             import time
             started = time.monotonic()
@@ -498,7 +530,7 @@ class Jobs:
                 answer = ollama.chat(url, model, system_prompt(self.database), text, schema(material["codes"]), images=[i["data"] for i in images],
                                      num_ctx=NUM_CTX, cancel=cancel, progress=written)
             save(self.database, request_id, model, check(answer, material["codes"]), counts, service,
-                 round(time.monotonic() - started), text)
+                 round(time.monotonic() - started), text, names)
             self._set(request_id, state="done", step="Klaar")
         except ollama.OllamaError as error:
             self._set(request_id, state="stopped" if cancel.is_set() else "error", error=error.message)

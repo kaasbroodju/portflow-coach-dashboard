@@ -505,3 +505,50 @@ class TestClaudeVisibility(AdviceCase):   # F22: Claude only for the allowed Por
         with FakeOllama():
             html = self.client.get("/instellingen/ai-advies").get_data(as_text=True)
         self.assertIn("Claude (via internet)", html)
+
+
+class TestRestoreNames(TestJobsAndPage):   # F23: remember the replacement and undo it in the output
+    def test_real_names_in_advice_but_placeholders_to_the_ai(self):
+        advice = {"vaardigheden": [
+            {"code": "PL", "niveau": 2, "onderbouwing": "Student plant goed; Coach 1 bevestigt dit. De student groeit.",
+             "ontbreekt": "Student kan meer met Coach 1 afstemmen."},
+            {"code": "BD", "niveau": 1, "onderbouwing": "x", "ontbreekt": "y"}]}
+        with FakeOllama(answer=advice) as fake:
+            self.client.post("/evaluaties/70/advies", data={"dienst": "lokaal"})
+            self.assertEqual(self.wait(self.app.extensions["ai_jobs"])["state"], "done")
+            html = self.page().get_data(as_text=True)
+        # What went to the AI used placeholders (no real names).
+        self.assertNotIn("Lotte Bakker", fake.calls[0]["user"])
+        # What is shown has the real names back; "de student" (generic) stays.
+        shown = ai_advice.saved(self.conn, 70)
+        pl = shown["skills"][0]
+        self.assertIn("Lotte Bakker plant goed; Noor Smit bevestigt", pl["reasoning"])
+        self.assertIn("De student groeit", pl["reasoning"])              # generic lowercase kept
+        self.assertIn("Lotte Bakker kan meer met Noor Smit", pl["missing"])
+        self.assertIn("Lotte Bakker plant goed", html)
+        # The stored advice itself stays anonymized (it is sent back to the AI on a follow-up).
+        self.assertIn("Student plant goed", self.conn.execute(
+            "SELECT advice FROM ai_advice WHERE review_request_id = 70").fetchone()["advice"])
+
+    def test_follow_up_answer_restored_without_leaking_to_the_ai(self):
+        advice = {"vaardigheden": [{"code": "PL", "niveau": 2, "onderbouwing": "Student plant.", "ontbreekt": "-"},
+                                   {"code": "BD", "niveau": 1, "onderbouwing": "x", "ontbreekt": "y"}]}
+        answer = "Student kan bij Coach 1 navragen hoe de planning overkwam."
+        with FakeOllama(answer=advice) as fake:
+            self.client.post("/evaluaties/70/advies", data={"dienst": "lokaal"})
+            self.wait(self.app.extensions["ai_jobs"])
+        with FakeOllama(answer=advice, delay=0) as fake:
+            fake.answer = advice  # advice path returns dict; the follow-up asks for free text
+            import dashboard.ollama as ollama_mod
+            with mock.patch.object(ollama_mod, "chat", lambda *a, **k: answer):
+                self.client.post("/evaluaties/70/advies/vraag", data={"vraag": "Wat kan Lotte Bakker nog doen?"})
+                self.assertEqual(self.wait(self.app.extensions["ai_jobs"])["state"], "done")
+            html = self.page().get_data(as_text=True)
+        # Shown: real names restored in the answer; the typed question keeps its real name.
+        self.assertIn("Lotte Bakker kan bij Noor Smit navragen", html)
+        self.assertIn("Wat kan Lotte Bakker nog doen?", html)
+        # Stored for the AI history: anonymized question and answer (no real names).
+        turn = json.loads(self.conn.execute("SELECT conversation FROM ai_advice WHERE review_request_id = 70").fetchone()["conversation"])[0]
+        self.assertEqual(turn["answer"], answer)                         # as the AI returned it (placeholders)
+        self.assertNotIn("Lotte Bakker", turn["question_anon"])
+        self.assertIn("Student", turn["question_anon"])
