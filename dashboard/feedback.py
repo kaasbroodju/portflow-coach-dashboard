@@ -67,17 +67,23 @@ def summary(conn: sqlite3.Connection, student_id: int, start: date, end: date) -
             "first_reply_days": round(sum(waits) / len(waits), 1) if waits else None}
 
 
-def rows(conn: sqlite3.Connection, student_id: int, start: date, end: date) -> list[dict]:
+def rows(conn: sqlite3.Connection, student_id: int, start: date, end: date, skills: list[str] | None = None) -> list[dict]:
     """F3: the rows Feedbackvraag (a mark per day; open when one of them has no reply yet) and
-    Reactie (a mark per day, coloured by role), positioned like the evidence dots."""
+    Reactie (a mark per day, coloured by role), positioned like the evidence dots. With `skills`
+    (spec 039, F12): only feedback on evidence of those skills."""
     first = start - timedelta(days=start.weekday())
     span = ((end - first).days // 7 + 1) * 7
     left = lambda day: round(100 * ((day - first).days + 0.5) / span, 2)
-    names = {r["evidence_id"]: r["name"] for r in conn.execute(
-        "SELECT evidence_id, name FROM evidence_items WHERE student_id = ?", (student_id,))}
+    wanted = set(skills) if skills else None
+    names, evidence_skills = {}, {}
+    for r in conn.execute("SELECT evidence_id, name, skills FROM evidence_items WHERE student_id = ?", (student_id,)):
+        names[r["evidence_id"]] = r["name"]
+        evidence_skills[r["evidence_id"]] = {s for s in (r["skills"] or "").split(",") if s}
     asked: dict[date, dict] = {}
     answers: dict[date, dict] = {}
     for request in _requests(conn, student_id, start, end):
+        if wanted is not None and not (evidence_skills.get(request["evidence_id"], set()) & wanted):
+            continue
         mark = asked.setdefault(request["day"], {"ids": [], "open": False, "tips": []})
         mark["ids"].append(request["comment_id"])
         mark["open"] = mark["open"] or not request["from_others"]

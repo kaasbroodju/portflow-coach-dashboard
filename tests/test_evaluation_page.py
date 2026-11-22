@@ -155,6 +155,12 @@ class TestPage(PageCase):
         self.assertNotIn('>KO</span>', block)
         self.assertIn("vaardigheden=PL,BD", block)
 
+    def test_feedback_rows_in_the_timeline(self):   # F12: feedback questions/replies as rows, for the requested skills
+        html = self.page().get_data(as_text=True)
+        block = html[html.index('id="evidence-block"'):]
+        self.assertIn("feedback-mark feedback-request", block)   # the Feedbackvraag row (on evidence 501, PL)
+        self.assertIn("feedback-mark feedback-reply", block)     # the Reactie row
+
     def test_note_before_and_after_fetching(self):   # F5
         self.assertIn("De student heeft geen toelichting geschreven.", self.page(80).get_data(as_text=True))
         with self.conn:

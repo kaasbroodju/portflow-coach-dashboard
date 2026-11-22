@@ -36,7 +36,7 @@
     </div>
     {% endfor %}
     {# Spec 035, F3: the feedback requests and the replies; a click opens the side panel (F4). #}
-    {% for row in feedback_rows if not evidence_skills %}
+    {% for row in feedback_rows %}
     <div class="evidence-row feedback-row{% if loop.first %} feedback-first{% endif %}">
       <span class="evidence-label">{{ row.code }}</span>
       <span class="evidence-line">

@@ -386,7 +386,7 @@ def _evidence_context(conn, student_id: int, weeks: list[dict], start: date, end
         shown["total"] = sum(len(r["dots"]) for r in shown["rows"])
     return {"evidence": shown, "evidence_weeks": weeks, "evidence_skills": ",".join(skills or []),
             "feedback_stats": feedback.summary(conn, student_id, start, end),     # spec 035
-            "feedback_rows": feedback.rows(conn, student_id, start, end),
+            "feedback_rows": feedback.rows(conn, student_id, start, end, skills),
             "evidence_fetched": when, "evidence_collections": fetched["collections"] if fetched else None,
             "evidence_message": message, "student_id": student_id}
 
