@@ -288,46 +288,86 @@ class TestAssessors(SimpleStartCase):
 
 
 class TestVisibleFetch(SimpleStartCase):
-    def test_visible_students_first_then_the_rest(self):   # F14 (changed 2026-11-19)
-        self.connect()   # first round: everyone
+    def ids(self):
         with self.db() as conn:
-            ids = {r["name"]: r["id"] for r in conn.execute("SELECT id, name FROM students")}
+            return {r["name"]: r["id"] for r in conn.execute("SELECT id, name FROM students")}
+
+    def test_only_the_students_on_the_screen(self):   # spec 041, F1-F3, F5
+        self.connect()   # first round: everyone (F6)
+        ids = self.ids()
+        with self.db() as conn:
+            conn.execute("UPDATE students SET is_hidden = 1 WHERE name = 'Cas Jansen'")
+        self.api.fetched.clear()
+        self.client.post("/portflow/verversen", data={"student": [str(ids["Bram Visser"])], "scherm": "1"})
+        self.assertEqual(self.api.fetched, [103])               # Anna is not on the screen
+        self.api.fetched.clear()
+        self.api.shares.append(share(14, "Daan Smit", 105))   # a new share is fetched too, after the screen (F5)
+        self.client.post("/portflow/verversen", data={"student": [str(ids["Bram Visser"])], "scherm": "1"})
+        self.assertEqual(self.api.fetched, [103, 105])
+        self.api.fetched.clear()
+        self.client.post("/portflow/verversen", data={"student": [str(ids["Cas Jansen"])], "scherm": "1"})   # hidden but on the screen
+        self.assertEqual(self.api.fetched, [104])
+        self.api.fetched.clear()
+        self.client.post("/portflow/verversen", data={"scherm": "1"})   # a screen without students: only the lists
+        self.assertEqual(self.api.fetched, [])
+
+
+    def test_page_without_students_fetches_everyone(self):   # spec 041, F4 (spec 019, F14)
+        self.connect()
+        ids = self.ids()
+        with self.db() as conn:
             conn.execute("UPDATE students SET is_hidden = 1 WHERE name = 'Cas Jansen'")
         self.api.fetched.clear()
         self.client.post("/portflow/verversen", data={"student": [str(ids["Bram Visser"])]})
-        self.assertEqual(self.api.fetched[0], 103)              # the visible student first
-        self.assertEqual(sorted(self.api.fetched), [101, 102, 103])  # then Anna (two portfolios); Cas (hidden) not
+        self.assertEqual(self.api.fetched[0], 103)
+        self.assertEqual(sorted(self.api.fetched), [101, 102, 103])
         self.api.fetched.clear()
-        self.api.shares.append(share(14, "Daan Smit", 105))   # a new share comes after the visible ones (F3)
-        self.client.post("/portflow/verversen", data={"student": [str(ids["Bram Visser"])]})
-        self.assertEqual(self.api.fetched[:2], [103, 105])
-        self.assertEqual(sorted(self.api.fetched), [101, 102, 103, 105])
-        self.api.fetched.clear()
-        self.client.post("/portflow/verversen", data={"student": [str(ids["Cas Jansen"])]})   # hidden but visible
-        self.assertEqual(self.api.fetched[0], 104)
-        self.api.fetched.clear()
-        self.client.post("/portflow/verversen")   # nothing visible: every student that is not hidden
-        self.assertEqual(sorted(self.api.fetched), [101, 102, 103, 105])
+        self.client.post("/portflow/verversen")
+        self.assertEqual(sorted(self.api.fetched), [101, 102, 103])
 
-    def test_pages_mark_the_students_to_fetch_first(self):   # F14
+    def test_first_round_fetches_everyone_even_from_a_screen(self):   # spec 041, F6
+        self.api.fetched.clear()
         self.connect()
-        with self.db() as conn:
-            sid = conn.execute("SELECT id FROM students WHERE name = 'Bram Visser'").fetchone()[0]
-        for path, query in (("/evaluaties", {"wie": "iedereen"}), (f"/studenten/{sid}", {})):
+        self.assertEqual(sorted(set(self.api.fetched)), [101, 102, 103, 104])
+
+    def test_started_from_app_js_the_page_stays(self):   # spec 041, F7
+        self.connect()
+        response = self.client.post("/portflow/verversen", data={"scherm": "1"}, headers={"X-Requested-With": "fetch"})
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(self.client.post("/portflow/verversen", data={"scherm": "1"}).status_code, 302)   # without JavaScript
+
+    def test_button_shows_only_the_time(self):   # spec 041, F8 (changed 2026-11-23: no number)
+        self.connect()
+        ids = self.ids()
+        self.client.post("/portflow/verversen", data={"student": [str(ids["Bram Visser"])], "scherm": "1"})
+        html = self.client.get("/portflow/status").get_json()["refresh_html"]
+        self.assertIn("Bijgewerkt om", html)
+        self.assertNotIn("student bijgewerkt", html)
+
+    def test_pages_mark_their_students_and_live_parts(self):   # spec 041, F1-F3, F7
+        self.connect()
+        sid = self.ids()["Bram Visser"]
+        for path, query in (("/evaluaties", {"wie": "iedereen"}), (f"/studenten/{sid}", {}), ("/", {})):
             with self.subTest(path=path):
-                self.assertIn(f'data-student-id="{sid}"', self.html(path, **query))
+                html = self.html(path, **query)
+                self.assertIn(f'data-student-id="{sid}"', html)
+                self.assertIn(f'data-live="cell-{sid}-OC"', html)
+                self.assertNotIn("data-reload-after-fetch", html)
+                self.assertNotIn("data-reload-when-fetched", html)
+        self.assertIn('data-live="to-review"', self.html("/evaluaties"))
+        self.assertIn('data-live="weeks"', self.html(f"/studenten/{sid}"))
+        self.assertIn('data-live="student-open"', self.html(f"/studenten/{sid}"))
+        self.assertIn('data-live="nav-count"', self.html("/instellingen"))
 
-    def test_status_tells_which_students_are_done(self):   # spec 039: a page reloads when its student is fetched
+    def test_status_tells_which_students_are_done(self):   # spec 039, spec 041, F7
         self.connect()
-        with self.db() as conn:
-            sid = conn.execute("SELECT id FROM students WHERE name = 'Bram Visser'").fetchone()[0]
-        self.client.post("/portflow/verversen", data={"student": [str(sid)]})
+        sid = self.ids()["Bram Visser"]
+        self.client.post("/portflow/verversen", data={"student": [str(sid)], "scherm": "1"})
         first = self.client.get("/portflow/status").get_json()
-        self.assertIn(sid, first["fetch_students"])
+        self.assertEqual(first["fetch_students"], [sid])
         self.assertTrue(first["fetch_round"])
         self.client.post("/portflow/verversen")
         self.assertNotEqual(self.client.get("/portflow/status").get_json()["fetch_round"], first["fetch_round"])
-        self.assertIn(f'data-reload-when-fetched="{sid}"', self.html(f"/studenten/{sid}"))
 
 
 class TestMigration(unittest.TestCase):

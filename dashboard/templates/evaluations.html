@@ -31,6 +31,7 @@
   <p class="timeline-empty">Geen studenten bij deze keuze.</p>
   {% endif %}
 
+  <div class="live" data-live="week-chart">{# spec 041, F7 #}
   <h3>Evaluaties per week</h3>
   {% if not scale.top %}
   <p class="timeline-empty">Nog geen evaluaties in deze semesterperiode.</p>{# F5 #}
@@ -72,10 +73,11 @@
     <span><i class="timeline-swatch timeline-pending"></i>ingediend (?)</span>
   </p>
   {% endif %}
+  </div>
 </section>
 
 {# Spec 030: the open review requests sent to the user, oldest first. #}
-<section class="card to-review" aria-labelledby="to-review-title">
+<section class="card to-review" aria-labelledby="to-review-title" data-live="to-review">
   <h2 id="to-review-title">Te beoordelen{% if requests %} <span class="muted">· {{ requests|length }}</span>{% endif %}</h2>
   {% if requests %}
   <ul class="to-review-list">

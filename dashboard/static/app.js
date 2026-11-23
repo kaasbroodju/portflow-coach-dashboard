@@ -11,6 +11,62 @@
   let wasBusy = null;
   let wasFetching = null;
 
+  // Spec 041, F7: after Verversen, update the parts of the page that come from the fetched
+  // evaluations (marked with data-live) without reloading, after every student of this page.
+  // The server makes the HTML; this only swaps the parts that changed.
+  const REFRESH_KEY = "refreshStarted";
+  const liveSnapshot = new Map();
+  document.querySelectorAll("[data-live]").forEach((el) => liveSnapshot.set(el.dataset.live, el.outerHTML));
+  let liveRound = null;
+  let liveDone = new Set();
+  let liveBusy = false;
+  let liveAgain = null;   // null, or whether the queued update is the final one
+
+  function pageStudents() {
+    return new Set(Array.from(document.querySelectorAll("[data-student-id]"), (el) => Number(el.dataset.studentId)));
+  }
+
+  async function liveUpdate(final) {
+    if (liveBusy) { liveAgain = Boolean(liveAgain) || final; return; }
+    liveBusy = true;
+    let ok = true;
+    try {
+      const response = await fetch(location.href, { headers: { "X-Requested-With": "fetch" }, cache: "no-store" });
+      if (!response.ok) throw new Error(String(response.status));
+      const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+      // A student who was added in this round and is on this screen: only a reload shows the new row.
+      const cells = new Set(Array.from(document.querySelectorAll("[data-live^='cell-']"), (el) => el.dataset.live));
+      if (final && Array.from(doc.querySelectorAll("[data-live^='cell-']")).some((el) => !cells.has(el.dataset.live))) {
+        location.reload();
+        return;
+      }
+      doc.querySelectorAll("[data-live]").forEach((fresh) => {
+        const key = fresh.dataset.live;
+        const html = fresh.outerHTML;
+        if (liveSnapshot.get(key) === html) return;
+        const old = document.querySelector(`[data-live="${CSS.escape(key)}"]`);
+        if (!old) return;
+        const active = document.activeElement;
+        if (active && old.contains(active) && active.matches("input, textarea, select")) return;   // keep what is typed
+        const opened = Array.from(old.querySelectorAll("details"), (d) => d.open);
+        const node = document.importNode(fresh, true);
+        node.querySelectorAll("details").forEach((d, i) => { if (i < opened.length) d.open = opened[i]; });
+        old.replaceWith(node);
+        liveSnapshot.set(key, html);
+      });
+    } catch {
+      ok = false;
+    } finally {
+      liveBusy = false;
+    }
+    if (!ok && final) { location.reload(); return; }   // could not update in place: show the new data anyway
+    if (liveAgain !== null) {
+      const again = liveAgain;
+      liveAgain = null;
+      liveUpdate(again);
+    }
+  }
+
   function closePanelOnEscapeOrOutsideClick() {
     document.addEventListener("keydown", (event) => {
       const panel = statusEl();
@@ -37,7 +93,14 @@
     }
   }
 
+  let pollTimer = null;
+  let polling = false;
+  let pollAgain = false;   // a check was asked for while one was running: do it right after
+
   async function poll() {
+    if (polling) { pollAgain = true; return; }
+    polling = true;
+    clearTimeout(pollTimer);
     let delay = 60000;
     try {
       const path = encodeURIComponent(location.pathname);
@@ -55,23 +118,30 @@
       }
       wasBusy = busyNow;
 
-      // Spec 005, F9: once a fetch round finishes, show the new data without a manual reload.
-      if (wasFetching === true && !status.fetch_running && document.querySelector("[data-reload-after-fetch]")) {
+      // Spec 041, F7: which students of this round are done. On the first check after loading a
+      // page, only a Verversen of the last ten minutes counts (the page may be its result).
+      const firstCheck = liveRound === null;
+      const recent = Date.now() - Number(sessionStorage.getItem(REFRESH_KEY) || 0) < 600000;
+      if (firstCheck || status.fetch_round !== liveRound) {
+        liveDone = new Set(firstCheck && !recent ? status.fetch_students : []);
+        liveRound = status.fetch_round;
+      }
+      const roundEnded = !status.fetch_running && (wasFetching === true || (firstCheck && recent && status.fetch_round));
+      wasFetching = status.fetch_running;
+
+      // Spec 005, F9: a page without students (nothing fetched yet) reloads once the round is done.
+      if (roundEnded && document.querySelector("[data-reload-after-fetch]")) {
+        sessionStorage.removeItem(REFRESH_KEY);
         location.reload();
         return;
       }
-      wasFetching = status.fetch_running;
-
-      // Spec 039: a page about one student (evaluation page, student page) shows its new data as
-      // soon as that student is fetched (the first of the round), not only after the whole round.
-      const watched = document.querySelector("[data-reload-when-fetched]");
-      if (watched && status.fetch_round && status.fetch_students.includes(Number(watched.dataset.reloadWhenFetched))) {
-        const key = `fetched:${status.fetch_round}:${watched.dataset.reloadWhenFetched}`;
-        if (!sessionStorage.getItem(key)) {
-          sessionStorage.setItem(key, "1");
-          location.reload();
-          return;
-        }
+      const onPage = pageStudents();
+      const fresh = status.fetch_students.filter((id) => !liveDone.has(id));
+      fresh.forEach((id) => liveDone.add(id));
+      if (fresh.some((id) => onPage.has(id))) liveUpdate(false);
+      if (roundEnded) {
+        sessionStorage.removeItem(REFRESH_KEY);
+        liveUpdate(true);   // also the parts about more students: Te beoordelen, the counter in the menu
       }
 
       const typing = statusEl()?.contains(document.activeElement) && document.activeElement.matches("input, textarea");
@@ -86,7 +156,9 @@
     } catch {
       // The app may be restarting; try again later.
     }
-    setTimeout(poll, delay);
+    polling = false;
+    pollTimer = setTimeout(poll, pollAgain ? 0 : delay);
+    pollAgain = false;
   }
 
   if (statusEl()) {
@@ -94,12 +166,15 @@
     poll();
   }
 
-  // Spec 019, F14: "Verversen" fetches the students visible on the page first: the list on
-  // Overzicht (after filters and search), the table on Evaluaties, the student of a student page.
+  // Spec 041 (before: spec 019, F14): "Verversen" fetches only the students on the screen: the list
+  // on Overzicht and Beheer › Studenten (after filters and search), the table on Evaluaties, the
+  // student of a student page or an evaluation page. A page without students sends none and no
+  // "scherm": then everyone is fetched (F4).
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!form.matches("form.refresh")) return;
-    form.querySelectorAll("input[name=student]").forEach((el) => el.remove());
+    sessionStorage.setItem(REFRESH_KEY, String(Date.now()));
+    form.querySelectorAll("input[name=student], input[name=scherm]").forEach((el) => el.remove());
     const add = (value) => {
       const input = document.createElement("input");
       input.type = "hidden"; input.name = "student"; input.value = value;
@@ -108,6 +183,18 @@
     document.querySelectorAll("#student-table tr[data-student-id], .compact-table tr[data-student-id]").forEach((row) => {
       if (!row.hidden && !row.closest(".table-group")?.hidden) add(row.dataset.studentId);
     });
+    if (document.querySelector("#student-table, .compact-table, [data-refresh-scope]")) {
+      const screen = document.createElement("input");
+      screen.type = "hidden"; screen.name = "scherm"; screen.value = "1";
+      form.appendChild(screen);
+    }
+    // Spec 041, F7: start the round in the background, so the page (search, scroll, open parts)
+    // stays as it is; the status check then follows the round and updates the page.
+    event.preventDefault();
+    form.querySelector("button")?.setAttribute("disabled", "");
+    fetch(form.action, { method: "POST", body: new FormData(form), headers: { "X-Requested-With": "fetch" } })
+      .then(() => { clearTimeout(pollTimer); poll(); })
+      .catch(() => form.submit());
   }, true);
 })();
 

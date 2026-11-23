@@ -14,24 +14,25 @@
 {% set r = data.request %}
 
 {# F1, F13: the request, with previous / next in Te beoordelen #}
-<section class="card evaluation-head" aria-labelledby="evaluation-title"{% if r.student_id %} data-reload-when-fetched="{{ r.student_id }}"{% endif %}>
+<section class="card evaluation-head" aria-labelledby="evaluation-title" data-refresh-scope>{# spec 041, F3 #}
   <div class="evaluation-head-main">
     <span class="avatar">{{ r.student|initials }}</span>
     <div>
       <h2 id="evaluation-title">{{ r.title }}</h2>
-      <p class="muted">
+      <p class="muted" data-live="eval-status">
         {% if r.student_id %}<a href="{{ url_for('pages.student_page', student_id=r.student_id, van='evaluations') }}">{{ r.student }}</a>{% else %}{{ r.student }}{% endif %}
         {% if r.submitted %} · ingediend {{ r.submitted }}{% endif %}
         {% if r.open and r.waiting %} · wacht {{ r.waiting }}{% endif %}
         {% if r.to_me %} · <span class="role-label">aan jou</span>{% endif %}
         {% if not r.open %} · beoordeeld{% endif %}
       </p>
-      <p class="evaluation-skills">
+      <p class="evaluation-skills" data-live="eval-skills">
         {% if data.full_assessment %}<span class="mark-assessment">Assessment ingeleverd</span>
         {% else %}{% for code in data.codes %}<span class="skill-code" title="{{ skill_names[code] }}">{{ code }}</span>{% endfor %}{% endif %}
       </p>
     </div>
   </div>
+  <div class="live" data-live="eval-nav">
   {% if data.queue_position %}
   <nav class="evaluation-nav" aria-label="Te beoordelen">
     {% if data.previous %}<a class="button button-secondary" href="{{ url_for('pages.evaluation_page', request_id=data.previous) }}">← Vorige</a>{% else %}<span class="button button-secondary is-disabled" aria-disabled="true">← Vorige</span>{% endif %}
@@ -39,6 +40,7 @@
     {% if data.next %}<a class="button button-secondary" href="{{ url_for('pages.evaluation_page', request_id=data.next) }}">Volgende →</a>{% else %}<span class="button button-secondary is-disabled" aria-disabled="true">Volgende →</span>{% endif %}
   </nav>
   {% endif %}
+  </div>
 </section>
 
 {% if not r.student_id %}
@@ -60,7 +62,7 @@
 {% endif %}
 
 {# F5, F6: the note of the student #}
-<section class="card evaluation-self" aria-labelledby="evaluation-note-title">
+<section class="card evaluation-self" aria-labelledby="evaluation-note-title" data-live="eval-note">
   <h2 id="evaluation-note-title">Toelichting van de student</h2>
   {% if not r.note_known %}<p class="muted">De toelichting is alleen zichtbaar voor de beoordelaar.</p>
   {% elif not r.note_fetched %}<p class="muted">Klik op Verversen om de toelichting op te halen.</p>
@@ -73,13 +75,13 @@
 <section class="card evaluation-skill-card" id="vaardigheid-{{ s.code }}" aria-labelledby="skill-{{ s.code }}-title">
   <div class="evaluation-skill-head cat-line-{{ s.category }}">
     <h2 id="skill-{{ s.code }}-title"><span class="skill-code">{{ s.code }}</span> {{ s.name }}</h2>
-    <dl class="evaluation-levels">
+    <dl class="evaluation-levels" data-live="eval-levels-{{ s.code }}">
       <div><dt>Beoordeelt</dt><dd>{{ s.assessor }}</dd></div>
-      <div><dt>Behaald</dt><dd>{{ level_text(s.current) }}</dd></div>
       <div><dt>Student vraagt</dt><dd><strong>{{ level_text(s.claimed) }}</strong></dd></div>
     </dl>
   </div>
 
+  <div class="live" data-live="eval-self-{{ s.code }}">
   <h3>Zelfevaluatie{% if s.self_date %} <span class="muted">· {{ s.self_date }}</span>{% endif %}</h3>
   {% if s.self_text %}<div class="evidence-text evaluation-self-text">{{ s.self_text|safe }}</div>
   {% else %}<p class="muted">Geen tekst bij de zelfevaluatie.</p>{% endif %}
@@ -89,6 +91,7 @@
     {% if e.text %}<div class="evidence-text">{{ e.text|safe }}</div>{% endif %}
   </div>
   {% endfor %}
+  </div>
 
   {# F10 #}
   {% if s.lef_claimed or s.lef_current %}
@@ -98,6 +101,7 @@
   {% endif %}
 
   {# F11 #}
+  <div class="live" data-live="eval-earlier-{{ s.code }}">
   <h3>Eerdere evaluaties{% if s.earlier %} <span class="muted">· {{ s.earlier|length }}</span>{% endif %}</h3>
   {% if s.earlier %}
   <details class="evaluation-earlier"{% if s.earlier|length <= 2 %} open{% endif %}>
@@ -110,6 +114,7 @@
     {% endfor %}
   </details>
   {% else %}<p class="muted">Nog geen eerdere evaluaties van deze vaardigheid.</p>{% endif %}
+  </div>
 
   {# F8 #}
   <h3>Bewijsstukken <span class="muted">· {{ s.evidence|length }} in deze semesterperiode</span></h3>

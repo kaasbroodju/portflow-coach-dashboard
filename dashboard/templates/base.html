@@ -23,9 +23,10 @@
              href="{{ url_for('pages.' + item.endpoint) }}"
              {% if item.endpoint == active %}aria-current="page"{% endif %}>
             {{ icon(item.icon) }}<span>{{ item.label }}</span>
-            {%- if item.endpoint == "evaluations" and to_review_count %}{# spec 030, F6 #}
+            {%- if item.endpoint == "evaluations" %}<span class="live" data-live="nav-count">{# spec 041, F7 #}
+            {%- if to_review_count %}{# spec 030, F6 #}
             <span class="nav-count" title="{{ to_review_count }} evaluatieverzoek{{ 'en' if to_review_count != 1 }} wacht{{ 'en' if to_review_count != 1 }} op jouw beoordeling">{{ to_review_count }}</span>
-            {%- endif %}
+            {%- endif %}</span>{% endif %}
           </a>
       {%- endmacro %}
       {% set group_items = pages|selectattr("group")|list %}

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from dashboard import create_app, db, portflow_link
-from dashboard.portflow_fetch import S_UNLINKED, Fetcher
+from dashboard.portflow_fetch import Fetcher
 
 
 def share(user_id, name, portfolio_id):
@@ -127,15 +127,16 @@ class TestAutoLink(LinkTestCase):  # F1
 
 
 class TestWhenLinking(LinkTestCase):
-    def test_refresh_links_first_and_reports_unlinked(self):  # F2, F4
+    def test_refresh_links_first_and_reports_unlinked(self):  # F2, F4 (changed 2026-11-23)
         anna, cas = self.add("Anna de Boer"), self.add("Cas Jansen")
         self.connect()
         self.assertTrue(self.app.extensions["fetcher"].start())
         self.assertEqual(self.link_of(anna)[0], 11)
-        self.assertEqual(json.loads(db.get_setting(str(self.db_path), S_UNLINKED)), ["Cas Jansen"])
+        self.assertEqual(self.link_of(cas)[0], None)
         html = self.client.get("/").get_data(as_text=True)
-        self.assertIn("1 niet gekoppeld", html)
-        self.assertIn("Niet gekoppeld aan Portflow: Cas Jansen", html)
+        self.assertNotIn("niet gekoppeld", html)   # no longer in the Verversen button
+        self.assertNotIn("Niet gekoppeld aan Portflow", html)
+        self.assertIn("Niet gekoppeld", self.client.get("/studenten").get_data(as_text=True))   # still in Studenten
 
     def test_refresh_continues_when_shared_list_fails(self):  # F2
         self.add("Anna de Boer")

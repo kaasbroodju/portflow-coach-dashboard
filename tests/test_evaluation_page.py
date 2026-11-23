@@ -145,7 +145,9 @@ class TestPage(PageCase):
             self.assertIn(text, html)
         self.assertIn('class="col-skill cat-social is-requested"', html)   # F2: PL and BD marked
         self.assertIn('href="/evaluaties/80"', html)
-        self.assertIn('data-reload-when-fetched="1"', html)   # reloads when Lotte is fetched
+        self.assertIn('data-refresh-scope', html)   # spec 041, F3: Verversen fetches only Lotte
+        self.assertIn('data-live="cell-1-PL"', html)   # spec 041, F7: updated without reloading
+        self.assertIn('data-live="eval-note"', html)
         self.assertIn('href="/evaluaties/90"', html)
 
     def test_timeline_only_requested_skills(self):   # F7

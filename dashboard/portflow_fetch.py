@@ -22,7 +22,6 @@ MAX_WORKERS = 8  # architectuur.md#verversen
 S_LAST_FETCH = "fetch_last_finished"
 S_REQUESTS_FETCHED = "requests_last_fetched"   # spec 030, F5
 S_LAST_FETCH_FAILED = "fetch_last_failed"   # JSON list of student names
-S_UNLINKED = "fetch_unlinked"              # JSON list of names not linked to Portflow (spec 015, F4)
 
 MONTHS = ["januari", "februari", "maart", "april", "mei", "juni", "juli",
           "augustus", "september", "oktober", "november", "december"]
@@ -108,7 +107,8 @@ def parse_feedback_item(item: dict, skill: str, request_statuses: dict[int, str]
 # Formatting -----------------------------------------------------------------------
 
 def updated_text(finished: datetime | None, now: datetime) -> str:
-    """F8: 'Bijgewerkt om 14:32' today, 'Bijgewerkt op 8 november, 14:32' earlier."""
+    """F8: 'Bijgewerkt om 14:32' today, 'Bijgewerkt op 8 november, 14:32' earlier (spec 041, F8:
+    without the number of students)."""
     if finished is None:
         return "Nog niet opgehaald"
     local, today = finished.astimezone(), now.astimezone()
@@ -142,10 +142,11 @@ class Fetcher:
 
     # Starting -------------------------------------------------------------
 
-    def start(self, student_ids: list[int] | None = None) -> bool:
+    def start(self, student_ids: list[int] | None = None, *, screen: bool = False) -> bool:
         """F6: start a round; False if one is running or not connected.
-        Spec 019, F14: all students that are not hidden are fetched; `student_ids` (the students
-        visible on the page) come first."""
+        Spec 041: with `screen` (a page that shows students) only `student_ids`, the students on
+        the screen, are fetched (plus students added in this round). Without it (a page without
+        students) every student that is not hidden, `student_ids` first (spec 019, F14)."""
         token = self.connection.token
         if not token:
             return False
@@ -154,7 +155,7 @@ class Fetcher:
                 return False
             self.running, self.done, self.total = True, 0, 0
             self.round, self.fetched = uuid.uuid4().hex, set()
-        self.spawn(lambda: self._run(token, student_ids))
+        self.spawn(lambda: self._run(token, student_ids, screen))
         return True
 
     def start_first(self) -> bool:
@@ -168,16 +169,15 @@ class Fetcher:
     def status(self) -> dict:
         last = db.get_setting(self.database, S_LAST_FETCH)
         failed = json.loads(db.get_setting(self.database, S_LAST_FETCH_FAILED) or "[]")
-        unlinked = json.loads(db.get_setting(self.database, S_UNLINKED) or "[]")
         if self.running:
-            text = f"Ophalen… {self.done} van {self.total} studenten" if self.total else "Ophalen…"
+            text = (f"Ophalen… {self.done} van {self.total} student{'' if self.total == 1 else 'en'}"
+                    if self.total else "Ophalen…")
         else:
             text = updated_text(datetime.fromisoformat(last) if last else None, self.now())
         return {
             "running": self.running,
             "text": text,
             "failed": failed,
-            "unlinked": unlinked,
             "can_start": bool(self.connection.token) and not self.running,
             "last": last,
             "round": self.round,
@@ -233,7 +233,6 @@ class Fetcher:
                 student_intake.add_or_link_students_from_portflow(conn, new)
         finally:
             conn.close()
-        db.set_setting(self.database, S_UNLINKED, json.dumps(unresolved))
 
     def _request_statuses(self, token: str) -> dict[int, str]:
         own = db.get_setting(self.database, "portflow_portfolio_id")
@@ -347,18 +346,23 @@ class Fetcher:
         finally:
             conn.close()
 
-    def _run(self, token: str, student_ids: list[int] | None = None) -> None:
+    def _run(self, token: str, student_ids: list[int] | None = None, screen: bool = False) -> None:
         failed_names: list[str] = []
         completed = False
         first = not db.get_setting(self.database, S_LAST_FETCH)
         try:
             before = self._student_ids()
             self._link(token)  # spec 015, F2: link on name first, so new links are fetched too
-            # Spec 019, F2, F14: every student that is not hidden (the first round: everyone), the
-            # students visible on the page first, then the ones added in this round (F3), then the rest.
-            rest = [s["id"] for s in self._students(None)]
-            first_ids = [] if first else list(student_ids or [])
-            order = list(dict.fromkeys(first_ids + sorted(self._student_ids() - before) + rest))
+            added = sorted(self._student_ids() - before)
+            if screen and not first:
+                # Spec 041, F1-F3, F5: only the students on the screen, then the ones added in this round.
+                order = list(dict.fromkeys(list(student_ids or []) + added))
+            else:
+                # Spec 019, F2, F14, spec 041, F4, F6: every student that is not hidden (the first
+                # round: everyone), the students sent along first, then the ones added in this round.
+                rest = [s["id"] for s in self._students(None)]
+                first_ids = [] if first else list(student_ids or [])
+                order = list(dict.fromkeys(first_ids + added + rest))
             by_id = {s["id"]: s for s in self._students(order)}
             students = [by_id[i] for i in order if i in by_id]
             self.total = len(students)
