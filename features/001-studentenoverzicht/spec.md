@@ -1,7 +1,7 @@
 # 001 – Studentenoverzicht
 
 **Status:** klaar <!-- idee | uitgewerkt | in bouw | klaar -->
-**Laatst bijgewerkt:** 2026-11-09
+**Laatst bijgewerkt:** 2026-11-23
 
 > **Bouwvolgorde:** deze functie wordt gebouwd **na** [spec 003 – Portflow verbinden](../003-portflow-verbinden/spec.md) en [spec 004 – Studenten toevoegen](../004-studenten-toevoegen/spec.md), en samen met of na [spec 005 – Gegevens ophalen](../005-gegevens-ophalen/spec.md), die de evaluaties ophaalt. Zonder [spec 006 – Gildemeesters](../006-gildemeesters/spec.md) en [spec 007 – Coaches](../007-coaches/spec.md) tellen alleen de evaluaties van de gebruiker zelf mee.
 
@@ -178,3 +178,4 @@ Er is nog geen ontwerp met de afwijkingen (meerdere niveaus per cel, `?`, signaa
 - 2026-11-11 – op verzoek van de gebruiker: "Niet groeperen" staat als eerste in de keuzelijst Groeperen (F16)
 - 2026-11-17 – aangevuld door [spec 028](../028-filters-inklappen/spec.md): de filters boven de tabel zijn in te klappen; standaard staat alleen het zoekveld met de knop Filters
 - 2026-11-18 – gemeld door de gebruiker: de details bij hover over een cel werden op de onderste rijen afgekapt en gaven de tabel een scrollbalk. De details worden nu ten opzichte van het venster geplaatst (onder de cel, of erboven als er geen ruimte is), op alle tabellen met deze cellen (Overzicht, Evaluaties, de studentpagina)
+- 2026-11-23 – fout bij openstaande evaluaties (F6, [openstaand](../../docs/voortgangsregels.md#openstaand)) hersteld, gevonden door de gebruiker: een verzoek stond wel bij Te beoordelen, maar zonder `?` in de cel en niet in de grafiek Evaluaties per week. Oorzaak: een beoordeling **zonder niveau** (van een ander verzoek, op dezelfde dag) telde als "beantwoord" en verborg het nieuwere verzoek. Nu tellen alleen beoordelingen met een niveau, zoals bij het meetellen van evaluaties; voortgangsregels.md verduidelijkt. Regressietest in `tests/test_progress.py`. Bekende beperking: de regel vergelijkt op datum over verzoeken heen; krijgen twee verzoeken voor dezelfde vaardigheid op dezelfde dag allebei een niveau, dan kan het nieuwste nog wegvallen

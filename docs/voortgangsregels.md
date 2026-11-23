@@ -38,7 +38,7 @@ Heeft de student een evaluatie aangevraagd (zelfevaluatie ingediend), maar is di
 Geen `?` (overgenomen uit de console-app):
 
 - als het verzoek door de beoordelaar is **geweigerd**. Portflow geeft die status alleen voor verzoeken aan de gebruiker zelf; een verzoek dat een andere beoordelaar heeft geweigerd, blijft dus als `?` staan ([spec 005](../features/005-gegevens-ophalen/spec.md), F3);
-- als er voor die vaardigheid al een beoordeling is **op of na** de datum van de zelfevaluatie (het verzoek is dan beantwoord);
+- als er voor die vaardigheid al een beoordeling **met een niveau** is **op of na** de datum van de zelfevaluatie (het verzoek is dan beantwoord). Een beoordeling zonder niveau telt hier niet mee;
 - als er voor dezelfde vaardigheid een **nieuwer** openstaand verzoek is (alleen het nieuwste telt);
 - bij een **eindassessment**: een verzoek waarin de student in één keer alle tien vaardigheden indient. Dan staan er geen tien losse `?`, maar krijgt de student één markering **"Assessment ingeleverd"**.
 
