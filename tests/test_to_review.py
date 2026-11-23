@@ -56,9 +56,8 @@ class TestStoredByFetch(FetchTestCase):   # Data
 
 
 class ToReviewCase(unittest.TestCase):
-    TODAY = date.today()
-
     def setUp(self):
+        self.TODAY = date.today()   # per test, so it matches datetime.now() in request() (also near midnight)
         self.tmp = tempfile.TemporaryDirectory()
         self.db_path = str(Path(self.tmp.name) / "test.sqlite3")
         self.app = create_app(self.db_path)

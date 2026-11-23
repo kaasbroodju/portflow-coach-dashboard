@@ -487,8 +487,9 @@ class TestClaudeVisibility(AdviceCase):   # F22: Claude only for the allowed Por
 
     def test_hidden_for_other_users(self):
         from dashboard import ai_advice, claude_ai
-        self.assertEqual([s["key"] for s in ai_advice.available(self.db_path, "Kees de Wit")], ["lokaal"])
-        self.assertEqual([s["key"] for s in ai_advice.available(self.db_path, "Peter Snoek")], ["lokaal", "claude"])
+        with FakeOllama():   # so the local model is deterministically available (CI has no Ollama)
+            self.assertEqual([s["key"] for s in ai_advice.available(self.db_path, "Kees de Wit")], ["lokaal"])
+            self.assertEqual([s["key"] for s in ai_advice.available(self.db_path, "Peter Snoek")], ["lokaal", "claude"])
         self.assertFalse(claude_ai.allowed("Kees de Wit"))
         self.assertTrue(claude_ai.allowed("peter  snoek"))   # case/space-insensitive
 
