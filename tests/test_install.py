@@ -575,6 +575,12 @@ class TestScripts(unittest.TestCase):   # I1, I2, I7, R2, R3
             self.assertIn("SELECT COUNT(*) FROM students", text)
             self.assertIn("draait al een ander dashboard", text)
 
+    def test_macos_test_install_keeps_the_real_launcher(self):   # I9: a redirected (test) install
+        # When PORTFLOW_APPLICATIONS redirects the Applications folder (used by tests), the script
+        # must remove only that redirected launcher, never the user's real /Applications shortcut.
+        mac = (ROOT / "install" / "install-macos.sh").read_text(encoding="utf-8")
+        self.assertIn('if [ -n "${PORTFLOW_APPLICATIONS:-}" ]; then set -- "$LAUNCHER"', mac)
+
     @unittest.skipUnless(shutil.which("sh") and shutil.which("script") and sys.platform == "darwin", "alleen macOS")
     def test_macos_other_dashboard_keeps_running(self):   # I11 acceptance, without network or uv
         with tempfile.TemporaryDirectory() as folder:

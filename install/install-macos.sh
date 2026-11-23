@@ -124,9 +124,13 @@ student_count() {
         "$ROOT/data/dashboard.sqlite3" 2> /dev/null || echo onbekend
 }
 
-# I9: de app staat in /Applications of in ~/Applications (versie 0.9.0); haal ze allebei weg.
+# I9: de app staat in /Applications of in ~/Applications (versie 0.9.0); haal ze bij een gewone
+# installatie allebei weg. Is de map omgezet (PORTFLOW_APPLICATIONS, voor tests), haal dan alleen
+# die ene weg, zodat een test de echte snelkoppeling van de gebruiker niet wist.
 remove_launchers() {
-    for old in "/Applications/$NAME.app" "$HOME/Applications/$NAME.app" "$LAUNCHER"; do
+    if [ -n "${PORTFLOW_APPLICATIONS:-}" ]; then set -- "$LAUNCHER"
+    else set -- "/Applications/$NAME.app" "$HOME/Applications/$NAME.app"; fi
+    for old in "$@"; do
         if [ -d "$old" ]; then run rm -rf "$old" || say "  $old kon niet worden verwijderd; sleep het zelf naar de prullenmand."; fi
     done
 }

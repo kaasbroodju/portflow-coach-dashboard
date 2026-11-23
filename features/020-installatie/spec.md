@@ -1,7 +1,7 @@
 # 020 – Installatie, releases en bijwerken
 
 **Status:** in bouw <!-- idee | uitgewerkt | in bouw | klaar -->
-**Laatst bijgewerkt:** 2026-11-22
+**Laatst bijgewerkt:** 2026-11-23
 
 ## Doel
 
@@ -228,3 +228,4 @@ Geen eigen ontwerp. De updatebalk lijkt op de demobanner ([design-system.md](../
 - 2026-11-22 – open vragen beantwoord door de gebruiker: de updatebalk vergelijkt bij een beta zoals altijd (B7), en `bestanden/` hoort niet in de reservekopie, omdat die uit Portflow opnieuw te halen is (B8 en U3 aangepast). De reservekopie is dus de database zonder token (spec 014). Status uitgewerkt voor B1–B8; nog niet gebouwd
 - 2026-11-22 – B1–B8 gebouwd: keuzelijst Versie in Instellingen met Beta, branch-keuzelijst en de 10 nieuwste commits (`update_routes.py`, `settings.html`, `app.js`), `Updater.branches/commits/start_beta` in `updates.py` (download van de zip van de commit, controle dat de map in de zip de commitcode draagt, `app/.beta`), en de reservekopie (database zonder token) vóór elke installatie, ook van de nieuwste release; mislukt die, dan wordt er niets gedownload. De pagina Bijwerken herlaadt ook als het versienummer gelijk blijft (een beta). Tests in `tests/test_install.py`; in de browser tegen GitHub gecontroleerd tot en met de waarschuwing (niet daadwerkelijk een beta geïnstalleerd, om de eigen installatie niet te raken). Nog niet geprobeerd: een echte beta-installatie op een geïnstalleerd dashboard, en op Windows
 - 2026-11-22 – B7 aangepast op verzoek van de gebruiker: bij een beta staat in Instellingen "Beta: commit …, na versie X (branch …)" en in de zijbalk "Versie X + beta …"; de eenvoudige variant, zonder extra verzoek aan GitHub (de uitgebreide variant met "N commits na versie X" via de compare-API is niet gebouwd)
+- 2026-11-23 – fout in `remove_launchers` (macOS) hersteld, gevonden toen de snelkoppeling van de gebruiker in `/Applications` verdween. De functie verwijderde bij het opnieuw aanmaken van de snelkoppeling altijd zowel `/Applications/…app` als `~/Applications/…app`, ook bij een test-/beta-installatie die met `PORTFLOW_APPLICATIONS` naar een andere map wijst; zo'n testrun wiste dus de echte snelkoppeling. Nu haalt een omgezette (test)installatie alleen die ene weg; een gewone installatie ruimt beide standaardlocaties nog op (I9). Windows heeft deze fout niet (het overschrijft de snelkoppelingen in het echte Startmenu en op het bureaublad, zonder omleiding). Regressietest in `tests/test_install.py`. De snelkoppeling van de gebruiker met de hand teruggezet; de fix werkt pas mee vanaf de volgende release
