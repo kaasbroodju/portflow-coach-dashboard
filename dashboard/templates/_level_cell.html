@@ -1,7 +1,7 @@
 {# One skill cell (spec 001, F6-F7): the level label with its details on hover. Used by the
    overview (spec 001) and the compact table on Evaluaties (spec 029, F9) and the student page. #}
 {% macro level_cell(code, cell, student_id=None) %}
-        <td class="col-skill" data-sort-value="{{ cell.count * 100 + cell.highest + 1 }}">
+        <td class="col-skill" data-sort-value="{{ cell.count * 100 + cell.highest + 1 }}"{% if student_id is not none %} data-live="cell-{{ student_id }}-{{ code }}"{% endif %}>{# spec 041, F7 #}
           {# Spec 037, F3: a cell with evaluations opens the requests in the side panel. #}
           {% set panel = cell.panel if student_id is not none else none %}
           <{{ "a" if panel else "span" }} class="level level-{{ cell.colour }}{% if cell.pending %} has-pending{% endif %}"

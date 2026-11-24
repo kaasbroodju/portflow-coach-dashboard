@@ -194,7 +194,9 @@ def student_progress(
     # Open requests (voortgangsregels.md#openstaand).
     assessed_dates: dict[str, list[str]] = {skill: [] for skill in SKILLS}
     for row in ordered:
-        if row["kind"] == "assessed" and row["skill"] in SKILLS:
+        # Only an assessment with a level answers a request; one without a level (not yet scored)
+        # must not hide a newer open request of the same skill (voortgangsregels.md#openstaand).
+        if row["kind"] == "assessed" and row["skill"] in SKILLS and row.get("level") not in (None, ""):
             assessed_dates[row["skill"]].append(row.get("date") or "")
     candidates: dict[str, list[dict]] = {skill: [] for skill in SKILLS}
     for row in ordered:

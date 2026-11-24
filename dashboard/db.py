@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS students (
 CREATE TABLE IF NOT EXISTS student_portfolios (
     student_id   INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     portfolio_id INTEGER NOT NULL,
-    reviews_signature TEXT,               -- spec 041: review list at the last full fetch
+    reviews_signature TEXT,               -- spec 042: review list at the last full fetch
     PRIMARY KEY (student_id, portfolio_id)
 );
 
@@ -155,7 +155,7 @@ CREATE TABLE IF NOT EXISTS evaluations (
     text                  TEXT,               -- the comment (HTML) of the student or assessor, spec 037
     is_demo               INTEGER NOT NULL DEFAULT 0
 );
--- Spec 041: without these, every lookup per student or per request read the whole table.
+-- Spec 042: without these, every lookup per student or per request read the whole table.
 CREATE INDEX IF NOT EXISTS idx_evaluations_student ON evaluations (student_id);
 CREATE INDEX IF NOT EXISTS idx_evaluations_request ON evaluations (review_request_id);
 
@@ -259,7 +259,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if "is_hidden" not in columns:
         conn.execute("ALTER TABLE students ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0")   # spec 019, F4
     if "reviews_signature" not in {row["name"] for row in conn.execute("PRAGMA table_info(student_portfolios)")}:
-        conn.execute("ALTER TABLE student_portfolios ADD COLUMN reviews_signature TEXT")   # spec 041
+        conn.execute("ALTER TABLE student_portfolios ADD COLUMN reviews_signature TEXT")   # spec 042
     evaluation_columns = {row["name"] for row in conn.execute("PRAGMA table_info(evaluations)")}
     if "text" not in evaluation_columns:
         conn.execute("ALTER TABLE evaluations ADD COLUMN text TEXT")   # spec 037, F1

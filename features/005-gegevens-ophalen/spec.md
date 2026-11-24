@@ -45,7 +45,7 @@ Het studentenoverzicht (spec 001) haalt zelf niets op; deze spec doet dat. Hoe d
 
 - [x] **F5 – Alleen handmatig.** De app haalt **niet** vanzelf op: niet bij het starten en niet na het toevoegen van studenten. De pagina's tonen altijd de laatst bewaarde gegevens.
   - *Acceptatie:* de app start met een geldig token → er worden geen evaluaties opgehaald; na het toevoegen van 3 studenten ook niet.
-- [x] **F6 – Knop "Verversen".** In de bovenbalk staat naast de Portflow-status ([spec 003](../003-portflow-verbinden/spec.md), F12) een knop **"Verversen"**. Een klik start een ophaalronde voor alle gevolgde studenten. Tijdens een ronde is de knop uitgeschakeld; een tweede ronde start niet zolang de eerste loopt.
+- [x] **F6 – Knop "Verversen".** In de bovenbalk staat naast de Portflow-status ([spec 003](../003-portflow-verbinden/spec.md), F12) een knop **"Verversen"**. Een klik start een ophaalronde voor alle gevolgde studenten. *Gewijzigd 2026-11-23 door [spec 041](../041-verversen-contextueel/spec.md): op een pagina met studenten alleen de studenten van het scherm.* Tijdens een ronde is de knop uitgeschakeld; een tweede ronde start niet zolang de eerste loopt.
   - *Acceptatie:* twee keer snel klikken start één ronde.
 - [x] **F7 – Hint na toevoegen.** De bevestiging na het toevoegen van studenten ([spec 004](../004-studenten-toevoegen/spec.md), F12) krijgt de zin **"Klik op Verversen om hun evaluaties op te halen."**
   - *Acceptatie:* na het toevoegen van 3 studenten staat deze zin in de bevestiging op Overzicht.
@@ -114,3 +114,4 @@ Er is geen eigen ontwerp. De knop "Verversen" en "Bijgewerkt om …" staan in de
 - 2026-11-17 – gebouwd in `skills.skill_for_goal_name` (op elke woordgrens het begin vergelijken met de tien namen); tests in `tests/test_fetch.py`. Werkt na de volgende keer Verversen
 - 2026-11-18 – F2 gewijzigd door spec 037 (keuze van de gebruiker): de tekst per feedback item (`evaluation.comment`) wordt voortaan bewaard, in `evaluations.text`
 - 2026-11-23 – fout verholpen: het icoon van Verversen draaide tijdens het ophalen met de klok mee, terwijl de pijlen tegen de klok in wijzen; de animatie draait nu dezelfde kant op als de pijlen
+- 2026-11-23 – F6 gewijzigd door [spec 041](../041-verversen-contextueel/spec.md): Verversen haalt op een pagina met studenten alleen de studenten van het scherm op, en werkt het scherm bij zonder herladen

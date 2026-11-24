@@ -1,7 +1,7 @@
 """Fetching evaluations from Portflow and keeping a local copy (spec 005).
 
 A fetch round runs in a background thread, started with the "Verversen" button (F5, F6;
-Shift+click for a full round, spec 041),
+Shift+click for a full round, spec 042),
 or by itself once after the very first connection (spec 019, F2). Every round adds the
 students who shared their portfolio and are not in the dashboard yet (spec 019, F1, F3).
 Pages read `status()`; the token never leaves the connection object.
@@ -24,8 +24,7 @@ MAX_WORKERS = 8  # architectuur.md#verversen
 S_LAST_FETCH = "fetch_last_finished"
 S_REQUESTS_FETCHED = "requests_last_fetched"   # spec 030, F5
 S_LAST_FETCH_FAILED = "fetch_last_failed"   # JSON list of student names
-S_LAST_CHANGED = "fetch_last_changed"      # spec 041, F4: students fetched fully ('' after Shift+click)
-S_UNLINKED = "fetch_unlinked"              # JSON list of names not linked to Portflow (spec 015, F4)
+S_LAST_CHANGED = "fetch_last_changed"      # spec 042, F4: students fetched fully ('' after Shift+click)
 
 MONTHS = ["januari", "februari", "maart", "april", "mei", "juni", "juli",
           "augustus", "september", "oktober", "november", "december"]
@@ -108,7 +107,7 @@ def parse_feedback_item(item: dict, skill: str, request_statuses: dict[int, str]
     }
 
 
-# Skipping unchanged students (spec 041) -----------------------------------------------
+# Skipping unchanged students (spec 042) -----------------------------------------------
 
 def reviews_signature(reviews: list[dict] | None) -> str | None:
     """Fingerprint of a portfolio's review list: the review ids with their `updated_at`.
@@ -136,7 +135,8 @@ def is_unchanged(student: dict, signatures: dict[int, str | None]) -> bool:
 # Formatting -----------------------------------------------------------------------
 
 def updated_text(finished: datetime | None, now: datetime) -> str:
-    """F8: 'Bijgewerkt om 14:32' today, 'Bijgewerkt op 8 november, 14:32' earlier."""
+    """F8: 'Bijgewerkt om 14:32' today, 'Bijgewerkt op 8 november, 14:32' earlier (spec 041, F8:
+    without the number of students)."""
     if finished is None:
         return "Nog niet opgehaald"
     local, today = finished.astimezone(), now.astimezone()
@@ -166,16 +166,18 @@ class Fetcher:
         self.total = 0
         self.round = ""                  # spec 039: which round, so a page reloads once per round
         self.fetched: set[int] = set()   # spec 039: the students done in this round
-        self.skipped = 0                 # spec 041: students left alone in this round (unchanged)
-        self.full = False                # spec 041, F3: Shift+click round
+        self.skipped = 0                 # spec 042: students left alone in this round (unchanged)
+        self.full = False                # spec 042, F3: Shift+click round
         self._lock = threading.Lock()
 
     # Starting -------------------------------------------------------------
 
-    def start(self, student_ids: list[int] | None = None, full: bool = False) -> bool:
+    def start(self, student_ids: list[int] | None = None, *, screen: bool = False, full: bool = False) -> bool:
         """F6: start a round; False if one is running or not connected.
-        Spec 019, F14: all students that are not hidden are fetched; `student_ids` (the students
-        visible on the page) come first. Spec 041: unchanged students are skipped unless `full`."""
+        Spec 041: with `screen` (a page that shows students) only `student_ids`, the students on
+        the screen, are fetched (plus students added in this round). Without it (a page without
+        students) every student that is not hidden, `student_ids` first (spec 019, F14).
+        Spec 042: unchanged students are skipped unless `full` (Shift+click)."""
         token = self.connection.token
         if not token:
             return False
@@ -184,7 +186,7 @@ class Fetcher:
                 return False
             self.running, self.done, self.total = True, 0, 0
             self.round, self.fetched, self.skipped, self.full = uuid.uuid4().hex, set(), 0, full
-        self.spawn(lambda: self._run(token, student_ids, full))
+        self.spawn(lambda: self._run(token, student_ids, screen, full))
         return True
 
     def start_first(self) -> bool:
@@ -198,10 +200,10 @@ class Fetcher:
     def status(self) -> dict:
         last = db.get_setting(self.database, S_LAST_FETCH)
         failed = json.loads(db.get_setting(self.database, S_LAST_FETCH_FAILED) or "[]")
-        unlinked = json.loads(db.get_setting(self.database, S_UNLINKED) or "[]")
         if self.running:
-            text = (f"Ophalen… {self.done} van {self.total} studenten" if self.full
-                    else f"Controleren… {self.done} van {self.total}") if self.total else "Ophalen…"   # spec 041, F4
+            students = f"student{'' if self.total == 1 else 'en'}"
+            text = (f"Ophalen… {self.done} van {self.total} {students}" if self.full
+                    else f"Controleren… {self.done} van {self.total}") if self.total else "Ophalen…"   # spec 042, F4
         else:
             text = updated_text(datetime.fromisoformat(last) if last else None, self.now())
             changed = db.get_setting(self.database, S_LAST_CHANGED)
@@ -211,7 +213,6 @@ class Fetcher:
             "running": self.running,
             "text": text,
             "failed": failed,
-            "unlinked": unlinked,
             "can_start": bool(self.connection.token) and not self.running,
             "last": last,
             "round": self.round,
@@ -269,7 +270,6 @@ class Fetcher:
                 student_intake.add_or_link_students_from_portflow(conn, new)
         finally:
             conn.close()
-        db.set_setting(self.database, S_UNLINKED, json.dumps(unresolved))
 
     def _request_statuses(self, token: str) -> dict[int, str]:
         own = db.get_setting(self.database, "portflow_portfolio_id")
@@ -319,7 +319,7 @@ class Fetcher:
         db.set_setting(self.database, S_REQUESTS_FETCHED, self.now().isoformat())
 
     def _all_signatures(self, token: str, students: list[dict], pool) -> dict[int, dict[int, str | None]]:
-        """Spec 041: the fingerprint of every portfolio's review list (None after an error, F2), for
+        """Spec 042: the fingerprint of every portfolio's review list (None after an error, F2), for
         all students at once and in parallel, so unchanged students can be skipped right away."""
         def one(pair):
             student_id, portfolio_id = pair
@@ -375,7 +375,7 @@ class Fetcher:
         conn = db.connect(self.database)
         try:
             with conn:
-                # Spec 041: the fingerprint belongs to this fetch; without a full fetch it is cleared,
+                # Spec 042: the fingerprint belongs to this fetch; without a full fetch it is cleared,
                 # so the next round fetches the student fully again.
                 for portfolio_id, signature in (signatures or {}).items():
                     conn.execute("UPDATE student_portfolios SET reviews_signature = ? WHERE student_id = ? "
@@ -397,7 +397,7 @@ class Fetcher:
             conn.close()
 
     def _update_statuses(self, student_ids: list[int], statuses: dict[int, str]) -> None:
-        """Spec 041, F5: skipped students still get the current status of requests to the user
+        """Spec 042, F5: skipped students still get the current status of requests to the user
         (a denied request does not change the review list). One statement for all of them that
         only touches rows whose status changed: one UPDATE per request and student took 25 s."""
         if not statuses or not student_ids:
@@ -425,24 +425,30 @@ class Fetcher:
         finally:
             conn.close()
 
-    def _run(self, token: str, student_ids: list[int] | None = None, full: bool = False) -> None:
+    def _run(self, token: str, student_ids: list[int] | None = None, screen: bool = False,
+             full: bool = False) -> None:
         failed_names: list[str] = []
         completed = False
         first = not db.get_setting(self.database, S_LAST_FETCH)
         try:
             before = self._student_ids()
             self._link(token)  # spec 015, F2: link on name first, so new links are fetched too
-            # Spec 019, F2, F14: every student that is not hidden (the first round: everyone), the
-            # students visible on the page first, then the ones added in this round (F3), then the rest.
-            rest = [s["id"] for s in self._students(None)]
-            first_ids = [] if first else list(student_ids or [])
-            order = list(dict.fromkeys(first_ids + sorted(self._student_ids() - before) + rest))
+            added = sorted(self._student_ids() - before)
+            if screen and not first:
+                # Spec 041, F1-F3, F5: only the students on the screen, then the ones added in this round.
+                order = list(dict.fromkeys(list(student_ids or []) + added))
+            else:
+                # Spec 019, F2, F14, spec 041, F4, F6: every student that is not hidden (the first
+                # round: everyone), the students sent along first, then the ones added in this round.
+                rest = [s["id"] for s in self._students(None)]
+                first_ids = [] if first else list(student_ids or [])
+                order = list(dict.fromkeys(first_ids + added + rest))
             by_id = {s["id"]: s for s in self._students(order)}
             students = [by_id[i] for i in order if i in by_id]
             self.total = len(students)
             statuses = self._request_statuses(token)
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
-                # Spec 041: first every review list (in parallel); only a changed student is
+                # Spec 042: first every review list (in parallel); only a changed student is
                 # fetched fully, everyone with Shift+click (F3).
                 all_signatures = self._all_signatures(token, students, pool)
                 skipped_ids: list[int] = []

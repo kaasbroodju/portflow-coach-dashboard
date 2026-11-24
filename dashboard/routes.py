@@ -437,8 +437,11 @@ def evaluation_page(request_id: int):
                        row=row, blocks=[[row]], weeks=weeks, tallest=max((len(w["blocks"]) for w in weeks), default=0))
     if data["skills"]:
         context.update(ai_routes.card_context(conn, request_id))   # spec 040
+    r = data["request"]
+    parent = {"title": r["student"],   # spec 039, F1: Evaluaties › <student> › <title>
+              "href": url_for("pages.student_page", student_id=r["student_id"], van=came_from) if r["student_id"] else None}
     return render_template(
-        "evaluation_page.html", page={"title": data["request"]["title"], "label": data["request"]["title"]},
+        "evaluation_page.html", page={"title": r["title"], "label": r["title"], "parent": parent},
         active=came_from, data=data, period=f"{timeline.long_date(start)} – {timeline.long_date(end)}",
         period_saved=period_saved, **context)
 

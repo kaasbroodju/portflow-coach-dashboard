@@ -158,7 +158,7 @@ class TestEmptyAndCounter(ToReviewCase):
             self.request(rid, 1)
         self.request(4, 1, status="scored")
         html = self.client.get("/").get_data(as_text=True)
-        self.assertRegex(html, r'Evaluaties</span>\s*<span class="nav-count"[^>]*>3</span>')
+        self.assertRegex(html, r'Evaluaties</span><span class="live" data-live="nav-count">\s*<span class="nav-count"[^>]*>3</span>')
 
 
 if __name__ == "__main__":

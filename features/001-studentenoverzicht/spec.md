@@ -1,7 +1,7 @@
 # 001 – Studentenoverzicht
 
 **Status:** klaar <!-- idee | uitgewerkt | in bouw | klaar -->
-**Laatst bijgewerkt:** 2026-11-09
+**Laatst bijgewerkt:** 2026-11-23
 
 > **Bouwvolgorde:** deze functie wordt gebouwd **na** [spec 003 – Portflow verbinden](../003-portflow-verbinden/spec.md) en [spec 004 – Studenten toevoegen](../004-studenten-toevoegen/spec.md), en samen met of na [spec 005 – Gegevens ophalen](../005-gegevens-ophalen/spec.md), die de evaluaties ophaalt. Zonder [spec 006 – Gildemeesters](../006-gildemeesters/spec.md) en [spec 007 – Coaches](../007-coaches/spec.md) tellen alleen de evaluaties van de gebruiker zelf mee.
 
@@ -32,7 +32,9 @@ Dit is de kern van het dashboard en de opvolger van de tabel in de console-app (
 
 ### Tabel
 
-- [x] **F2 – Rijen en kolommen.** Eén rij per gevolgde student. Kolommen in deze volgorde: Student (avatar met initialen, naam, subregel "Sem N"; het project staat al in de groepskop), Profiel (primaire beroepsrol), de tien vaardigheden OC … RE, de eigen kolommen (F8), en daarna de extra kolommen (F3). Zonder pijl naar een detailpagina; die komt met de spec *Detailpagina*.
+- [x] **F2 – Rijen en kolommen.** Eén rij per gevolgde student. Kolommen in deze volgorde: Student (naam, subregel "Sem N"; het project staat al in de groepskop; *sinds 2026-11-23 zonder avatar met initialen, op verzoek van de gebruiker: die voegde niets toe*), Profiel (primaire beroepsrol), de tien vaardigheden OC … RE, de eigen kolommen (F8), en daarna de extra kolommen (F3). Zonder pijl naar een detailpagina; die komt met de spec *Detailpagina*.
+  - *Toegevoegd 2026-11-23 op verzoek van de gebruiker:* de rijen zijn **compact**, zodat er meer studenten op een scherm passen: een rij is ongeveer 34 px hoog (was 49 px), zonder avatar (eerst een kleinere avatar van 24 px), minder ruimte boven en onder de cellen en iets kleinere niveaulabels en icoonknoppen ([design-system.md](../../docs/design-system.md#componenten)). Alleen op Overzicht; Beheer › Studenten en de tabel op Evaluaties veranderen niet.
+  - *Acceptatie:* op een scherm van 1280×800 passen op Overzicht ongeveer 40% meer rijen dan voorheen; naam, labels en het oog zijn nog goed leesbaar en aanklikbaar.
   - *Acceptatie:* gegeven 7 gevolgde studenten en het filter "Alle gevolgde studenten", dan toont de tabel 7 rijen met de kolommen in deze volgorde.
 - [x] **F3 – Extra kolommen, aan en uit te zetten.** Extra kolommen zijn Coach, Gildemeester en Invulling. Standaard staat alleen **Gildemeester** aan. De gebruiker zet kolommen aan of uit, en die keuze blijft bewaard. Eigen kolommen zijn op dezelfde manier te verbergen.
   - *Acceptatie:* bij de eerste keer zijn Coach en Invulling verborgen; na het aanzetten van Coach en het herstarten van de app is Coach nog steeds zichtbaar.
@@ -178,3 +180,6 @@ Er is nog geen ontwerp met de afwijkingen (meerdere niveaus per cel, `?`, signaa
 - 2026-11-11 – op verzoek van de gebruiker: "Niet groeperen" staat als eerste in de keuzelijst Groeperen (F16)
 - 2026-11-17 – aangevuld door [spec 028](../028-filters-inklappen/spec.md): de filters boven de tabel zijn in te klappen; standaard staat alleen het zoekveld met de knop Filters
 - 2026-11-18 – gemeld door de gebruiker: de details bij hover over een cel werden op de onderste rijen afgekapt en gaven de tabel een scrollbalk. De details worden nu ten opzichte van het venster geplaatst (onder de cel, of erboven als er geen ruimte is), op alle tabellen met deze cellen (Overzicht, Evaluaties, de studentpagina)
+- 2026-11-23 – fout bij openstaande evaluaties (F6, [openstaand](../../docs/voortgangsregels.md#openstaand)) hersteld, gevonden door de gebruiker: een verzoek stond wel bij Te beoordelen, maar zonder `?` in de cel en niet in de grafiek Evaluaties per week. Oorzaak: een beoordeling **zonder niveau** (van een ander verzoek, op dezelfde dag) telde als "beantwoord" en verborg het nieuwere verzoek. Nu tellen alleen beoordelingen met een niveau, zoals bij het meetellen van evaluaties; voortgangsregels.md verduidelijkt. Regressietest in `tests/test_progress.py`. Bekende beperking: de regel vergelijkt op datum over verzoeken heen; krijgen twee verzoeken voor dezelfde vaardigheid op dezelfde dag allebei een niveau, dan kan het nieuwste nog wegvallen
+- 2026-11-23 – F2 aangevuld op verzoek van de gebruiker: compactere rijen op Overzicht (avatar 24 px, minder ruimte, kleinere labels en icoonknoppen), zodat er meer studenten op een scherm passen
+- 2026-11-23 – F2 op verzoek van de gebruiker: de avatar met initialen is weg uit de rijen van Overzicht (alle avatars hadden dezelfde kleur en herhaalden de naam); elders blijven avatars staan

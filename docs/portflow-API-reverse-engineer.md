@@ -140,7 +140,7 @@ teruggeeft op basis van alleen het token. In plaats daarvan:
   *Live nagekeken 2026-11-23 (alleen lezend):* `goals`, `feedback-items`, `invitations/received`,
   `collections` en `progress-review/reviews` houden zich aan `per_page` (1, 2 en 50 gaven precies zoveel
   items). Het dashboard stopt bij die endpoints bij een pagina korter dan 50, zonder extra aanroep voor een
-  lege pagina (`portflow_api.get_all_pages`, [spec 041](../features/041-sneller-verversen/spec.md)).
+  lege pagina (`portflow_api.get_all_pages`, [spec 042](../features/042-sneller-verversen/spec.md)).
   Alleen `shared-with-me` bladert door tot een lege pagina.
 
 - **Foutafhandeling (zoals toegepast in deze scripts):**
@@ -619,7 +619,7 @@ aangepast (bij een groot deel van de reviews ligt `updated_at` na `invitation.su
 `criterion_evaluations` (per `criterion_id`: `level`, `score`, `comment`) en `criteria` (met `goal_id`).
 
 Gebruikt door het dashboard om te zien of er bij een student iets is veranderd sinds de vorige
-ophaalronde ([spec 041](../features/041-sneller-verversen/spec.md)).
+ophaalronde ([spec 042](../features/042-sneller-verversen/spec.md)).
 
 ---
 

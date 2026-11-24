@@ -76,7 +76,7 @@ Er komen **geen twee standen**. Het is één app die zonder instellingen al brui
 
 ### Verversen
 
-- [x] **F14 – Zichtbare studenten eerst.** *Gewijzigd 2026-11-19 op verzoek van de gebruiker; eerst haalde Verversen alleen de zichtbare studenten op.* Verversen haalt de evaluaties op van **alle studenten die niet verborgen zijn**, en begint met de studenten die **op dat moment zichtbaar** zijn:
+- [x] **F14 – Zichtbare studenten eerst.** *Gewijzigd 2026-11-19 op verzoek van de gebruiker; eerst haalde Verversen alleen de zichtbare studenten op.* *Opnieuw gewijzigd 2026-11-23 door [spec 041](../041-verversen-contextueel/spec.md): op een pagina met studenten haalt Verversen weer alleen de studenten van het scherm op; wat hieronder staat, geldt nog voor pagina's zonder studenten.* Verversen haalt de evaluaties op van **alle studenten die niet verborgen zijn**, en begint met de studenten die **op dat moment zichtbaar** zijn:
   - op **Overzicht** (en **Beheer › Studenten**): de studenten in de lijst na het filter op wie, de andere filters en het zoeken, in de volgorde van de lijst;
   - op **Evaluaties**: de studenten in de tabel bovenaan;
   - op de **pagina van één student**: die student;
@@ -181,3 +181,4 @@ Gedrag dat niet uit een afbeelding blijkt:
 - 2026-11-19 – F6 op verzoek van de gebruiker: "Mijn gildestudenten" heet "Studenten van wie ik gildemeester ben"; per eigen gilde een nieuwe keuze "Alle studenten in mijn … gilde" (ook op Evaluaties)
 - 2026-11-19 – open vraag "niet meer volgen" beantwoord door de gebruiker: de knop verbergt (spec 011, F6); nieuwe keuze "Studenten die ik heb verborgen" in het filter op wie, alleen op Beheer › Studenten (F6)
 - 2026-11-19 – op verzoek van de gebruiker: het oog-icoon (verbergen, weer tonen) staat op Overzicht bij elke keuze van wie (F4–F6)
+- 2026-11-23 – F14 opnieuw gewijzigd door [spec 041](../041-verversen-contextueel/spec.md): alleen de studenten van het scherm (op verzoek van de gebruiker)

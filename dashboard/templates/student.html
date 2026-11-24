@@ -5,7 +5,7 @@
 {% if not row %}
 <section class="card"><p>Deze student bestaat niet (meer). <a href="{{ url_for('pages.overview') }}">Naar Overzicht</a></p></section>
 {% else %}
-<section class="card timeline-card" aria-labelledby="student-progress-title" data-reload-when-fetched="{{ row.id }}">
+<section class="card timeline-card" aria-labelledby="student-progress-title">
   <div class="timeline-head">
     <div>
       <h2 id="student-progress-title">Voortgang</h2>
@@ -21,7 +21,7 @@
 </section>
 
 {# F4: every open evaluation of the student; "aan jou" for the ones sent to the user (spec 030). #}
-<section class="card to-review student-open" aria-labelledby="student-open-title">
+<section class="card to-review student-open" aria-labelledby="student-open-title" data-live="student-open">
   <h2 id="student-open-title">Openstaande evaluaties{% if requests %} <span class="muted">· {{ requests|length }}</span>{% endif %}</h2>
   {% if requests %}
   <ul class="to-review-list">

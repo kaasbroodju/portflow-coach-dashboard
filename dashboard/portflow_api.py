@@ -124,7 +124,7 @@ def get_all_pages(
     """GET every page of a list endpoint (architectuur.md#portflow-api).
 
     These endpoints honour per_page (checked live 2026-11-23, API document §3), so a page shorter
-    than PAGE_SIZE is the last one: no extra call for an empty page (spec 041). Not for
+    than PAGE_SIZE is the last one: no extra call for an empty page (spec 042). Not for
     /shares/shared-with-me, which ignores per_page (see shared_with_me).
     Returns (200, items) or (the failing status, None). `path` must not contain page params.
     """
@@ -155,7 +155,7 @@ def feedback_items(token: str, portfolio_id: int, goal_id: int, **retry) -> tupl
 
 def reviews(token: str, portfolio_id: int, *, retries: int = RETRIES,
             retry_delay_s: float = RETRY_DELAY_S) -> tuple[int, list[dict] | None]:
-    """All submitted reviews on a portfolio, by the student and by every assessor (spec 041).
+    """All submitted reviews on a portfolio, by the student and by every assessor (spec 042).
     `order_by` is ignored by Portflow, so every page is fetched (API document §4.12)."""
     return get_all_pages(f"/portfolios/{portfolio_id}/progress-review/reviews", token,
                          retries=retries, retry_delay_s=retry_delay_s)

@@ -1,4 +1,4 @@
-# 041 – Sneller verversen (caching)
+# 042 – Sneller verversen (caching)
 
 **Status:** in bouw <!-- idee | uitgewerkt | in bouw | klaar -->
 **Laatst bijgewerkt:** 2026-11-23
@@ -45,7 +45,7 @@ De feedback items kunnen in Portflow alleen per doel worden opgehaald. Een datum
   - *Acceptatie:* een review is verwijderd (aantal lager) → de student wordt volledig opgehaald en de evaluatie verdwijnt.
 - [x] **F2 – Bij twijfel volledig.** Geeft de reviewlijst een fout of een onverwachte vorm, dan wordt de student volledig opgehaald (nooit een student overslaan op basis van onvolledige informatie). Een `401` stopt de ronde zoals in spec 005, F11.
   - *Acceptatie:* reviewlijst geeft `500` → de student wordt toch volledig opgehaald.
-- [x] **F3 – Alles verversen met Shift+klik.** **Shift+klik** op Verversen haalt alle studenten volledig op, zoals de ronde van spec 005. De hover-tekst van de knop vermeldt dit: "Evaluaties ophalen uit Portflow · Shift+klik: alles opnieuw ophalen".
+- [x] **F3 – Alles verversen met Shift+klik.** **Shift+klik** op Verversen haalt dezelfde studenten als een gewone ronde volledig op, ook als er niets veranderd is (op een pagina met studenten dus de studenten van het scherm, [spec 041](../041-verversen-contextueel/spec.md); elders iedereen). De hover-tekst van de knop vermeldt dit: "Evaluaties ophalen uit Portflow · Shift+klik: alles opnieuw ophalen".
   - *Acceptatie:* na Shift+klik zijn voor elke student de doelen en feedback items opgehaald, ook als er niets veranderd is.
 - [x] **F5 – Status van verzoeken.** Ook bij een overgeslagen student wordt de status van verzoeken aan de gebruiker bijgewerkt (spec 005, F3), want een geweigerd verzoek verandert de reviewlijst niet.
   - *Acceptatie:* een verzoek dat sinds de vorige ronde is geweigerd → na Verversen geen `?` meer, ook als de student is overgeslagen.
@@ -96,3 +96,4 @@ Geen nieuw scherm en geen nieuwe knop; alleen Shift+klik op Verversen en een lan
 - 2026-11-23 – na een melding van de gebruiker (30 studenten duurden 30 seconden): de controles liepen een voor een en kostten elk een extra aanroep voor een lege pagina. Nu eerst alle reviewlijsten parallel (8 tegelijk) en stoppen bij een korte pagina. Live gemeten (alleen lezen): 30 portfolio's in 3,1 s, alle 30 ongewijzigd
 - 2026-11-23 – gebruiker meldde 34 s voor een ronde zonder wijzigingen. Gemeten: de controles kosten 2,5 s, maar het bijwerken van verzoekstatussen (F5) deed per overgeslagen student één UPDATE per verzoek (30 × 367, zonder index): 24,5 s. Nu één UPDATE voor alle overgeslagen studenten samen, alleen voor rijen waarvan de status verandert: 0,02 s. Sorteren op datum om bij `fetched_at` te stoppen kan niet: dit endpoint negeert `order_by`
 - 2026-11-23 – N+1-analyse (op verzoek van de gebruiker): `get_all_pages` stopt nu bij een pagina korter dan 50 in plaats van bij een lege pagina (live gecontroleerd dat goals, feedback-items, invitations, collections en reviews zich aan `per_page` houden); volledig ophalen van een student kost daardoor ongeveer 11 in plaats van 22 aanroepen. Indexen op `evaluations(student_id)` en `evaluations(review_request_id)`. De N+1-queries van de beheerpagina's (coaches, gildemeesters, projecten, keuzelijsten; < 50 ms) bewust gelaten: die lijsten groeien niet veel
+- 2026-11-24 – samengevoegd met main, waar tegelijk een andere spec 041 (Verversen contextueel) was gebouwd: deze spec hernummerd van 041 naar 042. De twee vullen elkaar aan: 041 bepaalt *welke* studenten een ronde ophaalt (die van het scherm), 042 *of* een student volledig wordt opgehaald (alleen bij een gewijzigde reviewlijst). F3 aangepast: Shift+klik haalt dezelfde studenten als een gewone ronde volledig op, niet meer altijd iedereen. Het knopje "Bijgewerkt om … · N nieuw" blijft, naast de wijziging van spec 015, F4 (geen aantal niet-gekoppelde studenten meer)

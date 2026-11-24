@@ -1183,3 +1183,15 @@ a.evidence-dot:hover { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25); }
 .ai-chat-answer { margin-left: 22px; border: 1px dashed #d6b98c; background: #fdfaf3; }
 .ai-chat-form { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .ai-chat-form textarea { width: 100%; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); }
+
+/* Spec 041, F7: a wrapper around a part that app.js updates after Verversen; it adds no box. */
+.live { display: contents; }
+
+/* Spec 001, F2 (2026-11-23): compact rows on Overzicht, so more students fit on a screen
+   (about 34 px instead of 49 px). Beheer › Studenten and the compact table keep their own size. */
+.overview-table tbody th, .overview-table tbody td { padding-top: 4px; padding-bottom: 4px; }
+.overview-table .group-header th { padding-top: 10px; padding-bottom: 6px; }
+.overview-table .level { padding: 2px 7px; font-size: 13px; }
+.overview-table .level-grey { min-height: 1.5em; }
+.overview-table .col-hide .icon-button { width: 24px; height: 24px; }
+.overview-table .col-hide .icon-button .icon { width: 16px; height: 16px; }

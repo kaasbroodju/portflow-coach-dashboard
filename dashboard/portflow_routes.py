@@ -38,7 +38,7 @@ def status():
         fetch_students=fetch["fetched"],
         fingerprint="|".join(str(portflow[k]) for k in
                              ("state", "sub", "message", "user_name", "last_refresh", "busy"))
-                    + "|" + fetch["text"] + str(fetch["can_start"]) + str(len(fetch["unlinked"])),
+                    + "|" + fetch["text"] + str(fetch["can_start"]),
         status_html=render_template("_portflow_status.html", **context),
         refresh_html=render_template("_refresh.html", **context),
         banner_html=render_template("_portflow_banner.html", **context),
@@ -56,10 +56,14 @@ def connect():
 @bp.post("/verversen")
 def refresh_data():
     """Spec 005, F6: start a fetch round (does nothing while one runs or when not connected).
-    Spec 019, F14: app.js sends the students visible on the page; they are fetched first.
-    Spec 041, F3: Shift+click (app.js sends full=1) fetches every student fully."""
+    Spec 041: app.js sends the students on the screen and `scherm=1` on a page that shows
+    students; then only those are fetched. Without `scherm`: everyone, these first (spec 019, F14).
+    Spec 042, F3: Shift+click (app.js sends full=1) fetches them fully, also when unchanged."""
     ids = [int(v) for v in request.form.getlist("student") if v.isdigit()]
-    current_app.extensions["fetcher"].start(ids, full=request.form.get("full") == "1")
+    current_app.extensions["fetcher"].start(ids, screen=request.form.get("scherm") == "1",
+                                            full=request.form.get("full") == "1")
+    if request.headers.get("X-Requested-With") == "fetch":
+        return "", 204   # spec 041, F7: started from app.js; the page stays as it is
     return back()
 
 

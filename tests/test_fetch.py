@@ -46,7 +46,7 @@ class FakeApi:
         self.invitations = []
         self.shares = []
         self.shares_status = 200
-        self.review_lists = {}   # spec 041; without an entry the list fails, so the student is fetched fully
+        self.review_lists = {}   # spec 042; without an entry the list fails, so the student is fetched fully
 
     def goals(self, token, portfolio_id, **retry):
         self.calls.append(("goals", portfolio_id))
@@ -250,7 +250,7 @@ def review(rid, updated="2026-11-01T10:00:00.000Z"):
     return {"id": rid, "updated_at": updated, "role": "coach"}
 
 
-class TestSignature(unittest.TestCase):  # spec 041
+class TestSignature(unittest.TestCase):  # spec 042
     def test_signature_changes_on_add_edit_and_remove(self):
         base = reviews_signature([review(1), review(2)])
         self.assertEqual(base, reviews_signature([review(2), review(1)]))   # order does not matter
@@ -271,7 +271,7 @@ class TestSignature(unittest.TestCase):  # spec 041
         self.assertFalse(is_unchanged(dict(student, signatures={101: None}), {101: None}))
 
 
-class TestReviewsPaging(unittest.TestCase):  # spec 041
+class TestReviewsPaging(unittest.TestCase):  # spec 042
     def test_a_short_page_is_the_last(self):
         full = [{"id": i} for i in range(50)]
         pages = [(200, full), (200, [{"id": 50}])]
@@ -299,7 +299,7 @@ class TestReviewsPaging(unittest.TestCase):  # spec 041
             self.assertEqual(portflow_api.reviews("t", 101), (500, None))
 
 
-class TestSkipUnchanged(FetchTestCase):  # spec 041
+class TestSkipUnchanged(FetchTestCase):  # spec 042
     def setUp(self):
         super().setUp()
         self.sem = self.add_student("Sem Bakker", [101], 11)

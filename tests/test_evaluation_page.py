@@ -145,7 +145,13 @@ class TestPage(PageCase):
             self.assertIn(text, html)
         self.assertIn('class="col-skill cat-social is-requested"', html)   # F2: PL and BD marked
         self.assertIn('href="/evaluaties/80"', html)
-        self.assertIn('data-reload-when-fetched="1"', html)   # reloads when Lotte is fetched
+        self.assertIn('data-refresh-scope', html)   # spec 041, F3: Verversen fetches only Lotte
+        # F1 (changed 2026-11-23): Evaluaties › <student> › <title>, the student links to the student page.
+        self.assertRegex(html, r'<a class="crumb-link" href="/evaluaties">Evaluaties</a>\s*<span class="crumb-sep"[^>]*>›</span>\s*'
+                               r'<a class="crumb-link" href="/studenten/1\?van=evaluations">Lotte Bakker</a>\s*'
+                               r'<span class="crumb-sep"[^>]*>›</span>\s*<h1 class="crumb-title">PL &amp; BD 2e evaluatie</h1>')
+        self.assertIn('data-live="cell-1-PL"', html)   # spec 041, F7: updated without reloading
+        self.assertIn('data-live="eval-note"', html)
         self.assertIn('href="/evaluaties/90"', html)
 
     def test_timeline_only_requested_skills(self):   # F7
@@ -171,6 +177,7 @@ class TestPage(PageCase):
         html = self.page(90).get_data(as_text=True)
         self.assertIn("Deze student staat niet in het dashboard", html)
         self.assertIn("Iemand Anders", html)
+        self.assertIn('<span class="crumb-section">Iemand Anders</span>', html)   # F1: in the breadcrumb, without a link
 
     def test_not_found(self):   # F9
         response = self.page(12345)

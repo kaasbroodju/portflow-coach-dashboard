@@ -56,6 +56,15 @@ class TestCells(unittest.TestCase):  # F6, F7
         rows = [self_eval("PL", "2026-10-01"), assessed("PL", "1", "2026-10-03", status="scored")]
         self.assertIsNone(progress(rows).cells["PL"].pending)
 
+    def test_assessment_without_level_does_not_answer_a_newer_request(self):
+        # An assessment without a level (another request, same day) must not hide the open request.
+        rows = [self_eval("FO", "2026-11-04", rid=1, title="Oud", status="submitted"),
+                assessed("FO", "", "2026-11-23", status="submitted", rid=1),
+                self_eval("FO", "2026-11-23", rid=2, title="Nieuw", status="not_started")]
+        pending = progress(rows).cells["FO"].pending
+        self.assertIsNotNone(pending)
+        self.assertEqual(pending.title, "Nieuw")
+
     def test_only_newest_open_request_counts(self):
         rows = [self_eval("PL", "2026-10-01", rid=1, title="Oud"), self_eval("PL", "2026-10-20", rid=2, title="Nieuw")]
         self.assertEqual(progress(rows).cells["PL"].pending.title, "Nieuw")

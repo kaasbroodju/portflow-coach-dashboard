@@ -1,7 +1,7 @@
 # 015 – Koppelen aan Portflow
 
 **Status:** klaar <!-- idee | uitgewerkt | in bouw | klaar -->
-**Laatst bijgewerkt:** 2026-11-09
+**Laatst bijgewerkt:** 2026-11-23
 
 > **Aanleiding:** na het terugzetten ([spec 014](../014-alles-verwijderen/spec.md)) en een Excel-import ([spec 013](../013-excel-importeren/spec.md)) toonde Overzicht na Verversen geen voortgang: studenten uit Excel hebben geen Portflow-koppeling, en Verversen haalt alleen evaluaties op voor gekoppelde studenten ([spec 005](../005-gegevens-ophalen/spec.md), F1). Het koppelen op naam stond al in [gegevensmodel.md](../../docs/gegevensmodel.md#koppelen-aan-portflow), maar was nog niet gebouwd.
 
@@ -27,8 +27,8 @@ Als **coach** of **gildemeester** wil ik dat studenten die niet via "Uit Portflo
   - *Acceptatie:* 12 ongekoppelde studenten met een gedeeld portfolio → na één ronde zijn ze gekoppeld en staan hun evaluaties op Overzicht.
 - [x] **F3 – Na een Excel-import.** Is de verbinding geldig, dan koppelt de app direct na het importeren volgens F1 (zonder evaluaties op te halen). De melding wordt bijvoorbeeld "12 studenten toegevoegd, 0 bijgewerkt. 12 gekoppeld aan Portflow. Klik op Verversen om hun evaluaties op te halen." Zonder verbinding: "… Klik op Verversen om ze aan Portflow te koppelen en hun evaluaties op te halen."
   - *Acceptatie:* importeren terwijl de verbinding geldig is → de nieuwe studenten zijn gekoppeld.
-- [x] **F4 – Melden wat niet lukt.** Studenten die na een ronde nog niet gekoppeld zijn, meldt de Verversen-knop: "Bijgewerkt om 14:32 · 2 niet gekoppeld", met hun namen bij hover. In Studenten staat bij hen "Niet gekoppeld" in de kolom Portflow ([spec 010](../010-studentenlijst/spec.md)).
-  - *Acceptatie:* een student zonder gedeeld portfolio → de knop meldt "1 niet gekoppeld".
+- [x] **F4 – Melden wat niet lukt.** *Gewijzigd 2026-11-23 op verzoek van de gebruiker: de Verversen-knop meldt het niet meer ("Bijgewerkt om 14:32 · 2 niet gekoppeld", met de namen bij hover), want dat is niet langer relevant.* Bij studenten die niet gekoppeld zijn, staat in Studenten "Niet gekoppeld" in de kolom Portflow ([spec 010](../010-studentenlijst/spec.md)).
+  - *Acceptatie:* een student zonder gedeeld portfolio → in Studenten staat "Niet gekoppeld"; de knop Verversen toont alleen "Bijgewerkt om …".
 - [x] **F5 – Zelf koppelen.** Bij Student bewerken ([spec 011](../011-student-bewerken/spec.md), F3) staat bij Portflow een keuzelijst met de gedeelde Portflow-studenten (naam) die nog niet aan een andere student gekoppeld zijn, plus "Niet gekoppeld". De huidige koppeling is geselecteerd. Kiest de gebruiker een andere student of "Niet gekoppeld", dan vervallen ook de bewaarde evaluaties van de oude koppeling; de volgende Verversen-ronde haalt die van de nieuwe op. Zonder geldige verbinding is de keuze niet beschikbaar en staat er "Verbind met Portflow om te koppelen."
   - *Acceptatie:* een ongekoppelde student koppelen aan een gedeeld portfolio → na opslaan staat in Studenten "Gekoppeld"; daarna "Niet gekoppeld" kiezen → de koppeling en de evaluaties zijn weg.
 
@@ -61,3 +61,4 @@ Geen eigen ontwerp: een melding in de Verversen-knop, een keuzelijst bij Student
 
 - 2026-11-09 – spec aangemaakt na de melding van de gebruiker dat Overzicht na Verversen geen voortgang toonde; antwoorden verwerkt; status in bouw
 - 2026-11-10 – gebouwd en getest (unit tests met een nagebootste Portflow; op een kopie van de echte database werden alle 12 ongekoppelde studenten gekoppeld); status klaar
+- 2026-11-23 – F4 gewijzigd op verzoek van de gebruiker: het aantal niet-gekoppelde studenten staat niet meer in de knop Verversen (ook niet de namen bij hover); "Niet gekoppeld" in Studenten blijft
