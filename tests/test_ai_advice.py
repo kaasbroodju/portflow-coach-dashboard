@@ -150,11 +150,20 @@ class TestCheck(unittest.TestCase):   # F5
                 ai_advice.check(answer, ["PL"])
 
 
+# F24: the assessor's own judgment that has to be sent with every advice (request 70 asks PL and BD).
+JUDGMENT = {"oordeel_niveau_PL": "2", "oordeel_PL": "Plant voor het team.", "oordeel_niveau_BD": "1", "oordeel_BD": "Deelt een boodschap."}
+
+
 class FakeOllama:
     """Patches ollama.py: running, with the model, answering ANSWER (slowly if asked)."""
 
     def __init__(self, running=True, model=True, answer=ANSWER, delay=0.0):
         self.running, self.model, self.answer, self.delay, self.calls = running, model, answer, delay, []
+
+    def models(self, url):
+        if not self.running:
+            raise ollama.OllamaError("Ollama is niet bereikbaar. Is Ollama gestart?")
+        return [{"name": ollama.DEFAULT_MODEL, "size_gb": 7.2}] if self.model else []
 
     def __enter__(self):
         def version(url):
@@ -163,7 +172,8 @@ class FakeOllama:
             return "0.34.2"
 
         def chat(url, model, system, user, schema, **kwargs):
-            self.calls.append({"user": user, "images": kwargs.get("images"), "schema": schema, "history": kwargs.get("history")})
+            self.calls.append({"user": user, "images": kwargs.get("images"), "schema": schema, "history": kwargs.get("history"),
+                               "options": {k: kwargs.get(k) for k in ("num_ctx", "num_thread", "keep_alive")}})
             cancel = kwargs.get("cancel")
             end = time.monotonic() + self.delay
             while time.monotonic() < end:
@@ -173,7 +183,7 @@ class FakeOllama:
             return self.answer if schema is not None else "Omdat de afstemming met de opdrachtgever ontbreekt."
 
         self.patches = [mock.patch.object(ollama, "version", version),
-                        mock.patch.object(ollama, "models", lambda url: [{"name": ollama.DEFAULT_MODEL, "size_gb": 7.2}] if self.model else []),
+                        mock.patch.object(ollama, "models", self.models),
                         mock.patch.object(ollama, "has_model", lambda url, m: self.running and self.model),
                         mock.patch.object(ollama, "capabilities", lambda url, m: {"vision"}),
                         mock.patch.object(ollama, "chat", chat)]
@@ -209,7 +219,7 @@ class TestJobsAndPage(AdviceCase):
 
     def test_advice_is_made_saved_and_shown(self):   # F1, F4, F5, F6, F9
         with FakeOllama() as fake:
-            self.assertEqual(self.client.post("/evaluaties/70/advies").status_code, 302)
+            self.assertEqual(self.client.post("/evaluaties/70/advies", data=JUDGMENT).status_code, 302)
             status = self.wait(self.app.extensions["ai_jobs"])
             self.assertEqual(status["state"], "done")
             html = self.page().get_data(as_text=True)
@@ -302,6 +312,184 @@ class TestWizard(AdviceCase):   # F11, F12
             html = self.client.get("/instellingen").get_data(as_text=True)
         self.assertIn("AI-advies instellen", html)
         self.assertIn(f"model <strong>{ollama.DEFAULT_MODEL}</strong> is geïnstalleerd", html)
+
+
+class TestOwnJudgment(TestJobsAndPage):   # F24, F25, F26
+    def test_button_waits_for_a_complete_judgment(self):   # F24 acceptance
+        with FakeOllama():
+            html = self.page().get_data(as_text=True)
+            self.assertIn("Jouw oordeel", html)
+            self.assertIn('name="oordeel_niveau_PL"', html)
+            self.assertIn('name="oordeel_BD"', html)
+            self.assertIn("Vul eerst je eigen oordeel in.", html)
+            self.assertRegex(html, r'<button class="button" type="submit"\s+disabled>Advies vragen')
+            incomplete = dict(JUDGMENT, oordeel_BD="  ")
+            self.assertEqual(self.client.post("/evaluaties/70/advies", data=incomplete).status_code, 400)
+            card = self.client.post("/evaluaties/70/advies", data=incomplete,
+                                    headers={"X-Requested-With": "fetch"}).get_data(as_text=True)
+        self.assertIn("Vul eerst bij elke vaardigheid je eigen niveau en een toelichting in.", card)
+        self.assertIn("Plant voor het team.", card)            # what was typed stays
+        self.assertIsNone(self.app.extensions["ai_jobs"].status(70))
+        self.assertEqual(ai_advice.saved_judgment(self.conn, 70), {})
+
+    def test_judgment_goes_along_and_is_compared(self):   # F25
+        answer = {"vaardigheden": [dict(a, verschil=v) for a, v in zip(ANSWER["vaardigheden"][:2],
+                                                                        ("Komt overeen.", "Lotte Bakker zit hoger dan jij denkt."))]}
+        judgment = dict(JUDGMENT, oordeel_PL="Lotte Bakker plant voor het team.")
+        with FakeOllama(answer=answer) as fake:
+            self.client.post("/evaluaties/70/advies", data=judgment)
+            self.assertEqual(self.wait(self.app.extensions["ai_jobs"])["state"], "done")
+            html = self.page().get_data(as_text=True)
+        user = fake.calls[0]["user"]
+        self.assertIn("Voorlopig oordeel van de beoordelaar", user)
+        self.assertIn("- PL (Plannen): niveau 2. Toelichting: Student plant voor het team.", user)
+        self.assertNotIn("Lotte Bakker", user)                                         # F3
+        self.assertIn("verschil", fake.calls[0]["schema"]["properties"]["vaardigheden"]["items"]["required"])
+        self.assertIn("jij: niveau 2", html)
+        self.assertIn("advies: niveau 2", html)
+        self.assertIn("Vergeleken met jouw oordeel:", html)
+        self.assertIn("Lotte Bakker zit hoger dan jij denkt.", html)                   # F23: real name back
+
+    def test_judgment_is_kept_and_reset_clears_it(self):   # F26
+        with FakeOllama():
+            self.client.post("/evaluaties/70/advies", data=JUDGMENT)
+            self.wait(self.app.extensions["ai_jobs"])
+            html = self.page().get_data(as_text=True)
+        self.assertEqual(ai_advice.saved_judgment(self.conn, 70)["PL"], {"level": 2, "text": "Plant voor het team."})
+        self.assertIn(">Plant voor het team.</textarea>", html)
+        self.assertRegex(html, r'<option value="2"\s+selected>2</option>')
+        self.assertNotRegex(html, r'type="submit"\s+disabled>Opnieuw vragen')
+        reset.reset_all(self.app)
+        self.assertEqual(ai_advice.saved_judgment(self.conn, 70), {})
+
+    def test_follow_up_carries_the_judgment(self):   # F26
+        with FakeOllama() as fake:
+            self.client.post("/evaluaties/70/advies", data=JUDGMENT)
+            self.wait(self.app.extensions["ai_jobs"])
+            self.client.post("/evaluaties/70/advies/vraag", data={"vraag": "Waarom?"})
+            self.wait(self.app.extensions["ai_jobs"])
+        self.assertIn("Voorlopig oordeel van de beoordelaar", fake.calls[1]["user"])
+
+
+class TestModelChoice(TestJobsAndPage):   # F14 (2026-11-24), F27, F28
+    def two_models(self, fake):
+        fake.models = lambda url: [{"name": ollama.DEFAULT_MODEL, "size_gb": 7.2}, {"name": "gemma4:e4b", "size_gb": 9.6}]
+        ollama.models = fake.models
+
+    def test_every_model_apart_and_the_chosen_one_is_used(self):   # F14 acceptance
+        with FakeOllama() as fake:
+            self.two_models(fake)
+            calls = []
+            original = ollama.chat
+            ollama.chat = lambda url, model, *a, **kw: calls.append(model) or original(url, model, *a, **kw)
+            html = self.page().get_data(as_text=True)
+            self.assertIn(f"Lokaal model · {ollama.DEFAULT_MODEL} (aangeraden)", html)
+            self.assertIn("Lokaal model · gemma4:e4b", html)
+            self.assertRegex(html, rf'<option value="lokaal:{ollama.DEFAULT_MODEL}"\s+selected>')
+            self.client.post("/evaluaties/70/advies", data=dict(JUDGMENT, dienst="lokaal:gemma4:e4b"))
+            self.wait(self.app.extensions["ai_jobs"])
+            html = self.page().get_data(as_text=True)
+        self.assertEqual(calls, ["gemma4:e4b"])
+        self.assertEqual(ai_advice.saved(self.conn, 70)["model"], "gemma4:e4b")
+        self.assertRegex(html, r'<option value="lokaal:gemma4:e4b"\s+selected>')   # the model of the advice
+
+    def test_a_model_not_in_ollama_is_refused(self):
+        with FakeOllama():
+            self.assertEqual(self.client.post("/evaluaties/70/advies",
+                                              data=dict(JUDGMENT, dienst="lokaal:bestaat:niet")).status_code, 400)
+
+    def test_default_model_in_settings(self):   # F27
+        with FakeOllama() as fake:
+            self.two_models(fake)
+            html = self.client.get("/instellingen").get_data(as_text=True)
+            self.assertIn(f"{ollama.DEFAULT_MODEL} (aangeraden)", html)
+            self.assertIn("Standaardmodel", html)
+            response = self.client.post("/instellingen/ai-advies", data={"model": "gemma4:e4b", "terug": "instellingen"})
+            self.assertTrue(response.headers["Location"].endswith("/instellingen?model=ok#ai-advies"))
+            self.assertEqual(ai_advice.settings(self.db_path)[1], "gemma4:e4b")
+            self.assertIn("✓ Opgeslagen", self.client.get("/instellingen?model=ok").get_data(as_text=True))
+        self.assertEqual(self.client.post("/instellingen/ai-advies", data={"model": "a; rm"}).status_code, 400)
+
+    def test_download_tested_or_named_model(self):   # F28 acceptance
+        started = []
+        pull = self.app.extensions["ollama_pull"]
+        with FakeOllama(), mock.patch.object(pull, "start", lambda url, model: started.append(model) or True):
+            html = self.client.get("/instellingen").get_data(as_text=True)
+            self.assertIn("Modellen downloaden", html)
+            self.assertIn("geïnstalleerd", html)                                  # the recommended one is there
+            self.assertIn('<input type="hidden" name="model" value="gemma4:e4b">', html)
+            self.assertNotIn(f'<input type="hidden" name="model" value="{ollama.DEFAULT_MODEL}">', html)
+            self.client.post("/instellingen/ai-advies/downloaden", data={"model": "gemma4:e4b"},
+                             headers={"X-Requested-With": "fetch"})
+            self.client.post("/instellingen/ai-advies/downloaden", data={"model": "qwen3.5:9b", "terug": "instellingen"})
+            bad = self.client.post("/instellingen/ai-advies/downloaden", data={"model": "geen geldige naam"},
+                                   headers={"X-Requested-With": "fetch"}).get_json()
+        self.assertEqual(started, ["gemma4:e4b", "qwen3.5:9b"])
+        self.assertIn("geen geldige modelnaam", bad["error"])
+        self.assertTrue(ollama.valid_name("hf.co/org/model:Q4_K_M"))
+
+
+class TestLaptopLimits(TestJobsAndPage):   # F29-F32
+    def test_defaults_are_as_before(self):
+        own = ai_advice.laptop(self.db_path)
+        self.assertEqual(own, {"threads": ollama.default_threads(), "context": "veel", "unload": False})
+        options = ai_advice.model_options(self.db_path)
+        self.assertEqual((options["num_ctx"], options["budget"], options["keep_alive"]), (32768, 80000, None))
+
+    def test_settings_are_saved_and_sent_along(self):   # F29, F30, F31 acceptance
+        with FakeOllama() as fake, mock.patch.object(ollama, "cores", lambda: 8):
+            html = self.client.get("/instellingen").get_data(as_text=True)
+            self.assertIn("De laptop ontlasten", html)
+            self.assertIn('max="8"', html)
+            response = self.client.post("/instellingen/ai-advies/laptop", data={"kernen": "2", "materiaal": "weinig", "vrijgeven": "1"})
+            self.assertTrue(response.headers["Location"].endswith("/instellingen?laptop=ok#ai-laptop"))
+            html = self.client.get("/instellingen?laptop=ok").get_data(as_text=True)
+            self.assertIn("2 van 8", html)
+            self.assertRegex(html, r'value="weinig"\s+checked')
+            self.client.post("/evaluaties/70/advies", data=JUDGMENT)
+            self.wait(self.app.extensions["ai_jobs"])
+            self.client.post("/evaluaties/70/advies/vraag", data={"vraag": "Waarom?"})
+            self.wait(self.app.extensions["ai_jobs"])
+            self.client.post("/instellingen/ai-advies/proefvraag")
+        for call in fake.calls:
+            self.assertEqual(call["options"]["num_thread"], 2)
+            self.assertEqual(call["options"]["keep_alive"], 0)
+        self.assertEqual(fake.calls[0]["options"]["num_ctx"], 8192)
+        self.assertEqual(fake.calls[1]["options"]["num_ctx"], 8192)
+
+    def test_less_material_with_a_smaller_context(self):   # F30, F8
+        m = ai_advice.collect(self.conn, self.db_path, "token", 70, ai_advice.date.today())
+        _, _, small = ai_advice.prompt(m, {}, budget=len(m["head"]) + len("\n\n".join(m["sections"])) + 2100)
+        _, _, large = ai_advice.prompt(m, {}, budget=80000)
+        self.assertGreater(small["cut"], large["cut"])
+
+    def test_wrong_values_are_refused(self):   # F29, F30
+        with mock.patch.object(ollama, "cores", lambda: 4):
+            for data in ({"kernen": "0", "materiaal": "veel"}, {"kernen": "5", "materiaal": "veel"},
+                         {"kernen": "x", "materiaal": "veel"}, {"kernen": "2", "materiaal": "alles"}):
+                self.assertEqual(self.client.post("/instellingen/ai-advies/laptop", data=data).status_code, 400, data)
+        db.set_setting(self.db_path, ollama.S_THREADS, "99")
+        db.set_setting(self.db_path, ollama.S_CONTEXT, "raar")
+        own = ai_advice.laptop(self.db_path)
+        self.assertEqual((own["threads"], own["context"]), (ollama.cores(), "veel"))
+
+    def test_chat_sends_the_options(self):   # F29, F31: what goes to Ollama
+        sent = []
+
+        class Response(io.BytesIO):
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+
+        def request(url, path, body=None, timeout=5.0):
+            sent.append(body)
+            return Response(b'{"message": {"content": "ok"}, "done": true}\n')
+        with mock.patch.object(ollama, "_request", request):
+            ollama.chat("http://127.0.0.1:11434", "m", "s", "u", None, num_thread=3, keep_alive=0)
+            ollama.chat("http://127.0.0.1:11434", "m", "s", "u", None)
+        self.assertEqual(sent[0]["options"]["num_thread"], 3)
+        self.assertEqual(sent[0]["keep_alive"], 0)
+        self.assertNotIn("num_thread", sent[1]["options"])
+        self.assertNotIn("keep_alive", sent[1])
 
 
 if __name__ == "__main__":
@@ -399,10 +587,10 @@ class TestChoiceAndPrompts(TestJobsAndPage):   # F14, F18, F19
         with FakeOllama(), mock.patch.object(claude_ai, "chat",
                                              lambda key, system, user, schema, **kw: calls.append((key, system, user)) or ANSWER):
             html = self.page().get_data(as_text=True)
-            self.assertIn('<option value="lokaal"', html)
+            self.assertIn('<option value="lokaal:', html)
             self.assertIn('<option value="claude"', html)
             self.assertIn("(via internet)", html)
-            self.client.post("/evaluaties/70/advies", data={"dienst": "claude"})
+            self.client.post("/evaluaties/70/advies", data=dict(JUDGMENT, dienst="claude"))
             self.assertEqual(self.wait(self.app.extensions["ai_jobs"])["state"], "done")
             html = self.page().get_data(as_text=True)
         self.assertEqual(calls[0][0], "sk-ant-abc123456789")
@@ -422,7 +610,7 @@ class TestChoiceAndPrompts(TestJobsAndPage):   # F14, F18, F19
         self.assertIn("Let op afstemming met de opdrachtgever.", sections[0])   # PL
         self.assertNotIn("Let op afstemming", sections[1])                     # BD
         with FakeOllama() as fake:
-            self.client.post("/evaluaties/70/advies", data={"dienst": "lokaal"})
+            self.client.post("/evaluaties/70/advies", data=dict(JUDGMENT, dienst="lokaal"))
             self.wait(self.app.extensions["ai_jobs"])
         self.client.post("/instellingen/ai-advies/opdracht", data={"standaard": "1"})
         self.assertEqual(ai_advice.system_prompt(self.db_path), ai_advice.SYSTEM)
@@ -431,7 +619,7 @@ class TestChoiceAndPrompts(TestJobsAndPage):   # F14, F18, F19
 
 class TestDurationAndQuestions(TestJobsAndPage):   # F20, F21
     def advice(self, fake):
-        self.client.post("/evaluaties/70/advies", data={"dienst": "lokaal"})
+        self.client.post("/evaluaties/70/advies", data=dict(JUDGMENT, dienst="lokaal"))
         self.assertEqual(self.wait(self.app.extensions["ai_jobs"])["state"], "done")
 
     def test_duration_is_shown(self):   # F20
@@ -488,8 +676,8 @@ class TestClaudeVisibility(AdviceCase):   # F22: Claude only for the allowed Por
     def test_hidden_for_other_users(self):
         from dashboard import ai_advice, claude_ai
         with FakeOllama():   # so the local model is deterministically available (CI has no Ollama)
-            self.assertEqual([s["key"] for s in ai_advice.available(self.db_path, "Kees de Wit")], ["lokaal"])
-            self.assertEqual([s["key"] for s in ai_advice.available(self.db_path, "Peter Snoek")], ["lokaal", "claude"])
+            self.assertEqual([s["key"] for s in ai_advice.available(self.db_path, "Kees de Wit")], [f"lokaal:{ollama.DEFAULT_MODEL}"])
+            self.assertEqual([s["key"] for s in ai_advice.available(self.db_path, "Peter Snoek")], [f"lokaal:{ollama.DEFAULT_MODEL}", "claude"])
         self.assertFalse(claude_ai.allowed("Kees de Wit"))
         self.assertTrue(claude_ai.allowed("peter  snoek"))   # case/space-insensitive
 
@@ -515,7 +703,7 @@ class TestRestoreNames(TestJobsAndPage):   # F23: remember the replacement and u
              "ontbreekt": "Student kan meer met Coach 1 afstemmen."},
             {"code": "BD", "niveau": 1, "onderbouwing": "x", "ontbreekt": "y"}]}
         with FakeOllama(answer=advice) as fake:
-            self.client.post("/evaluaties/70/advies", data={"dienst": "lokaal"})
+            self.client.post("/evaluaties/70/advies", data=dict(JUDGMENT, dienst="lokaal"))
             self.assertEqual(self.wait(self.app.extensions["ai_jobs"])["state"], "done")
             html = self.page().get_data(as_text=True)
         # What went to the AI used placeholders (no real names).
@@ -536,7 +724,7 @@ class TestRestoreNames(TestJobsAndPage):   # F23: remember the replacement and u
                                    {"code": "BD", "niveau": 1, "onderbouwing": "x", "ontbreekt": "y"}]}
         answer = "Student kan bij Coach 1 navragen hoe de planning overkwam."
         with FakeOllama(answer=advice) as fake:
-            self.client.post("/evaluaties/70/advies", data={"dienst": "lokaal"})
+            self.client.post("/evaluaties/70/advies", data=dict(JUDGMENT, dienst="lokaal"))
             self.wait(self.app.extensions["ai_jobs"])
         with FakeOllama(answer=advice, delay=0) as fake:
             fake.answer = advice  # advice path returns dict; the follow-up asks for free text

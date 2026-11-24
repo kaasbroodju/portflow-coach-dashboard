@@ -768,6 +768,13 @@ def settings():
         latest_release=current_app.extensions["updater"].latest(),  # spec 020, U6
         always_visible=connection.always_visible,
         ai=ai_routes.readiness(current_app.config["DATABASE"]),     # spec 040, F11
+        ai_tested=ai_routes.ollama.TESTED_MODELS,                   # spec 040, F28
+        ai_default=ai_routes.ollama.DEFAULT_MODEL,                  # spec 040, F27
+        ai_pull=current_app.extensions["ollama_pull"].status(),     # spec 040, F28
+        ai_saved=request.args.get("model") == "ok",
+        ai_laptop=ai_routes.ai_advice.laptop(current_app.config["DATABASE"]),   # spec 040, F29-F31
+        ai_cores=ai_routes.ollama.cores(),
+        ai_laptop_saved=request.args.get("laptop") == "ok",
     )
 
 

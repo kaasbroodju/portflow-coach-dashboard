@@ -1,7 +1,7 @@
 # 040 – AI-advies bij een evaluatie
 
 **Status:** in bouw <!-- idee | uitgewerkt | in bouw | klaar -->
-**Laatst bijgewerkt:** 2026-11-22
+**Laatst bijgewerkt:** 2026-11-24
 
 ## Doel
 
@@ -102,6 +102,35 @@ Op verzoek van de gebruiker kan het advies ook door **Claude** (Anthropic) worde
   - Afbeeldingen gaan alleen mee met het advies zelf, niet opnieuw met elke vervolgvraag; het materiaal als tekst wel (het wordt daarvoor lokaal bewaard bij het advies).
   - *Acceptatie:* na een advies typ je "Waarom niet niveau 3 bij PL?"; het antwoord staat eronder met de duur, en het staat er nog als je de pagina opnieuw opent.
 
+### Eerst je eigen oordeel, en een model kiezen (toegevoegd 2026-11-24)
+
+*Op verzoek van de gebruiker: de beoordelaar vult eerst zelf een oordeel in, pas daarna kan het AI-advies worden gevraagd. En het lokale model is te kiezen, in Instellingen als standaard en op de evaluatiepagina per advies.*
+
+- [x] **F24 – Eerst je eigen oordeel.** Boven de keuzelijst van F14 staat het blok **"Jouw oordeel"**, met per gevraagde vaardigheid (OC … RE) een keuze voor het **niveau** (`0` … `4`) en een tekstvak voor de **toelichting**. De knop **"Advies vragen"** (of "Opnieuw vragen") is pas actief als bij elke gevraagde vaardigheid een niveau én een toelichting staan; tot dan staat er bij de knop "Vul eerst je eigen oordeel in". Het dashboard weigert ook zelf een verzoek zonder volledig oordeel.
+  - *Acceptatie:* bij een verzoek voor OC en KO is de knop uit zolang bij KO de toelichting leeg is; met beide ingevuld is hij aan.
+- [x] **F25 – Het oordeel gaat mee naar de AI.** Het oordeel gaat mee in de vraag aan de AI, met dezelfde vervanging van namen (F3). De opdracht vraagt de AI om eerst zelf, op basis van het materiaal en de LEF-teksten, tot een advies te komen en niet zomaar mee te gaan met het oordeel. Per vaardigheid geeft de AI daarna aan **waar en waarom het advies afwijkt** van het oordeel van de beoordelaar (of dat het overeenkomt). Bij het advies staat per vaardigheid jouw niveau naast het voorgestelde niveau. Het overzicht van F2 noemt ook "jouw oordeel".
+- [x] **F26 – Het oordeel bewaren.** Het oordeel wordt lokaal bewaard bij het verzoek zodra je het advies vraagt, en staat er weer als je de pagina opnieuw opent. Bij "Opnieuw vragen" gaat het (eventueel aangepaste) oordeel mee. Vervolgvragen (F21) krijgen het oordeel ook mee. **Alles verwijderen** wist het.
+- [x] **F27 – Standaardmodel in Instellingen.** In Instellingen, sectie AI-advies (F11), staat een keuzelijst met de modellen die in Ollama staan, en een knop **"Opslaan"**. Het voorgestelde model (`gemma4:12b-it-qat`, zie Onderzoek) heeft de vermelding **"(aangeraden)"**. Het gekozen model is het standaardmodel; het is hetzelfde als het model in stap 3 van de wizard (F12). Draait Ollama niet, dan staat er alleen de status, zoals nu.
+- [x] **F28 – Modellen downloaden in Instellingen.** In Instellingen, sectie AI-advies, staat een lijst met **geteste modellen**: naam, grootte, wat het geheugen vraagt en een korte uitleg uit het onderzoek (bijvoorbeeld "aangeraden" of "lichter: sneller, minder goed advies"). Bij een model dat nog niet in Ollama staat, staat een knop **"Downloaden"**; bij een model dat er al staat, "✓ geïnstalleerd". Daaronder een veld om **zelf een modelnaam** te typen (zoals bij `ollama pull`), met dezelfde knop. Het downloaden laat Ollama het model ophalen, met een voortgangsbalk, zoals stap 3 van de wizard (F12); er loopt één download tegelijk en je kunt de pagina intussen verlaten. Na het downloaden staat het model in de keuzelijst van F27. De lijst met geteste modellen staat op één plek in de code.
+  - *Acceptatie:* met Ollama draaiend en `gemma4:e4b` niet geïnstalleerd: klik op Downloaden, de voortgang loopt, en daarna staat `gemma4:e4b` met ✓ in de lijst en in de keuzelijst van F27. Een niet-bestaande naam geeft de melding van Ollama.
+- [x] **F14 (gewijzigd 2026-11-24) – Model kiezen bij het advies.** De keuzelijst op de evaluatiepagina toont **elk model dat in Ollama staat apart** ("Lokaal model · qwen3.5:9b", "Lokaal model · gemma4:12b-it-qat (aangeraden)"), plus Claude als die is ingesteld (F22). Voorgeselecteerd is het standaardmodel uit Instellingen; staat er al een advies, dan de AI en het model van dat advies. Vervolgvragen gaan naar hetzelfde model dat het advies maakte.
+  - *Acceptatie:* met twee modellen in Ollama staan er twee lokale keuzes; kies je het niet-standaardmodel, dan toont het advies dat model.
+
+### De laptop ontlasten (toegevoegd 2026-11-24)
+
+*Op verzoek van de gebruiker: een lokaal model kan de hele laptop in beslag nemen (op een laptop met 16 GB en een Intel-processor draait het model op de processor). In Instellingen kun je begrenzen hoeveel het model mag gebruiken. Dit geldt voor alle lokale modellen samen, want het gaat om wat de laptop aankan; Claude heeft er niets mee te maken.*
+
+- [x] **F29 – Processorkernen.** In Instellingen, sectie AI-advies, een schuifje **"Processorkernen voor het model"**, van 1 tot het aantal kernen van de laptop, met het gekozen aantal erbij ("4 van 8"). Standaard: alle kernen min één, zodat de laptop blijft reageren. Het dashboard stuurt dit mee met elke vraag aan Ollama (Ollama-optie `num_thread`): het advies, vervolgvragen en de proefvraag. Erbij staat: "Minder kernen: de laptop blijft beter bruikbaar, het advies duurt langer. Op een Mac rekent het model vooral op de grafische chip; daar maakt dit weinig uit."
+  - *Acceptatie:* met het schuifje op 2 gaat `num_thread: 2` mee in de vraag aan Ollama.
+- [x] **F30 – Hoeveel materiaal per advies.** Een keuze met drie mogelijkheden, die het geheugengebruik bepaalt (Ollama-optie `num_ctx`, en de grens van F8 schaalt mee):
+  - **Weinig** (8.192 tokens, ongeveer 20.000 tekens materiaal): het minste geheugen; bij een groot verzoek gaan veel bewijsstukken mee met alleen hun naam.
+  - **Normaal** (16.384 tokens, ongeveer 40.000 tekens).
+  - **Veel** (32.768 tokens, ongeveer 80.000 tekens): zoals tot nu toe; het meeste geheugen, enkele GB extra bovenop het model.
+  Erbij staat dat het model zelf altijd in het geheugen moet passen (ongeveer de grootte van het bestand) en dat deze keuze alleen het extra geheugen bepaalt. Het overzicht van F2 en de melding van F8 werken zoals nu.
+- [x] **F31 – Model na het advies uit het geheugen.** Een vinkje **"Model na het advies uit het geheugen halen"** (Ollama-optie `keep_alive: 0`). Standaard uit: dan blijft het model zoals nu nog 5 minuten geladen, zodat een vervolgvraag sneller gaat. Aan: het geheugen is direct na het advies weer vrij, maar een vervolgvraag laadt het model opnieuw (dat kan een minuut duren).
+- [x] **F32 – Opslaan.** De drie instellingen staan samen met **"Opslaan"**, en gelden vanaf het volgende advies. Een advies dat al loopt, gaat door met de oude instellingen.
+- Grenzen gelden alleen voor vragen van het dashboard; wie Ollama ook voor iets anders gebruikt, merkt er daar niets van.
+
 ### Buiten scope
 
 - Beoordelen of het advies in Portflow zetten.
@@ -122,6 +151,16 @@ Proef op de Mac van de gebruiker (24 GB) met één verzonnen evaluatie (PL en BD
 | gemma4:26b | 18 GB | 56 s | Zorgvuldigst, maar vraagt 18 GB werkgeheugen |
 
 Gekozen: `gemma4:12b-it-qat` als voorstel voor iedereen.
+
+**Aanvullende proef (2026-11-24)**, voor laptops met 16 GB waarop het voorgestelde model zwaar is: een nieuwe verzonnen evaluatie (PL met twee bewijsstukken en een eerdere beoordeling; BD zonder bewijsstukken), dezelfde opdracht en hetzelfde JSON-schema, op dezelfde Mac:
+
+| Model | Grootte | Tijd | Bevinding |
+|---|---|---|---|
+| gemma4:e2b | 4,6 GB | 14 s | Niet geschikt: gaf bij BD zonder één bewijsstuk toch het gevraagde niveau 2 |
+| gemma4:e4b | 9,6 GB | 17 s | Bruikbaar als lichter alternatief: BD terecht 0, PL goed onderbouwd met citaten; liet bij PL het ontwikkelpunt leeg |
+| gemma4:12b-it-qat | 7,2 GB | 30 s | Zoals eerder het best: BD 0, PL met een concreet ontwikkelpunt |
+
+Gevolg: `gemma4:e4b` is het lichtere alternatief (minder rekenwerk per woord, wel een groter bestand); `gemma4:e2b` wordt niet aangeraden.
 
 ## Onderzoek: Microsoft 365 Copilot (2026-11-22)
 
@@ -179,6 +218,9 @@ Geen eigen ontwerp: een kaart onderaan de evaluatiepagina, in de stijl van het d
 - [ ] Wil HU-ICT een **app-registratie in Entra ID** maken voor het dashboard, met de zeven gedelegeerde rechten hieronder en toestemming van een beheerder?
 - [ ] Mag een functie op een **preview-API** draaien, waarvan Microsoft zegt dat die niet bedoeld is voor gebruik in productie?
 - [ ] Krijgt Microsoft ook een waarschuwing met vinkje bij het instellen, zoals Claude?
+- [x] F30: welke keuze is de standaard? *Gekozen 2026-11-24: **Veel**, zoals nu, zodat het advies niet verandert; wie geheugen tekortkomt, kiest zelf Normaal of Weinig.*
+- [x] `gemma4:e4b` liep met veel materiaal vast (zie logboek 2026-11-24). Een grens aan de lengte van het antwoord toevoegen? *Nee, gekozen door de gebruiker 2026-11-24.*
+- [x] F24: moet de beoordelaar een oordeel geven over **alle** gevraagde vaardigheden, of alleen over de vaardigheden die hij zelf beoordeelt (een coach de sociale en persoonsvormende, een gildemeester de productvaardigheden)? *Gekozen 2026-11-24: alle gevraagde, omdat het advies ook over alle gaat.*
 
 ## Logboek
 
@@ -194,3 +236,10 @@ Geen eigen ontwerp: een kaart onderaan de evaluatiepagina, in de stijl van het d
 - 2026-11-22 – gebouwd: de duur van het model bij het advies en bij elk antwoord (kolom `seconds`), vervolgvragen met tekstvak en gesprek (kolommen `prompt` en `conversation` in `ai_advice`, `Jobs.ask`, route `/evaluaties/<id>/advies/vraag`; Ollama en Claude kunnen nu ook vrije tekst en een gesprek). Een advies van vóór deze versie heeft geen bewaard materiaal; daar staat "Vraag eerst opnieuw een advies". Met echte gegevens en het lokale model nagekeken: het advies duurde 3 min 38 s, een vervolgvraag 2 min 28 s (het hele materiaal gaat opnieuw mee). Tests in `tests/test_ai_advice.py`
 - 2026-11-22 – op verzoek van de gebruiker: Claude is alleen zichtbaar en bruikbaar voor de ingelogde Portflow-gebruiker Peter Snoek (F22, `claude_ai.allowed`, controle in de instellingen, de keuzelijst en de routes). Tests in `tests/test_ai_advice.py` (TestClaudeVisibility)
 - 2026-11-23 – op verzoek van de gebruiker: de naamvervanging wordt onthouden (kolom `names` bij het advies) en in het getoonde advies en de antwoorden teruggezet naar de echte namen (`ai_advice.restore`). De naar de AI gestuurde tekst, het bewaarde advies en de gesprekshistorie blijven vervangen; onderweg bleek dat een vervolgvraag in de historie de echte naam meestuurde — nu gaat ook daar de vervangen naam mee (`question_anon`). Tests in `tests/test_ai_advice.py` (TestRestoreNames)
+- 2026-11-24 – uitgebreid op verzoek van de gebruiker: eerst een eigen oordeel per vaardigheid (niveau en toelichting) voordat het advies kan worden gevraagd; het oordeel gaat mee naar de AI en wordt bewaard (F24–F26). Een standaardmodel kiezen in Instellingen, met "(aangeraden)" bij het voorgestelde model (F27), en elk lokaal model apart in de keuzelijst (F14 gewijzigd). Status in bouw
+- 2026-11-24 – op verzoek van de gebruiker: modellen downloaden vanuit Instellingen, met een lijst geteste modellen en een vrij veld voor een modelnaam (F28)
+- 2026-11-24 – aanvullende proef met gemma4:e2b, gemma4:e4b en gemma4:12b-it-qat (zie Onderzoek): e4b is het lichtere alternatief, e2b niet geschikt
+- 2026-11-24 – gebouwd: F24–F28. Het eigen oordeel staat in de tabel `ai_judgment` (het concept) en bij het advies (kolom `judgment` in `ai_advice`, wat er werkelijk meeging); de AI krijgt het onder "Voorlopig oordeel van de beoordelaar" met de opdracht eerst zelf te oordelen, en geeft per vaardigheid een veld `verschil` (alleen gevraagd als er een oordeel meegaat; de proefvraag van de wizard vraagt het niet). Keuzelijst met elk Ollama-model apart (`lokaal:<model>`), standaardmodel en downloaden in Instellingen (`ollama.TESTED_MODELS`, `ollama.valid_name`). Tests in `tests/test_ai_advice.py` (TestOwnJudgment, TestModelChoice)
+- 2026-11-24 – nagekeken met echte gegevens: met `gemma4:12b-it-qat` een advies met eigen oordeel en vergelijking in 1 min 56 s (19 bewijsstukken, 3 afbeeldingen). Met `gemma4:e4b` liep hetzelfde verzoek met alle bewijsstukken na ongeveer 10 minuten vast op "geen geldig antwoord"; zonder de inhoud van bewijsstukken gaf e4b wel binnen 21 s een goed advies met vergelijking. Het lichtere model lijkt bij veel materiaal niet te stoppen met schrijven; de gebruiker koos ervoor dit zo te laten
+- 2026-11-24 – op verzoek van de gebruiker: de laptop ontlasten met instellingen voor processorkernen, hoeveel materiaal (geheugen) en het model na het advies uit het geheugen halen (F29–F32); voor alle lokale modellen samen
+- 2026-11-24 – gebouwd: F29–F32. Instellingen `ai_threads`, `ai_context` en `ai_unload` (`ai_advice.laptop`, `ai_advice.model_options`); `ollama.chat` stuurt `num_thread` en `keep_alive` mee; de grens van F8 hangt nu af van de keuze bij F30 (Claude houdt de grens van Veel). Bij een ongeldige waarde in de database gelden de standaarden. Nagekeken: Ollama accepteert de opties, en met `keep_alive: 0` staat het model direct na het antwoord niet meer in het geheugen. Tests in `tests/test_ai_advice.py` (TestLaptopLimits)

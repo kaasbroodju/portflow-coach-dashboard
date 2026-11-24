@@ -766,6 +766,20 @@
       .then(replaceCard)
       .catch(() => form.submit());
   });
+  // F24: "Advies vragen" only once every requested skill has a level and an explanation.
+  const judged = (form) => [...form.querySelectorAll(".ai-judgment select, .ai-judgment textarea")]
+    .every((field) => field.value.trim() !== "");
+  const updateAsk = (event) => {
+    const form = event.target.closest && event.target.closest("[data-judgment-form]");
+    if (!form) return;
+    const card = document.getElementById("ai-advies");
+    const ok = judged(form);
+    form.querySelector('button[type="submit"]').disabled = !ok || (card && card.hasAttribute("data-advice-busy"));
+    const hint = form.querySelector("[data-judgment-hint]");
+    if (hint) hint.hidden = ok;
+  };
+  document.addEventListener("input", updateAsk);
+  document.addEventListener("change", updateAsk);
   watch();
 
   // Spec 040, F12, step 3: downloading the model, with a progress bar.
@@ -778,22 +792,35 @@
       box.hidden = false;
       bar.value = s.total ? Math.round((s.done / s.total) * 100) : 0;
       const gb = (n) => (n / 1e9).toFixed(1).replace(".", ",");
-      text.textContent = s.error || (s.total ? `${s.status} · ${gb(s.done)} van ${gb(s.total)} GB` : s.status);
+      const name = s.model && pull.dataset.pullHash ? `${s.model}: ` : "";
+      text.textContent = s.error || name + (s.total ? `${s.status} · ${gb(s.done)} van ${gb(s.total)} GB` : s.status);
     };
+    const buttons = () => pull.querySelectorAll("[data-pull-form] button");
     const poll = () => {
       fetch(pull.dataset.pullStatus).then((r) => r.json()).then((s) => {
         show(s);
         if (s.running) setTimeout(poll, 1000);
-        else if (!s.error) window.location.hash = "stap-3", window.location.reload();
+        else if (!s.error) window.location.hash = pull.dataset.pullHash || "stap-3", window.location.reload();
+        else buttons().forEach((b) => { b.disabled = false; });
       }).catch(() => setTimeout(poll, 3000));
     };
-    pull.querySelector("[data-pull-form]").addEventListener("submit", (event) => {
+    // F28: in Instellingen there is a form per tested model and one for a name of your own.
+    pull.querySelectorAll("[data-pull-form]").forEach((form) => form.addEventListener("submit", (event) => {
       event.preventDefault();
-      event.target.querySelector("button").disabled = true;
-      fetch(event.target.action, { method: "POST", headers: { "X-Requested-With": "fetch" } }).then(poll);
-    });
+      buttons().forEach((b) => { b.disabled = true; });
+      fetch(form.action, { method: "POST", body: new FormData(form), headers: { "X-Requested-With": "fetch" } })
+        .then((r) => r.json())
+        .then((s) => { if (s.error && !s.running) { show(s); buttons().forEach((b) => { b.disabled = false; }); } else poll(); })
+        .catch(poll);
+    }));
     if (!box.hidden) poll();
   }
+
+  // Spec 040, F29: show the chosen number of cores next to the slider.
+  document.querySelectorAll("[data-cores-output]").forEach((slider) => {
+    const output = document.getElementById(slider.dataset.coresOutput);
+    slider.addEventListener("input", () => { output.textContent = `${slider.value} van ${slider.max}`; });
+  });
 
   // Spec 040, F12, step 4: the trial question.
   const trial = document.querySelector("[data-trial]");

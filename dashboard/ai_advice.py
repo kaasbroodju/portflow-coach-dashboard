@@ -20,8 +20,7 @@ from .portflow_connection import S_USER_NAME
 from .progress import name_key
 from .skills import NAMES, SKILLS
 
-NUM_CTX = 32768             # tokens the model may use (prompt and answer)
-BUDGET_CHARS = 80000        # F8: about 3.5 characters per token, with room for the answer
+BUDGET_CHARS = 80000        # F8: about 3.5 characters per token; the default, F30 sets it per advice
 MAX_IMAGES = 6
 MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
@@ -57,34 +56,78 @@ def skill_prompts(database: str) -> dict[str, str]:
     return result
 
 
-def schema(codes: list[str]) -> dict:
-    """F5: the fixed answer of the model."""
+def schema(codes: list[str], difference: bool = True) -> dict:
+    """F5: the fixed answer of the model; with `difference` (F25) also how the advice compares with the
+    assessor's own judgment."""
+    fields = {"code": {"type": "string", "enum": codes},
+              "niveau": {"type": "integer", "enum": [0, 1, 2, 3, 4]},
+              "onderbouwing": {"type": "string"},
+              "ontbreekt": {"type": "string"}}
+    if difference:
+        fields["verschil"] = {"type": "string"}
     return {"type": "object", "required": ["vaardigheden"], "properties": {"vaardigheden": {
-        "type": "array", "items": {"type": "object", "required": ["code", "niveau", "onderbouwing", "ontbreekt"],
-                                   "additionalProperties": False,
-                                  "properties": {"code": {"type": "string", "enum": codes},
-                                                  "niveau": {"type": "integer", "enum": [0, 1, 2, 3, 4]},
-                                                  "onderbouwing": {"type": "string"},
-                                                  "ontbreekt": {"type": "string"}}}}},
+        "type": "array", "items": {"type": "object", "required": list(fields), "additionalProperties": False,
+                                   "properties": fields}}},
             "additionalProperties": False}
 
 
 SERVICES = {"lokaal": "Lokaal model (Ollama)", "claude": "Claude (Anthropic, via internet)"}
 
 
+def model_label(model: str) -> str:
+    """F27, F14: the model name, with "(aangeraden)" for the recommended one."""
+    return f"{model} (aangeraden)" if model == ollama.DEFAULT_MODEL else model
+
+
+def choice_key(service: str, model: str | None = None) -> str:
+    """F14: the value in the choice on the evaluation page: "lokaal:<model>" or "claude"."""
+    return f"lokaal:{model}" if service == "lokaal" and model else service
+
+
+def parse_choice(key: str, database: str) -> tuple[str, str | None]:
+    """F14: (service, model) of a choice; plain "lokaal" means the default model."""
+    service, _, model = (key or "").partition(":")
+    if service == "lokaal":
+        return service, model or settings(database)[1]
+    return service, None
+
+
 def available(database: str, user_name: str | None = None) -> list[dict]:
-    """F14: the services that are set up, for the choice on the evaluation page. Claude only for the
-    allowed Portflow user (F22)."""
+    """F14: the AIs that are set up, for the choice on the evaluation page: every model in Ollama apart
+    (the default first), then Claude, only for the allowed Portflow user (F22)."""
     result = []
-    url, model = settings(database)
+    url, default = settings(database)
     try:
-        if ollama.has_model(url, model):
-            result.append({"key": "lokaal", "label": f"Lokaal model · {model}", "external": False})
+        names = [m["name"] for m in ollama.models(url)]
     except ollama.OllamaError:
-        pass
+        names = []
+    for name in sorted(names, key=lambda n: (n != default, n)):
+        result.append({"key": choice_key("lokaal", name), "label": f"Lokaal model · {model_label(name)}",
+                       "external": False, "default": name == default})
     if claude_ai.ready(database) and claude_ai.allowed(user_name):
         result.append({"key": "claude", "label": f"Claude · {claude_ai.MODEL} (via internet)", "external": True})
     return result
+
+
+def laptop(database: str) -> dict:
+    """F29-F31: how much of the laptop the local model may use: {'threads', 'context', 'unload'}."""
+    try:
+        threads = int(db.get_setting(database, ollama.S_THREADS) or 0)
+    except ValueError:
+        threads = 0
+    threads = min(threads, ollama.cores()) if threads >= 1 else ollama.default_threads()
+    context = db.get_setting(database, ollama.S_CONTEXT) or ollama.DEFAULT_CONTEXT
+    if context not in ollama.CONTEXTS:
+        context = ollama.DEFAULT_CONTEXT
+    return {"threads": threads, "context": context, "unload": db.get_setting(database, ollama.S_UNLOAD) == "1"}
+
+
+def model_options(database: str) -> dict:
+    """F29-F31: the extra arguments for ollama.chat; the budget of F8 goes along with the context."""
+    own = laptop(database)
+    num_ctx, budget = ollama.CONTEXTS[own["context"]]
+    return {"num_ctx": num_ctx, "budget": budget, "num_thread": own["threads"],
+            "keep_alive": 0 if own["unload"] else None}
 
 
 def settings(database: str) -> tuple[str, str]:
@@ -268,11 +311,60 @@ def _feedback_texts(conn, student_id: int, start: date, end: date) -> dict[int, 
     return result
 
 
-def prompt(material: dict, names: dict[str, str]) -> tuple[str, list[dict], dict]:
-    """F3, F8: the question for the model with the names replaced, within the budget. Returns
-    (text, images as {'data', 'mime'}, counts)."""
+JUDGMENT_INTRO = (
+    "# Voorlopig oordeel van de beoordelaar\n"
+    "De beoordelaar heeft eerst zelf een oordeel gevormd. Kom eerst zelf, alleen op basis van het materiaal en de "
+    "LEF-teksten, tot je advies; ga niet zomaar mee met dit oordeel. Zeg daarna per vaardigheid bij 'verschil' of je "
+    "advies overeenkomt met dit oordeel, en zo niet, waarin het afwijkt en waarom.")
+
+
+def judgment_text(codes: list[str], judgment: dict) -> str:
+    """F25: the assessor's own judgment as text for the model (names not yet replaced)."""
+    lines = [JUDGMENT_INTRO]
+    for code in codes:
+        own = judgment.get(code) or {}
+        lines.append(f"- {code} ({NAMES[code]}): niveau {own.get('level', '?')}. Toelichting: {own.get('text') or '(geen)'}")
+    return "\n".join(lines)
+
+
+def judgment_complete(codes: list[str], judgment: dict) -> bool:
+    """F24: a level and an explanation for every requested skill."""
+    return all(isinstance((judgment.get(c) or {}).get("level"), int) and (judgment.get(c) or {}).get("text", "").strip()
+               for c in codes)
+
+
+def judgment_from_form(codes: list[str], form) -> dict:
+    """F24: the fields "oordeel_niveau_<code>" (0-4) and "oordeel_<code>" (text) of the advice form."""
+    result = {}
+    for code in codes:
+        raw = (form.get(f"oordeel_niveau_{code}") or "").strip()
+        level = int(raw) if raw.isdigit() and 0 <= int(raw) <= 4 else None
+        result[code] = {"level": level, "text": (form.get(f"oordeel_{code}") or "").strip()[:4000]}
+    return result
+
+
+def saved_judgment(conn: sqlite3.Connection, request_id: int) -> dict:
+    """F26: the kept judgment of this request ({} if none)."""
+    row = conn.execute("SELECT judgment FROM ai_judgment WHERE review_request_id = ?", (request_id,)).fetchone()
+    return json.loads(row["judgment"]) if row else {}
+
+
+def save_judgment(database: str, request_id: int, judgment: dict) -> None:
+    conn = db.connect(database)
+    try:
+        with conn:
+            conn.execute("INSERT OR REPLACE INTO ai_judgment (review_request_id, judgment, saved_at) VALUES (?, ?, ?)",
+                         (request_id, json.dumps(judgment), datetime.now(timezone.utc).isoformat()))
+    finally:
+        conn.close()
+
+
+def prompt(material: dict, names: dict[str, str], judgment: dict | None = None,
+           budget: int | None = None) -> tuple[str, list[dict], dict]:
+    """F3, F8, F25: the question for the model with the names replaced, within the budget, with the
+    assessor's own judgment. Returns (text, images as {'data', 'mime'}, counts)."""
     fixed = anonymize(material["head"] + "\n\n" + "\n\n".join(material["sections"]), names)
-    room = max(0, BUDGET_CHARS - len(fixed) - 2000)
+    room = max(0, (budget or BUDGET_CHARS) - len(fixed) - 2000)   # F8, F30
     contents = [dict(c, text=anonymize(c["text"], names), name=anonymize(c["name"], names)) for c in material["contents"]]
     # F8: per skill the same room, newest first; what does not fit goes with its name only.
     per_item = room // max(1, len(contents))
@@ -293,6 +385,8 @@ def prompt(material: dict, names: dict[str, str]) -> tuple[str, list[dict], dict
         parts.append("# Inhoud van de bewijsstukken\n\n" + "\n\n".join(shown))
     if cut:
         parts.append("Van deze bewijsstukken past de inhoud niet; alleen de naam: " + ", ".join(cut))
+    if judgment:
+        parts.append(anonymize(judgment_text(material["codes"], judgment), names))
     parts.append("Geef nu per vaardigheid (" + ", ".join(material["codes"]) + ") het advies.")
     counts = dict(material["counts"], cut=len(cut), names_only=[anonymize(n, names) for n in material["names_only"]],
                   images=len(material["images"]))
@@ -314,7 +408,8 @@ def check(answer: dict, codes: list[str]) -> list[dict]:
             continue
         found[item["code"]] = {"code": item["code"], "name": NAMES[item["code"]], "level": level,
                                "reasoning": str(item.get("onderbouwing") or "").strip(),
-                               "missing": str(item.get("ontbreekt") or "").strip()}
+                               "missing": str(item.get("ontbreekt") or "").strip(),
+                               "difference": str(item.get("verschil") or "").strip()}
     if not found:
         raise ollama.OllamaError("Het model gaf geen bruikbaar advies. Probeer het opnieuw.")
     return [found[c] for c in SKILLS if c in found]
@@ -336,7 +431,9 @@ def saved(conn: sqlite3.Connection, request_id: int) -> dict | None:
         return None
     moment = datetime.fromisoformat(row["created_at"]).astimezone()
     names = json.loads(row["names"] or "{}")   # F23: the real names go back into what is shown
-    skills = [dict(s, reasoning=restore(s["reasoning"], names), missing=restore(s["missing"], names))
+    judgment = json.loads(row["judgment"] or "{}")   # F25: the own judgment that was sent with it
+    skills = [dict(s, reasoning=restore(s["reasoning"], names), missing=restore(s["missing"], names),
+                   difference=restore(s.get("difference", ""), names), own=judgment.get(s["code"]))
               for s in json.loads(row["advice"])]
     counts = json.loads(row["counts"])
     counts["names_only"] = [restore(n, names) for n in counts.get("names_only", [])]
@@ -350,7 +447,8 @@ def saved(conn: sqlite3.Connection, request_id: int) -> dict | None:
 
 
 def save(database: str, request_id: int, model: str, skills: list[dict], counts: dict, service: str = "lokaal",
-         seconds: int | None = None, prompt_text: str | None = None, names: dict[str, str] | None = None) -> None:
+         seconds: int | None = None, prompt_text: str | None = None, names: dict[str, str] | None = None,
+         judgment: dict | None = None) -> None:
     """F9: a new advice replaces the old one and its conversation (F21). `names` (F23) is the name
     replacement used, kept to show the real names again; the stored advice itself stays anonymized
     (it is sent back to the AI for follow-up questions)."""
@@ -358,9 +456,9 @@ def save(database: str, request_id: int, model: str, skills: list[dict], counts:
     try:
         with conn:
             conn.execute("INSERT OR REPLACE INTO ai_advice (review_request_id, model, created_at, advice, counts, service, "
-                         "seconds, prompt, conversation, names) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '[]', ?)",
+                         "seconds, prompt, conversation, names, judgment) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '[]', ?, ?)",
                          (request_id, model, datetime.now(timezone.utc).isoformat(), json.dumps(skills), json.dumps(counts),
-                          service, seconds, prompt_text, json.dumps(names or {})))
+                          service, seconds, prompt_text, json.dumps(names or {}), json.dumps(judgment or {})))
     finally:
         conn.close()
 
@@ -390,7 +488,8 @@ def _history(row, question: str) -> list[dict]:
     """F21: the advice and the conversation so far as messages, then the new question."""
     advice = json.loads(row["advice"])
     messages = [{"role": "assistant", "content": json.dumps({"vaardigheden": [
-        {"code": a["code"], "niveau": a["level"], "onderbouwing": a["reasoning"], "ontbreekt": a["missing"]} for a in advice]},
+        dict({"code": a["code"], "niveau": a["level"], "onderbouwing": a["reasoning"], "ontbreekt": a["missing"]},
+             **({"verschil": a["difference"]} if a.get("difference") else {})) for a in advice]},
         ensure_ascii=False)}]
     turns = json.loads(row["conversation"] or "[]")
     for i, turn in enumerate(turns):
@@ -456,8 +555,10 @@ class Jobs:
                                         history=history, cancel=cancel, progress=written)
             else:
                 url, _model = settings(self.database)
+                options = model_options(self.database)   # F29-F31
                 answer = ollama.chat(url, row["model"], system_prompt(self.database), row["prompt"], None, history=history,
-                                     num_ctx=NUM_CTX, cancel=cancel, progress=written)
+                                     num_ctx=options["num_ctx"], num_thread=options["num_thread"],
+                                     keep_alive=options["keep_alive"], cancel=cancel, progress=written)
             if not answer:
                 raise ollama.OllamaError("Het model gaf geen antwoord. Probeer het opnieuw.")
             add_turn(self.database, request_id, question, question_anon, answer, round(time.monotonic() - started))
@@ -471,16 +572,22 @@ class Jobs:
         finally:
             conn.close()
 
-    def start(self, request_id: int, service: str = "lokaal") -> bool:
+    def start(self, request_id: int, service: str = "lokaal", model: str | None = None,
+              judgment: dict | None = None) -> bool:
+        """F14: `model` is the chosen local model (None: the default); F25: `judgment` goes with it."""
         if service not in SERVICES:
             return False
+        if service == "lokaal":
+            model = model or settings(self.database)[1]
         with self.lock:
             job = self.jobs.get(request_id)
             if job and job["state"] == "running":
                 return False
-            self.jobs[request_id] = {"state": "running", "kind": "advice", "step": "Materiaal verzamelen…", "error": "", "service": service,
-                                     "service_label": SERVICES[service], "cancel": threading.Event()}
-        threading.Thread(target=self._run, args=(request_id, service), daemon=True).start()
+            label = f"{SERVICES[service]} · {model}" if service == "lokaal" else SERVICES[service]
+            self.jobs[request_id] = {"state": "running", "kind": "advice", "step": "Materiaal verzamelen…", "error": "",
+                                     "service": service, "choice": choice_key(service, model), "service_label": label,
+                                     "cancel": threading.Event()}
+        threading.Thread(target=self._run, args=(request_id, service, model, judgment), daemon=True).start()
         return True
 
     def stop(self, request_id: int) -> None:
@@ -494,9 +601,10 @@ class Jobs:
         with self.lock:
             self.jobs[request_id].update(values)
 
-    def _run(self, request_id: int, service: str) -> None:
+    def _run(self, request_id: int, service: str, model: str | None = None, judgment: dict | None = None) -> None:
         cancel = self.jobs[request_id]["cancel"]
-        url, model = settings(self.database)
+        url, default = settings(self.database)
+        model = model or default
         conn = db.connect(self.database)
         try:
             if service == "claude":
@@ -515,7 +623,8 @@ class Jobs:
 
             material = collect(conn, self.database, self.token_source(), request_id, date.today(), step, vision=vision)
             names = replacements(conn, material["student"])
-            text, images, counts = prompt(material, names)
+            options = model_options(self.database)   # F29-F31, fixed at the start of this advice (F32)
+            text, images, counts = prompt(material, names, judgment, options["budget"] if service != "claude" else None)
             step("Advies schrijven…")
             import time
             started = time.monotonic()
@@ -524,13 +633,14 @@ class Jobs:
                 self._set(request_id, step=f"Advies schrijven… ({int(time.monotonic() - started)} s)")
 
             if service == "claude":
-                answer = claude_ai.chat(api_key, system_prompt(self.database), text, schema(material["codes"]), images=images,
+                answer = claude_ai.chat(api_key, system_prompt(self.database), text, schema(material["codes"], bool(judgment)), images=images,
                                         cancel=cancel, progress=written)
             else:
-                answer = ollama.chat(url, model, system_prompt(self.database), text, schema(material["codes"]), images=[i["data"] for i in images],
-                                     num_ctx=NUM_CTX, cancel=cancel, progress=written)
+                answer = ollama.chat(url, model, system_prompt(self.database), text, schema(material["codes"], bool(judgment)), images=[i["data"] for i in images],
+                                     num_ctx=options["num_ctx"], num_thread=options["num_thread"],
+                                     keep_alive=options["keep_alive"], cancel=cancel, progress=written)
             save(self.database, request_id, model, check(answer, material["codes"]), counts, service,
-                 round(time.monotonic() - started), text, names)
+                 round(time.monotonic() - started), text, names, judgment)
             self._set(request_id, state="done", step="Klaar")
         except ollama.OllamaError as error:
             self._set(request_id, state="stopped" if cancel.is_set() else "error", error=error.message)
@@ -549,10 +659,13 @@ TRIAL = ("Vaardigheid PL (Plannen). De student vraagt niveau 1.\nZelfevaluatie: 
          "eigen werk en houdt die bij.\nBewijsstukken: Planning sprint 2 (bestand).\nGeef het advies.")
 
 
-def trial(url: str, model: str, system: str = SYSTEM) -> dict:
-    """A small invented evaluation; returns {'seconds', 'level'} or raises OllamaError."""
+def trial(url: str, model: str, system: str = SYSTEM, options: dict | None = None) -> dict:
+    """A small invented evaluation; returns {'seconds', 'level'} or raises OllamaError. `options`
+    (model_options, F29, F31): the cores and unloading; the context stays small."""
     import time
+    options = options or {}
     started = time.monotonic()
-    answer = ollama.chat(url, model, system, TRIAL, schema(["PL"]), num_ctx=4096, timeout=600)
+    answer = ollama.chat(url, model, system, TRIAL, schema(["PL"], difference=False), num_ctx=4096, timeout=600,
+                         num_thread=options.get("num_thread"), keep_alive=options.get("keep_alive"))
     advice = check(answer, ["PL"])
     return {"seconds": round(time.monotonic() - started), "level": advice[0]["level"]}

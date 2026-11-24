@@ -94,7 +94,7 @@
             {% set names = state.models|map(attribute="name")|list %}
             {% if default_model not in names %}<option value="{{ default_model }}" {% if state.model == default_model %}selected{% endif %}>{{ default_model }} (voorstel, nog niet gedownload)</option>{% endif %}
             {% if state.model not in names and state.model != default_model %}<option value="{{ state.model }}" selected>{{ state.model }} (nog niet gedownload)</option>{% endif %}
-            {% for m in state.models %}<option value="{{ m.name }}" {% if m.name == state.model %}selected{% endif %}>{{ m.name }} ({{ m.size_gb|string|replace(".", ",") }} GB){% if m.name == default_model %} · voorstel{% endif %}</option>{% endfor %}
+            {% for m in state.models %}<option value="{{ m.name }}" {% if m.name == state.model %}selected{% endif %}>{{ m.name }} ({{ m.size_gb|string|replace(".", ",") }} GB){% if m.name == default_model %} (aangeraden){% endif %}</option>{% endfor %}
           </select>
         </label>
         <noscript><button class="button button-secondary" type="submit">Kiezen</button></noscript>

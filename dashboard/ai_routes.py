@@ -78,21 +78,52 @@ def save_settings():
     model = request.form.get("model", "").strip()
     url = request.form.get("url", "").strip()
     if model:
+        if not ollama.valid_name(model):
+            abort(400)
         db.set_setting(database, ollama.S_MODEL, model)
     if url:
         if not ollama.is_local(url):
             return redirect(url_for("ai.setup", fout="adres"))
         db.set_setting(database, ollama.S_URL, url.rstrip("/"))
+    if request.form.get("terug") == "instellingen":   # F27: the default model chosen in Instellingen
+        return redirect(url_for("pages.settings", model="ok") + "#ai-advies")
     return redirect(url_for("ai.setup") + "#stap-" + request.form.get("stap", "3"))
+
+
+@bp.post("/instellingen/ai-advies/laptop")
+def laptop_save():
+    """F29-F32: how much of the laptop the local model may use; from the next advice on."""
+    database = _database()
+    try:
+        threads = int(request.form.get("kernen", ""))
+    except ValueError:
+        abort(400)
+    context = request.form.get("materiaal", "")
+    if not 1 <= threads <= ollama.cores() or context not in ollama.CONTEXTS:
+        abort(400)
+    db.set_setting(database, ollama.S_THREADS, str(threads))
+    db.set_setting(database, ollama.S_CONTEXT, context)
+    db.set_setting(database, ollama.S_UNLOAD, "1" if request.form.get("vrijgeven") == "1" else "")
+    return redirect(url_for("pages.settings", laptop="ok") + "#ai-laptop")
 
 
 @bp.post("/instellingen/ai-advies/downloaden")
 def pull():
-    """F12, step 3: let Ollama download the chosen model."""
+    """F12, step 3: let Ollama download the chosen model; F28: or the model named in the form."""
     url, model = ai_advice.settings(_database())
+    named = request.form.get("model", "").strip()
+    if named:
+        if not ollama.valid_name(named):
+            message = f"\"{named[:100]}\" is geen geldige modelnaam (bijvoorbeeld gemma4:e4b)."
+            if request.headers.get("X-Requested-With") == "fetch":
+                return jsonify(dict(current_app.extensions["ollama_pull"].status(), error=message, running=False))
+            abort(400)
+        model = named
     current_app.extensions["ollama_pull"].start(url, model)
     if request.headers.get("X-Requested-With") == "fetch":
         return jsonify(current_app.extensions["ollama_pull"].status())
+    if request.form.get("terug") == "instellingen":
+        return redirect(url_for("pages.settings") + "#ai-advies")
     return redirect(url_for("ai.setup") + "#stap-3")
 
 
@@ -108,7 +139,7 @@ def trial():
     database = _database()
     url, model = ai_advice.settings(database)
     try:
-        result = ai_advice.trial(url, model, ai_advice.system_prompt(database))
+        result = ai_advice.trial(url, model, ai_advice.system_prompt(database), ai_advice.model_options(database))
     except ollama.OllamaError as error:
         return jsonify(ok=False, message=error.message)
     db.set_setting(database, S_TRIAL, json.dumps({"model": model, "seconds": result["seconds"]}))
@@ -158,16 +189,32 @@ def prompts_save():
 
 # The advice on the evaluation page -----------------------------------------------------------------
 
-def card_context(conn, request_id: int) -> dict:
-    """What the advice card needs (F1-F10)."""
+def card_context(conn, request_id: int, judgment: dict | None = None, error: str = "") -> dict:
+    """What the advice card needs (F1-F10, F24-F26). `judgment` and `error`: a form that was sent
+    back because the own judgment was not complete (F24)."""
     database = _database()
     from datetime import date
     start, end, _ = semester_period(conn, date.today())
     data = evaluation_page.build(conn, request_id, date.today(), start, end)
-    return {"advice_request_id": request_id, "advice": ai_advice.saved(conn, request_id),
-            "advice_job": current_app.extensions["ai_jobs"].status(request_id),
-            "advice_ready": readiness(database), "advice_services": ai_advice.available(database, _user()),
-            "advice_counts": ai_advice.overview(data) if data else None}
+    advice = ai_advice.saved(conn, request_id)
+    job = current_app.extensions["ai_jobs"].status(request_id)
+    services = ai_advice.available(database, _user())
+    # F14: the AI of a running or failed job, else the one of the advice, else the default model.
+    if job and job.get("kind") == "advice" and job.get("choice"):
+        chosen = job["choice"]
+    elif advice:
+        chosen = ai_advice.choice_key(advice["service"], advice["model"])
+    else:
+        chosen = ai_advice.choice_key("lokaal", ai_advice.settings(database)[1])
+    if chosen not in {s["key"] for s in services}:
+        chosen = services[0]["key"] if services else ""
+    skills = [{"code": s["code"], "name": s["name"], "assessor": s["assessor"]} for s in data["skills"]] if data else []
+    own = judgment if judgment is not None else ai_advice.saved_judgment(conn, request_id)
+    return {"advice_request_id": request_id, "advice": advice, "advice_job": job,
+            "advice_ready": readiness(database), "advice_services": services, "advice_choice": chosen,
+            "advice_counts": ai_advice.overview(data) if data else None,
+            "judgment_skills": skills, "judgment": own, "judgment_error": error,
+            "judgment_complete": ai_advice.judgment_complete([s["code"] for s in skills], own)}
 
 
 @bp.get("/evaluaties/<int:request_id>/advies")
@@ -175,15 +222,32 @@ def advice_card(request_id: int):
     return render_template("_ai_advice.html", **card_context(get_db(), request_id))
 
 
+JUDGMENT_MISSING = "Vul eerst bij elke vaardigheid je eigen niveau en een toelichting in."
+
+
 @bp.post("/evaluaties/<int:request_id>/advies")
 def advice_start(request_id: int):
-    """F1, F9: ask (or ask again) for an advice; it is made in the background (F4)."""
-    if not get_db().execute("SELECT 1 FROM evaluations WHERE review_request_id = ? LIMIT 1", (request_id,)).fetchone():
+    """F1, F9: ask (or ask again) for an advice; it is made in the background (F4). F24: only with a
+    complete own judgment, which is kept (F26) and sent with it (F25)."""
+    conn = get_db()
+    if not conn.execute("SELECT 1 FROM evaluations WHERE review_request_id = ? LIMIT 1", (request_id,)).fetchone():
         abort(404)
-    service = request.form.get("dienst", "lokaal")
-    if service not in {s["key"] for s in ai_advice.available(_database(), _user())}:
+    choice = request.form.get("dienst", "lokaal")
+    services = {s["key"] for s in ai_advice.available(_database(), _user())}
+    if choice not in services and not (choice == "lokaal" and ai_advice.choice_key("lokaal", ai_advice.settings(_database())[1]) in services):
         abort(400)
-    current_app.extensions["ai_jobs"].start(request_id, service)
+    from datetime import date
+    start, end, _ = semester_period(conn, date.today())
+    data = evaluation_page.build(conn, request_id, date.today(), start, end)
+    codes = data["codes"] if data else []
+    judgment = ai_advice.judgment_from_form(codes, request.form)
+    if not ai_advice.judgment_complete(codes, judgment):
+        if request.headers.get("X-Requested-With") == "fetch":
+            return render_template("_ai_advice.html", **card_context(conn, request_id, judgment, JUDGMENT_MISSING))
+        abort(400)
+    ai_advice.save_judgment(_database(), request_id, judgment)
+    service, model = ai_advice.parse_choice(choice, _database())
+    current_app.extensions["ai_jobs"].start(request_id, service, model, judgment)
     if request.headers.get("X-Requested-With") == "fetch":
         return advice_card(request_id)
     return redirect(url_for("pages.evaluation_page", request_id=request_id) + "#ai-advies")
