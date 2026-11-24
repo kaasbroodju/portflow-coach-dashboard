@@ -162,6 +162,17 @@ Gekozen: `gemma4:12b-it-qat` als voorstel voor iedereen.
 
 Gevolg: `gemma4:e4b` is het lichtere alternatief (minder rekenwerk per woord, wel een groter bestand); `gemma4:e2b` wordt niet aangeraden.
 
+**Proef met een Europese maker (2026-11-24)**, op verzoek van de gebruiker: Ministral 3 van Mistral (Frankrijk), beide lezen afbeeldingen. Dezelfde verzonnen evaluatie, nu met de juiste naam van BD (Boodschap delen; in de vorige proef stond per ongeluk "Bouwen en ontwikkelen") en een zelfevaluatie over een presentatie in de sprintreview, zonder bewijsstukken:
+
+| Model | Grootte | Tijd | Bevinding |
+|---|---|---|---|
+| ministral-3:8b | 6,0 GB | 30 s | Niet aangeraden: PL goed, maar bij BD trok het een conclusie "die niet expliciet in het materiaal staat"; schrijft opmaaktekens (`**vet**`) die het dashboard als tekst toont |
+| ministral-3:14b | 9,1 GB | 87 s | Niet aangeraden: traag, zeer lang en vol opmaak, en noemde bij PL dingen die niet in het materiaal stonden ("learning stories, DevOps-taken") |
+| gemma4:e4b | 9,6 GB | 18 s | Bruikbaar, maar gaf bij BD zonder bewijs nu niveau 1 (vorige proef 0) |
+| gemma4:12b-it-qat | 7,2 GB | 30 s | Weer het best: BD 0, korte en concrete onderbouwing en ontwikkelpunt |
+
+Gevolg: de Ministral-modellen komen niet in de lijst met geteste modellen (F28); `gemma4:12b-it-qat` blijft het voorstel.
+
 ## Onderzoek: Microsoft 365 Copilot (2026-11-22)
 
 Uit de documentatie van Microsoft (Microsoft 365 Copilot Chat API, Microsoft Learn):
@@ -243,3 +254,4 @@ Geen eigen ontwerp: een kaart onderaan de evaluatiepagina, in de stijl van het d
 - 2026-11-24 – nagekeken met echte gegevens: met `gemma4:12b-it-qat` een advies met eigen oordeel en vergelijking in 1 min 56 s (19 bewijsstukken, 3 afbeeldingen). Met `gemma4:e4b` liep hetzelfde verzoek met alle bewijsstukken na ongeveer 10 minuten vast op "geen geldig antwoord"; zonder de inhoud van bewijsstukken gaf e4b wel binnen 21 s een goed advies met vergelijking. Het lichtere model lijkt bij veel materiaal niet te stoppen met schrijven; de gebruiker koos ervoor dit zo te laten
 - 2026-11-24 – op verzoek van de gebruiker: de laptop ontlasten met instellingen voor processorkernen, hoeveel materiaal (geheugen) en het model na het advies uit het geheugen halen (F29–F32); voor alle lokale modellen samen
 - 2026-11-24 – gebouwd: F29–F32. Instellingen `ai_threads`, `ai_context` en `ai_unload` (`ai_advice.laptop`, `ai_advice.model_options`); `ollama.chat` stuurt `num_thread` en `keep_alive` mee; de grens van F8 hangt nu af van de keuze bij F30 (Claude houdt de grens van Veel). Bij een ongeldige waarde in de database gelden de standaarden. Nagekeken: Ollama accepteert de opties, en met `keep_alive: 0` staat het model direct na het antwoord niet meer in het geheugen. Tests in `tests/test_ai_advice.py` (TestLaptopLimits)
+- 2026-11-24 – proef met ministral-3:8b en ministral-3:14b (Mistral) op verzoek van de gebruiker (zie Onderzoek): geen van beide aangeraden. De regel over de grafische chip in Instellingen is op verzoek van de gebruiker niet gebouwd
