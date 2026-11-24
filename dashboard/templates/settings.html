@@ -33,9 +33,7 @@
 <section class="card" id="ai-advies">
   <h2>AI-advies</h2>
   <p class="muted">Een AI-model op deze laptop (Ollama) kan bij een evaluatie een advies over het niveau geven. Er gaan geen gegevens van de laptop af.</p>
-  <p>{% if ai.ready %}<span class="ai-ok">✓</span> Ollama {{ ai.version }} draait, model <strong>{{ ai.model }}</strong> is geïnstalleerd.
-     {% elif ai.version %}Ollama {{ ai.version }} draait, maar het model <strong>{{ ai.model }}</strong> is nog niet geïnstalleerd.
-     {% else %}Ollama is niet gevonden op deze laptop.{% endif %}</p>
+  <p id="ai-status" class="muted" data-load-fragment="{{ url_for('ai.settings_status') }}">Ollama controleren…</p>
   <a class="button button-secondary" href="{{ url_for('ai.setup') }}">AI-advies instellen</a>
 </section>
 

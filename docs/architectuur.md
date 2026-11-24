@@ -124,6 +124,7 @@ De uitgewerkte eisen en de toestanden van de verbinding staan in [spec 003](../f
 - **Uitzondering:** direct na het allereerste verbinden (nog nooit opgehaald) start de eerste ophaalronde vanzelf, voor alle studenten ([spec 019](../features/019-eenvoudige-start/spec.md), F2).
 - Verversen haalt de evaluaties op van alle studenten die niet verborgen zijn, en begint met de studenten die **op dat moment zichtbaar** zijn (de lijst op Overzicht, de tabel op Evaluaties, de student op zijn eigen pagina); daarna studenten die in die ronde nieuw zijn toegevoegd, dan de rest. De lijst met gedeelde portfolio's wordt altijd volledig opgehaald ([spec 019](../features/019-eenvoudige-start/spec.md), F14).
 - Tijdens het ophalen is de voortgang zichtbaar. Feedback items worden parallel opgehaald, hooguit 8 tegelijk.
+- Verversen haalt een student alleen volledig op als zijn reviewlijst in Portflow sinds de vorige volledige ronde is veranderd; **Shift+klik** op Verversen haalt iedereen volledig op ([spec 041](../features/041-sneller-verversen/spec.md)).
 - De uitgewerkte eisen staan in [spec 005](../features/005-gegevens-ophalen/spec.md).
 
 ## Privacy

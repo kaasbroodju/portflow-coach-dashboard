@@ -45,6 +45,12 @@ def _trial(database: str, model: str) -> dict | None:
     return value if isinstance(value, dict) and value.get("model") == model else None
 
 
+@bp.get("/instellingen/ollama")
+def settings_status():
+    """F11: the state of Ollama for Instellingen, loaded after the page (a stopped Ollama takes 2 s)."""
+    return render_template("_ai_status.html", ai=readiness(_database()))
+
+
 @bp.get("/instellingen/ai-advies")
 def setup():
     """F12: the wizard, with the checks done when the page opens (and with every "Controleren")."""

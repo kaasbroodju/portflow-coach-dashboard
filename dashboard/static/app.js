@@ -22,6 +22,22 @@
     });
   }
 
+  // "Verversen": update the button's attributes and text in place, so the spinning icon
+  // (CSS, driven by aria-busy) keeps turning instead of restarting at every update.
+  function updateRefresh(html) {
+    const form = document.getElementById("refresh");
+    const button = form?.querySelector("button.refresh-button");
+    const template = document.createElement("template");
+    template.innerHTML = html.trim();
+    const fresh = template.content.querySelector("button.refresh-button");
+    if (!button || !fresh) return replace("refresh", html);
+    for (const name of ["aria-busy", "title", "disabled"]) {
+      if (fresh.hasAttribute(name)) button.setAttribute(name, fresh.getAttribute(name));
+      else button.removeAttribute(name);
+    }
+    button.querySelector(".status-text").innerHTML = fresh.querySelector(".status-text").innerHTML;
+  }
+
   function replace(id, html, keepOpen) {
     const old = document.getElementById(id);
     if (!old) return;
@@ -80,7 +96,7 @@
         replace("portflow-banner", status.banner_html);
         replace("sidebar-user", status.user_html);
         replace("topbar-avatar", status.avatar_html);
-        replace("refresh", status.refresh_html);
+        updateRefresh(status.refresh_html);
       }
       if (!typing) fingerprint = status.fingerprint;
     } catch {
@@ -96,10 +112,21 @@
 
   // Spec 019, F14: "Verversen" fetches the students visible on the page first: the list on
   // Overzicht (after filters and search), the table on Evaluaties, the student of a student page.
+  // Spec 041, F3: Shift+click fetches every student fully instead of only the changed ones.
+  let refreshFull = false;
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("form.refresh button")) refreshFull = event.shiftKey;
+  }, true);
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!form.matches("form.refresh")) return;
-    form.querySelectorAll("input[name=student]").forEach((el) => el.remove());
+    form.querySelectorAll("input[name=student], input[name=full]").forEach((el) => el.remove());
+    if (refreshFull) {
+      const full = document.createElement("input");
+      full.type = "hidden"; full.name = "full"; full.value = "1";
+      form.appendChild(full);
+      refreshFull = false;
+    }
     const add = (value) => {
       const input = document.createElement("input");
       input.type = "hidden"; input.name = "student"; input.value = value;
@@ -164,6 +191,15 @@
 
     updateSubmit();
   }
+
+  // A piece of a page that is slow to make (Instellingen: the state of Ollama, spec 040 F11) is
+  // loaded after the page and replaces its placeholder.
+  document.querySelectorAll("[data-load-fragment]").forEach((placeholder) => {
+    fetch(placeholder.dataset.loadFragment, { headers: { Accept: "text/html" } })
+      .then((response) => (response.ok ? response.text() : Promise.reject(new Error("fragment"))))
+      .then((html) => { placeholder.outerHTML = html; })
+      .catch(() => { placeholder.textContent = "De status kon niet worden opgehaald."; });
+  });
 
   const loading = document.getElementById("portflow-list-loading");
   if (loading) {

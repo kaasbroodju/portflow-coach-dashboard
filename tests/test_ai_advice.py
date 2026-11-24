@@ -298,10 +298,12 @@ class TestWizard(AdviceCase):   # F11, F12
         self.assertEqual(ai_advice.settings(self.db_path), ("http://localhost:11434", "qwen3.5:9b"))
 
     def test_section_in_settings(self):   # F11
-        with FakeOllama():
-            html = self.client.get("/instellingen").get_data(as_text=True)
+        html = self.client.get("/instellingen").get_data(as_text=True)
         self.assertIn("AI-advies instellen", html)
-        self.assertIn(f"model <strong>{ollama.DEFAULT_MODEL}</strong> is geïnstalleerd", html)
+        self.assertIn('data-load-fragment="/instellingen/ollama"', html)   # the state follows separately
+        with FakeOllama():
+            status = self.client.get("/instellingen/ollama").get_data(as_text=True)
+        self.assertIn(f"model <strong>{ollama.DEFAULT_MODEL}</strong> is geïnstalleerd", status)
 
 
 if __name__ == "__main__":

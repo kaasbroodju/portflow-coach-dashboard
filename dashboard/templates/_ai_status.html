@@ -1,0 +1,5 @@
+{# Spec 040, F11: the state of Ollama in Instellingen, loaded separately by app.js (GET /instellingen/ollama),
+   because asking a stopped Ollama takes up to 2 seconds. #}
+<p id="ai-status">{% if ai.ready %}<span class="ai-ok">✓</span> Ollama {{ ai.version }} draait, model <strong>{{ ai.model }}</strong> is geïnstalleerd.
+   {% elif ai.version %}Ollama {{ ai.version }} draait, maar het model <strong>{{ ai.model }}</strong> is nog niet geïnstalleerd.
+   {% else %}Ollama is niet gevonden op deze laptop.{% endif %}</p>
