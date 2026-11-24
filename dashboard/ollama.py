@@ -8,6 +8,7 @@ import ctypes
 import json
 import os
 import platform
+import re
 import sys
 import threading
 import time
@@ -22,7 +23,39 @@ MIN_MEMORY_GB = 16
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 S_URL = "ai_ollama_url"
 S_MODEL = "ai_model"
+S_THREADS = "ai_threads"        # F29: processor cores for the model
+S_CONTEXT = "ai_context"        # F30: how much material per advice
+S_UNLOAD = "ai_unload"          # F31: "1": unload the model right after the advice
+# F30: per choice the tokens the model may use (memory) and the characters of material (F8).
+CONTEXTS = {"weinig": (8192, 20000), "normaal": (16384, 40000), "veel": (32768, 80000)}
+DEFAULT_CONTEXT = "veel"
+
+
+def cores() -> int:
+    """F29: the number of processor cores (threads) of the laptop."""
+    return max(1, os.cpu_count() or 1)
+
+
+def default_threads() -> int:
+    """F29: all cores but one, so the laptop keeps responding."""
+    return max(1, cores() - 1)
 DOWNLOAD_URL = "https://ollama.com/download"
+
+# F28: the models tested for the advice (spec 040, Onderzoek), offered for download in Instellingen.
+TESTED_MODELS = [
+    {"name": DEFAULT_MODEL, "size": DEFAULT_MODEL_SIZE, "memory": "16 GB of meer",
+     "note": "Aangeraden: de beste balans tussen kwaliteit en snelheid."},
+    {"name": "gemma4:e4b", "size": "9,6 GB", "memory": "16 GB",
+     "note": "Lichter: ongeveer twee keer zo snel, het advies is iets minder goed. Voor een laptop waarop het aangeraden model zwaar is."},
+    {"name": "gemma4:26b", "size": "18 GB", "memory": "32 GB of meer",
+     "note": "Zwaarder: het zorgvuldigst, maar traag en alleen voor een laptop met veel geheugen."},
+]
+MODEL_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._\-/]*(:[A-Za-z0-9._\-]+)?")
+
+
+def valid_name(name: str) -> bool:
+    """F28: a model name as `ollama pull` takes it (e.g. gemma4:e4b)."""
+    return len(name) <= 100 and bool(MODEL_NAME.fullmatch(name))
 
 
 class OllamaError(Exception):
@@ -158,16 +191,20 @@ class Pull:
 
 def chat(url: str, model: str, system: str, user: str, schema: dict | None, *, images: list[str] = (),
          history: list[dict] = (), num_ctx: int = 16384, cancel: threading.Event | None = None, progress=None,
-         timeout: float = 900):
+         timeout: float = 900, num_thread: int | None = None, keep_alive: int | str | None = None):
     """F5: a question with a fixed JSON answer (Ollama's `format`); without a schema a free text answer
     (F21, with `history`: earlier user/assistant messages after the first). Streams, so it can be
     stopped (F4) and shows progress. Returns the parsed JSON or the text; raises OllamaError."""
     first = {"role": "user", "content": user}
     if images:
         first["images"] = list(images)
-    body = {"model": model, "stream": True, "think": False,
-            "options": {"temperature": 0.2, "num_ctx": num_ctx},
+    options = {"temperature": 0.2, "num_ctx": num_ctx}
+    if num_thread:
+        options["num_thread"] = num_thread          # F29
+    body = {"model": model, "stream": True, "think": False, "options": options,
             "messages": [{"role": "system", "content": system}, first, *history]}
+    if keep_alive is not None:
+        body["keep_alive"] = keep_alive              # F31
     if schema is not None:
         body["format"] = schema
     parts: list[str] = []

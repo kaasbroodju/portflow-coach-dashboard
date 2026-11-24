@@ -33,7 +33,7 @@
 <section class="card" id="ai-advies">
   <h2>AI-advies</h2>
   <p class="muted">Een AI-model op deze laptop (Ollama) kan bij een evaluatie een advies over het niveau geven. Er gaan geen gegevens van de laptop af.</p>
-  <p id="ai-status" class="muted" data-load-fragment="{{ url_for('ai.settings_status') }}">Ollama controleren…</p>
+  <div id="ai-status" data-load-fragment="{{ url_for('ai.settings_status', model=request.args.get('model'), laptop=request.args.get('laptop')) }}"><p class="muted">Ollama controleren…</p></div>
   <a class="button button-secondary" href="{{ url_for('ai.setup') }}">AI-advies instellen</a>
 </section>
 

@@ -19,6 +19,7 @@
   <details class="ai-advice-sent">
     <summary>Wat gaat er naar het model?</summary>
     <ul>
+      <li>Jouw eigen oordeel per vaardigheid: het niveau en je toelichting.</li>
       <li>De toelichting en de zelfevaluatie van {{ advice_counts.skills }} vaardighe{{ "id" if advice_counts.skills == 1 else "den" }}, met het niveau dat de student vraagt.</li>
       <li>De LEF-teksten van alle niveaus van die vaardigheden.</li>
       <li>{{ advice_counts.evidence }} bewijsstuk{{ "ken" if advice_counts.evidence != 1 }} uit deze semesterperiode{% if advice_counts.files %}, waarvan {{ advice_counts.files }} met bestanden (de tekst, of een afbeelding als afbeelding){% endif %}.</li>
@@ -42,12 +43,32 @@
   </div>
   {% else %}
   {% if job and job.kind == "advice" and job.state in ("error", "stopped") %}<p class="panel-message" role="alert">{{ job.error }}</p>{% endif %}
-  <form method="post" action="{{ url_for('ai.advice_start', request_id=advice_request_id) }}" class="ai-advice-ask" data-advice-form>
-    <label>AI <select name="dienst">
-      {% for s in advice_services %}<option value="{{ s.key }}" {% if (job and job.service == s.key) or (not job and advice and advice.service == s.key) %}selected{% endif %}>{{ s.label }}</option>{% endfor %}
-    </select></label>
-    <button class="button{% if advice %} button-secondary{% endif %}" type="submit" {% if busy %}disabled{% endif %}>{% if advice %}Opnieuw vragen{% else %}Advies vragen{% endif %}</button>
-    {% if advice and advice.conversation %}<span class="muted">Een nieuw advies wist het gesprek hieronder.</span>{% endif %}
+  <form method="post" action="{{ url_for('ai.advice_start', request_id=advice_request_id) }}" data-advice-form data-judgment-form>
+    {# F24: first the assessor's own judgment, per requested skill #}
+    <fieldset class="ai-judgment">
+      <legend>Jouw oordeel</legend>
+      <p class="muted">Vul eerst zelf per vaardigheid een niveau en een toelichting in. Daarna kun je het advies vragen; de AI vergelijkt zijn advies met jouw oordeel.</p>
+      {% for s in judgment_skills %}{% set own = judgment.get(s.code) or {} %}
+      <div class="ai-judgment-skill">
+        <label class="ai-judgment-level"><span><span class="skill-code">{{ s.code }}</span> {{ s.name }} <span class="muted">({{ s.assessor }})</span></span>
+          <select name="oordeel_niveau_{{ s.code }}" required>
+            <option value="" {% if own.level is none %}selected{% endif %}>Niveau…</option>
+            {% for n in range(5) %}<option value="{{ n }}" {% if own.level == n %}selected{% endif %}>{{ n }}</option>{% endfor %}
+          </select>
+        </label>
+        <textarea name="oordeel_{{ s.code }}" rows="2" required aria-label="Toelichting bij {{ s.code }}" placeholder="Waarom dit niveau?">{{ own.text or "" }}</textarea>
+      </div>
+      {% endfor %}
+    </fieldset>
+    {% if judgment_error %}<p class="panel-message" role="alert">{{ judgment_error }}</p>{% endif %}
+    <div class="ai-advice-ask">
+      <label>AI <select name="dienst">
+        {% for s in advice_services %}<option value="{{ s.key }}" {% if s.key == advice_choice %}selected{% endif %}>{{ s.label }}</option>{% endfor %}
+      </select></label>
+      <button class="button{% if advice %} button-secondary{% endif %}" type="submit" {% if busy or not judgment_complete %}disabled{% endif %}>{% if advice %}Opnieuw vragen{% else %}Advies vragen{% endif %}</button>
+      <span class="muted" data-judgment-hint {% if judgment_complete %}hidden{% endif %}>Vul eerst je eigen oordeel in.</span>
+      {% if advice and advice.conversation %}<span class="muted">Een nieuw advies wist het gesprek hieronder.</span>{% endif %}
+    </div>
   </form>
   {% endif %}
   {% endif %}
@@ -57,8 +78,10 @@
     {% for s in advice.skills %}
     <article class="ai-advice-skill">
       <h3><span class="skill-code">{{ s.code }}</span> {{ s.name }}
-        <span class="ai-advice-level" title="Voorgesteld niveau (AI)">advies: niveau {{ s.level }}</span></h3>
+        {% if s.own %}<span class="ai-advice-own" title="Jouw oordeel">jij: niveau {{ s.own.level }}</span>{% endif %}
+        <span class="ai-advice-level{% if not s.own %} is-alone{% endif %}" title="Voorgesteld niveau (AI)">advies: niveau {{ s.level }}</span></h3>
       <p>{{ s.reasoning }}</p>
+      {% if s.difference %}<p class="ai-advice-difference"><strong>Vergeleken met jouw oordeel:</strong> {{ s.difference }}</p>{% endif %}
       {% if s.missing %}<p class="ai-advice-missing"><strong>Nog te laten zien:</strong> {{ s.missing }}</p>{% endif %}
     </article>
     {% endfor %}

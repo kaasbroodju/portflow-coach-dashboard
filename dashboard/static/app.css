@@ -1160,7 +1160,8 @@ a.evidence-dot:hover { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25); }
 .ai-advice-skills { margin-top: 16px; }
 .ai-advice-skill { padding: 12px 0; border-top: 1px solid var(--border); }
 .ai-advice-skill h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 15px; }
-.ai-advice-level { margin-left: auto; padding: 2px 10px; border: 1px dashed #b9a27c; border-radius: 12px; font-size: 12px; font-weight: 500; color: #6b5432; }
+.ai-advice-own { margin-left: auto; padding: 2px 10px; border: 1px solid var(--border); border-radius: 12px; font-size: 12px; font-weight: 500; }
+.ai-advice-level { padding: 2px 10px; border: 1px dashed #b9a27c; border-radius: 12px; font-size: 12px; font-weight: 500; color: #6b5432; }
 .ai-advice-skill p { margin: 0 0 6px; font-size: 14px; }
 .ai-advice-missing { color: var(--text-muted); }
 .wizard-toc { font-size: 14px; }
@@ -1195,3 +1196,29 @@ a.evidence-dot:hover { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25); }
 .overview-table .level-grey { min-height: 1.5em; }
 .overview-table .col-hide .icon-button { width: 24px; height: 24px; }
 .overview-table .col-hide .icon-button .icon { width: 16px; height: 16px; }
+
+/* Spec 040, F24, F25: the assessor's own judgment before the advice */
+.ai-advice-level.is-alone { margin-left: auto; }
+.ai-judgment { margin: 0 0 12px; padding: 0; border: 0; }
+.ai-judgment legend { padding: 0; font-weight: 600; font-size: 15px; }
+.ai-judgment > p { margin: 2px 0 10px; font-size: 13px; }
+.ai-judgment-skill { display: grid; grid-template-columns: minmax(200px, 260px) 1fr; gap: 10px; align-items: start; margin: 0 0 10px; }
+.ai-judgment-level { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.ai-judgment-level select { width: 120px; }
+.ai-judgment-skill textarea { width: 100%; font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-small); resize: vertical; }
+.ai-advice-difference { font-size: 14px; }
+
+/* Spec 040, F28: tested models in Instellingen */
+.ai-models { width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: 14px; }
+.ai-models th, .ai-models td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+.ai-models th { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+.ai-models td:last-child { white-space: nowrap; text-align: right; }
+
+/* Spec 040, F29-F32: the laptop limits in Instellingen */
+.ai-laptop { display: flex; flex-direction: column; gap: 8px; margin: 0 0 16px; }
+.ai-laptop p { margin: 0; font-size: 13px; }
+.ai-laptop-row { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; border: 0; font-size: 14px; }
+.ai-laptop-row legend { padding: 0; margin-bottom: 6px; }
+.ai-laptop-slider { display: flex; align-items: center; gap: 12px; }
+.ai-laptop-slider input { width: 260px; }
+.ai-laptop-choice { display: block; font-size: 14px; }
