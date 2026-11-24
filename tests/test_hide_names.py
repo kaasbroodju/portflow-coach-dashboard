@@ -65,7 +65,8 @@ class TestSwitch(HideNamesCase):
 
     def test_avatars_show_the_number(self):   # F3
         self.switch(True)
-        self.assertIn('<span class="avatar avatar-small">2</span>', self.html("/"))
+        self.assertIn('<span class="avatar avatar-small">2</span>', self.html("/studenten"))   # no avatars on Overzicht (spec 001, F2)
+        self.assertNotIn('class="avatar avatar-small"', self.html("/"))
         self.assertIn('title="Student 3">3</span>', self.html("/projecten"))
 
     def test_switch_off_again_and_not_after_restart(self):   # F5, F6

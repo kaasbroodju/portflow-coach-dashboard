@@ -85,6 +85,11 @@
         <a class="crumb-link" href="{{ url_for('pages.' + menu_page.endpoint) }}">{{ menu_page.title }}</a>
         <span class="crumb-sep" aria-hidden="true">›</span>
         {% endif %}
+        {% if page.parent %}{# spec 039, F1: e.g. the student of an evaluation #}
+        {% if page.parent.href %}<a class="crumb-link" href="{{ page.parent.href }}">{{ page.parent.title }}</a>
+        {% else %}<span class="crumb-section">{{ page.parent.title }}</span>{% endif %}
+        <span class="crumb-sep" aria-hidden="true">›</span>
+        {% endif %}
         <h1 class="crumb-title">{{ page.title }}</h1>
       </nav>
       {% include "_portflow_status.html" %}

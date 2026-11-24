@@ -49,7 +49,7 @@
   <p class="muted table-empty">Geen studenten die aan deze filters voldoen.</p>
   {% else %}
   <div class="table-scroll">
-  <table class="student-table" id="students">
+  <table class="student-table overview-table" id="students">
     <thead>
       <tr>
         <th scope="col" class="col-student" data-sort="name" aria-sort="ascending"><button type="button">Student</button></th>
@@ -88,7 +88,6 @@
           data-sort-coach-full="{{ (row.coach_full or '~')|lower }}" data-sort-guild-master-full="{{ (row.guild_master_full or '~')|lower }}"
           data-sort-track="{{ (row.track or '~')|lower }}">
         <th scope="row" class="col-student">
-          <span class="avatar avatar-small">{{ row.initials }}</span>
           <span class="student-text">
             <span class="student-name">
               <a class="student-link" href="{{ url_for('pages.student_page', student_id=row.id, van='overview') }}">{{ row.name }}</a>{# spec 032, F1 #}
